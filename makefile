@@ -27,7 +27,6 @@ obj:
 .PHONY: clean
 clean:
 	@rm -rf "obj/"
-	@rm -f ${compilerPath}
 	@echo "Project clean."
 
 
@@ -44,14 +43,15 @@ compiler: obj
 				line=obj/$${line} ;										\
 				echo "$${line}" >>${compilerPath} ;						\
 				echo -e "\t@basename \"\$$@\"" >>${compilerPath} ;		\
-				echo -e "\t@g++ \$${src_only} \$${inc} -c ${gcc_options} -o \$$@" >>${compilerPath} ;	\
-				obj+=( $$(echo "$$line" | grep -oP "^\S+\.o") ) ;		\
-			};															\
-		done <<<"$$(g++ ${inc} -MM $$(${src_finder}))" ;				\
-																		\
-		echo "" >>${compilerPath} ;										\
-		echo "obj/program: $${obj[*]}" >>${compilerPath} ;				\
-		echo -e "\t@g++ \$$^ ${gcc_options} -o \$$@" >>${compilerPath}	\
+				echo -e "\t@g++ \$${src_only} \$${inc} -c \$${gcc_options} -o \$$@" >>${compilerPath} ;	\
+				obj+=( $$(echo "$$line" | grep -oP "^\S+\.o") ) ;			\
+			};																\
+		done <<<"$$(g++ ${inc} -MM $$(${src_finder}))" ;					\
+																			\
+		echo "" >>${compilerPath} ;											\
+		echo "obj/program: $${obj[*]}" >>${compilerPath} ;					\
+		echo -e "\t@g++ \$$^ \$${gcc_options} -o \$$@" >>${compilerPath} ;	\
+		echo -e "\t@echo program" >>${compilerPath}							\
 	'
 	
 -include compiler.mk
