@@ -17,6 +17,8 @@ using namespace csg;
 
 void f(){
 	
+	Rule r = Rule();
+	
 }
 
 
