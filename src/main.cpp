@@ -17,8 +17,6 @@ using namespace csg;
 
 void f(){
 	
-	Rule r = Rule();
-	
 }
 
 
@@ -26,6 +24,7 @@ void f(){
 
 
 int main(int argc, char** arg){
+	printf("================================\n");
 	string file_path = "test/test.csg";
 	
 	// Get input
@@ -41,9 +40,10 @@ int main(int argc, char** arg){
 	
 	f();
 	
-	// Parser* parser = new Parser();
-	// parser->parse(*in);
-	// delete parser;
+	
+	Parser* parser = new Parser();
+	parser->parse(*in);
+	delete parser;
 	
 	
 	// Close file
