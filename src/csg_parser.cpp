@@ -11,10 +11,11 @@ using namespace csg;
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-void printSrc(const RuleSource& src){
-	printf("[%d,%d): ", src.pos.start, src.pos.end);
-	printf("%d:%d-", src.row.start, src.row.end);
-	printf("%d:%d  ", src.col.start, src.col.end);
+// DEBUG
+void printSrc(const Source& src){
+	printf("[%d,%d): ", src.loc.start.i, src.loc.end.i);
+	printf("%d:%d-", src.loc.start.row, src.loc.end.row);
+	printf("%d:%d  ", src.loc.start.col, src.loc.end.col);
 	if (!src.str.empty())
 		printf("\"%s\"", src.str.c_str());
 	else
@@ -33,6 +34,12 @@ inline bool isSymbolChar(char c){
 }
 
 
+// ---------------------------------- [ Structures ] ---------------------------------------- //
+
+
+
+
+
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
@@ -47,18 +54,20 @@ void Parser::parse(istream& in){
 	this->in = &in;
 	reset();
 	
+	// TEMP
 	parseRule();
 }
 
 
 void Parser::parseRule(){
-	vector<RuleSource> tokens = vector<RuleSource>(8);
+	vector<Source> tokens = vector<Source>(8);
 	
+	// Parse left symbols
 	while (true){
 		skipWhiteSpace();
 		
-		RuleSource& token = tokens.emplace_back();
-		if (!parseLeftToken(token)){
+		Source& token = tokens.emplace_back();
+		if (!parseLeftSymbol(token)){
 			tokens.pop_back();
 			break;
 		}
@@ -71,7 +80,7 @@ void Parser::parseRule(){
 }
 
 
-bool Parser::parseLeftToken(RuleSource& src){
+bool Parser::parseLeftSymbol(Source& src){
 	char c = ch();
 	
 	// Starts with capital ASCII letter
@@ -110,18 +119,33 @@ void Parser::skipWhiteSpace(){
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-void Parser::startSrc(RuleSource& rec){
-	rec.pos.start = gi();
-	rec.row.start = ri;
-	rec.col.start = gi() - ci;
+bool Parser::match(const char* s, int n){
+	if (lookAhead(n) < n){
+		return false;
+	}
+	
+	for (int ii = 0 ; ii < n ; ii++){
+		if (buff[i+ii] != s[ii])
+			return false;
+	}
+	
+	i += n;
+	return true;
+}
+
+
+// ----------------------------------- [ Functions ] ---------------------------------------- //
+
+
+void Parser::startSrc(Source& rec){
+	rec.loc.start = getLoc();
+	rec.loc.end = rec.loc.start;
 	rec.str.clear();
 }
 
 
-void Parser::endSrc(RuleSource& rec){
-	rec.pos.end = gi();
-	rec.row.end = ri;
-	rec.col.end = gi() - ci;
+void Parser::endSrc(Source& rec){
+	rec.loc.end = getLoc();
 }
 
 
@@ -131,7 +155,7 @@ void Parser::endSrc(RuleSource& rec){
 void Parser::reset(){
 	i = 0;
 	bi = 0;
-	ci = 0;
+	ci0 = 0;
 	ri = 0;
 	eof = false;
 	if (buff == nullptr)
@@ -154,6 +178,12 @@ bool Parser::fillBuffer(){
 }
 
 
+void Parser::nl(){
+	ri++;
+	ci0 = gi() + 1;
+}
+
+
 int Parser::lookAhead(int count){
 	int chars = n - i;
 	
@@ -173,7 +203,7 @@ int Parser::lookAhead(int count){
 				delete _buff;
 			}
 			
-			// Move to beginning of buffer
+			// Move leftover chars (right side) to beginning of buffer (left side)
 			else if (i > 0){
 				copy(buff + i, buff + n, buff);
 			}
@@ -184,7 +214,7 @@ int Parser::lookAhead(int count){
 			space = buffSize - n - 1;
 		}
 		
-		// Fill buffer
+		// Fill empty space in buffer (right side) 
 		in->read(buff + n, space);
 		n += in->gcount();
 		buff[n] = 0;
@@ -193,24 +223,6 @@ int Parser::lookAhead(int count){
 	}
 	
 	return chars;
-}
-
-
-// ----------------------------------- [ Functions ] ---------------------------------------- //
-
-
-bool Parser::match(const char* s, int n){
-	if (lookAhead(n) < n){
-		return false;
-	}
-	
-	for (int ii = 0 ; ii < n ; ii++){
-		if (buff[i+ii] != s[ii])
-			return false;
-	}
-	
-	i += n;
-	return true;
 }
 
 

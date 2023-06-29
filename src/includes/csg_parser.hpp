@@ -8,29 +8,43 @@
 
 
 namespace csg {
+	struct Location;
+	struct Source;
 	class Parser;
-	struct RuleSource;
 }
+
+
+
+struct csg::Location {
+	int i;
+	int row;
+	int col;
+};
+
+
+
+struct csg::Source {
+	interval<csg::Location> loc;
+	std::string str;
+};
+
+
 
 
 class csg::Parser {
 // ------------------------------------[ Properties ] --------------------------------------- //
 private:
 	std::istream* in;
-	
 	int buffSize;
 	char* buff;
 	
-	int i;		// Local index of current buffer character
+private:
 	int n;		// Number of characters in buffer
+	int i;		// Local index of current buffer character
 	int bi;		// Global index of first character in buffer
 	int ri;		// Current global row index
-	int ci;		// Global index of first character in current row
+	int ci0;	// Current global index of character in column 0 of current row
 	bool eof;	// EOF reached
-	
-// ------------------------------------[ Properties ] --------------------------------------- //
-private:
-	std::vector<RuleSource> rules;
 	
 // ---------------------------------- [ Constructors ] -------------------------------------- //
 public:
@@ -38,6 +52,7 @@ public:
 	Parser(int buff) : buffSize{buff} {}
 	
 	Parser(Parser&) = delete;
+	Parser(Parser&&) = delete;
 	
 	~Parser(){
 		delete buff;
@@ -51,14 +66,13 @@ public:
 private:
 	void skipWhiteSpace();
 	void parseRule();
-	bool parseLeftToken(RuleSource& rec);
-	bool parseRightToken(RuleSource& rec);
+	bool parseLeftSymbol(Source& rec);
+	bool parseRightSymbol(Source& rec);
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 private:
-	void startSrc(RuleSource& rec);
-	void endSrc(RuleSource& rec);
-	void extractStr(RuleSource& rec, const std::string& str);
+	void startSrc(Source& rec);
+	void endSrc(Source& rec);
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 private:
@@ -70,12 +84,37 @@ private:
 	}
 	
 	/**
-	 * @brief Increment row index, set column index to global index of first character in the new row.
+	 * @return Current column index.
 	 */
-	inline void nl(){
-		ri++;
-		ci = gi() + 1;
+	inline int ci(){
+		return gi() - ci0;
 	}
+	
+	/**
+	 * @brief  Get current character in buffer, index is not incremented.
+	 *         Buffer is automatically refilled if needed.
+	 * @return Current character or '\0' if EOF.
+	 */ 
+	inline char ch(){
+		if (buff[i] == 0) [[unlikely]]
+			fillBuffer();
+		return buff[i];
+	}
+	
+	/**
+	 * @returns Current carret position.
+	 */
+	inline csg::Location getLoc(){
+		return {gi(), ri, ci()};
+	}
+	
+// ----------------------------------- [ Functions ] ---------------------------------------- //
+private:
+	/**
+	 * @brief  Try to match buff[i..i+n] with s[0..n]. Increment i by n if successful.
+	 * @return True if matched.
+	 */
+	bool match(const char* s, int n);
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 private:
@@ -92,43 +131,21 @@ private:
 	bool fillBuffer();
 	
 	/**
+	 * @brief Increment row index.
+	 *        Set column index to global index of first character in the new row.
+	 */
+	void nl();
+	
+	/**
 	 * @brief  Ensure buffer has at least n characters.
 	 * @return New amount of characters in buffer. Returned value can be less than n if EOF is reached.
 	 */
 	int lookAhead(int n);
 	
-	/**
-	 * @brief  Try to match buff[i..i+n] with s[0..n]. Increment i by n if successful.
-	 * @return True if matched.
-	 */
-	bool match(const char* s, int n);
-	
-	/**
-	 * @brief  Get current character in buffer, index is not incremented.
-	 *         Buffer is automatically refilled if needed.
-	 * @return Current character or '\0' if EOF.
-	 */ 
-	inline char ch(){
-		if (buff[i] == 0) [[unlikely]]
-			fillBuffer();
-		return buff[i];
-	}
-	
 // ----------------------------------- [ Operators ] ---------------------------------------- //
 public:
 	Parser& operator=(Parser&) = delete;
+	Parser& operator=(Parser&&) = delete;
 	
 // ------------------------------------------------------------------------------------------ //
 };
-
-
-
-
-struct csg::RuleSource {
-	interval<int> pos;
-	interval<int> row;
-	interval<int> col;
-	std::string str;
-	Rule* rule;
-};
-
