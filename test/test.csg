@@ -1,1 +1,7 @@
-A B C -> A B
+
+
+A B C -> B A
+
+A B C[a] -> B C[a]
+
+

@@ -5,8 +5,9 @@
 #include <fstream>
 #include <iostream>
 
-#include "csg_parser.hpp"
-#include "csg_rule.hpp"
+#include "util/ANSI.h"
+#include "Parser.hpp"
+
 
 using namespace std;
 using namespace csg;
@@ -38,13 +39,22 @@ int main(int argc, char** arg){
 	}
 	
 	
-	f();
-	
-	
-	Parser* parser = new Parser();
-	parser->parse(*in);
-	delete parser;
-	
+	// Parse
+	{
+		Parser* parser = new Parser();
+		
+		try {
+			parser->parse(*in);
+		}
+		catch (const ParserException& e) {
+			fprintf(stderr, ANSI_BOLD "%s:%d:%d: " ANSI_RED "error" ANSI_RESET ": %s\n", file_path.c_str(), e.loc.row+1, e.loc.col+1, e.what());
+		}
+		catch (const exception& e) {
+			fprintf(stderr, ANSI_RED "error" ANSI_RESET ":");
+		}
+		
+		delete parser;
+	}
 	
 	// Close file
 	if (inf != nullptr){

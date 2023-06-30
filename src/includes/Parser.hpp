@@ -2,36 +2,27 @@
 #include <cstdbool>
 #include <vector>
 #include <istream>
+#include <stdexcept>
 
-#include "csg_rule.hpp"
-#include "interval.hpp"
+#include "Symbol.hpp"
+#include "Reduction.hpp"
 
 
 namespace csg {
-	struct Location;
-	struct Source;
 	class Parser;
+	class ParserException;
 }
 
 
-
-struct csg::Location {
-	int i;
-	int row;
-	int col;
-};
-
-
-
-struct csg::Source {
-	interval<csg::Location> loc;
-	std::string str;
-};
-
-
-
-
 class csg::Parser {
+// ----------------------------------- [ Constants ] ---------------------------------------- //
+public:
+	enum ErrorCode {
+		OK = 0,
+		SYMBOL_NONCAPITAL_START,
+		RULE_MISSING_SEPARATOR
+	};
+	
 // ------------------------------------[ Properties ] --------------------------------------- //
 private:
 	std::istream* in;
@@ -65,14 +56,13 @@ public:
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 private:
 	void skipWhiteSpace();
-	void parseRule();
-	bool parseLeftSymbol(Source& rec);
-	bool parseRightSymbol(Source& rec);
 	
-// ----------------------------------- [ Functions ] ---------------------------------------- //
-private:
-	void startSrc(Source& rec);
-	void endSrc(Source& rec);
+	/**
+	 * @throws csg::ParserException on syntax error.
+	 */
+	void parseRule();
+	
+	bool parseId(SourceString& out_symbol);
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 private:
@@ -146,6 +136,23 @@ private:
 public:
 	Parser& operator=(Parser&) = delete;
 	Parser& operator=(Parser&&) = delete;
+	
+// ------------------------------------------------------------------------------------------ //
+};
+
+
+
+
+class csg::ParserException : public std::runtime_error {
+// ------------------------------------[ Properties ] --------------------------------------- //
+public:
+	Location loc;
+	
+// ---------------------------------- [ Constructors ] -------------------------------------- //
+public:
+	ParserException(const char* msg) : runtime_error(msg), loc{} {}
+	ParserException(Location& loc, const char* msg) : runtime_error(msg), loc{loc} {}
+	ParserException(Location&& loc, const char* msg) : runtime_error(msg), loc{loc} {}
 	
 // ------------------------------------------------------------------------------------------ //
 };

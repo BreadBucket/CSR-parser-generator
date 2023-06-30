@@ -1,30 +1,36 @@
-#include "csg_parser.hpp"
+#include "Parser.hpp"
 
-#include <ctype.h>
 #include <iostream>
 
 
 using namespace std;
 using namespace csg;
 
+using ErrorCode = csg::Parser::ErrorCode;
+
 
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-// DEBUG
-void printSrc(const Source& src){
-	printf("[%d,%d): ", src.loc.start.i, src.loc.end.i);
-	printf("%d:%d-", src.loc.start.row, src.loc.end.row);
-	printf("%d:%d  ", src.loc.start.col, src.loc.end.col);
-	if (!src.str.empty())
-		printf("\"%s\"", src.str.c_str());
-	else
-		printf("null");
-	printf("\n");
+// // DEBUG
+// void printSrc(const Source& src){
+// 	printf("[%d,%d): ", src.loc.start.i, src.loc.end.i);
+// 	printf("%d:%d-", src.loc.start.row, src.loc.end.row);
+// 	printf("%d:%d  ", src.loc.start.col, src.loc.end.col);
+// 	if (!src.str.empty())
+// 		printf("\"%s\"", src.str.c_str());
+// 	else
+// 		printf("null");
+// 	printf("\n");
+// }
+
+
+inline bool isFirstIdChar(char c){
+	return ('A' <= c && c <= 'Z');
 }
 
 
-inline bool isSymbolChar(char c){
+inline bool isIdChar(char c){
 	return (
 		('a' <= c && c <= 'z') ||
 		('A' <= c && c <= 'Z') ||
@@ -56,46 +62,66 @@ void Parser::parse(istream& in){
 	
 	// TEMP
 	parseRule();
+	parseRule();
+	parseRule();
 }
 
 
 void Parser::parseRule(){
-	vector<Source> tokens = vector<Source>(8);
+	Rule rule = Rule();
 	
 	// Parse left symbols
 	while (true){
 		skipWhiteSpace();
 		
-		Source& token = tokens.emplace_back();
-		if (!parseLeftSymbol(token)){
-			tokens.pop_back();
+		Symbol& sym = rule.left.emplace_back();
+		if (!parseId(sym.name)){
+			rule.left.pop_back();
 			break;
 		}
 		
 	}
 	
-	if (!match("->", 2))
-		printf("SADGE\n");
+	// Arrow
+	if (!match("->", 2)){
+		if (isIdChar(ch()))
+			throw ParserException(getLoc(), "Symbols must start with a capital letter.");
+		else
+			throw ParserException(getLoc(), "Unexpected character. Expected side separator \"->\".");
+	}
+	
+	// Parse right symbols
+	while (true){
+		skipWhiteSpace();
+		
+		Symbol& sym = rule.right.emplace_back();
+		if (!parseId(sym.name)){
+			rule.right.pop_back();
+			break;
+		}
+		
+	}
+	
 	
 }
 
 
-bool Parser::parseLeftSymbol(Source& src){
+bool Parser::parseId(SourceString& str){
 	char c = ch();
-	
-	// Starts with capital ASCII letter
-	if (c < 'A' || 'Z' < c)
+	if (!isFirstIdChar(c))
 		return false;
 	
-	// Read token
-	startSrc(src);
-	while (isSymbolChar(c)){
-		src.str.push_back(c);
+	str.clear();
+	str.start = getLoc();
+	
+	// Read name
+	while (isIdChar(c)){
+		str.push_back(c);
 		i++;
 		c = ch();
 	}
-	endSrc(src);
 	
+	str.end = getLoc();
 	return true;
 }
 
@@ -131,21 +157,6 @@ bool Parser::match(const char* s, int n){
 	
 	i += n;
 	return true;
-}
-
-
-// ----------------------------------- [ Functions ] ---------------------------------------- //
-
-
-void Parser::startSrc(Source& rec){
-	rec.loc.start = getLoc();
-	rec.loc.end = rec.loc.start;
-	rec.str.clear();
-}
-
-
-void Parser::endSrc(Source& rec){
-	rec.loc.end = getLoc();
 }
 
 

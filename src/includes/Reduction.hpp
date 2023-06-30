@@ -2,13 +2,15 @@
 #include <vector>
 #include <string>
 
+#include "Symbol.hpp"
+
 
 namespace csg {
 class Rule {
 // ------------------------------------[ Properties ] --------------------------------------- //
 public:
-	std::vector<std::string> left;
-	std::vector<std::string> right;
+	std::vector<Symbol> left;
+	std::vector<Symbol> right;
 	
 // ---------------------------------- [ Constructors ] -------------------------------------- //
 public:
