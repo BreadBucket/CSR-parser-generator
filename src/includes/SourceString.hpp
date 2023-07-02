@@ -10,7 +10,7 @@ namespace csg {
 
 
 struct csg::Location {
-	int i;		// Global index of character
+	int i;		// Index of character
 	int row;	// Row index of character
 	int col;	// Column index of character
 };
@@ -29,6 +29,11 @@ public:
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 public:
+	inline void clear(){
+		start.i = -1;
+		std::string::clear();
+	}
+	
 	inline bool sourceable(){
 		return start.i >= 0;
 	}

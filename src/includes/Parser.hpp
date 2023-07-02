@@ -55,14 +55,24 @@ public:
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 private:
-	void skipWhiteSpace();
-	
 	/**
 	 * @throws csg::ParserException on syntax error.
 	 */
-	void parseRule();
+	void parseReduction();
 	
-	bool parseId(SourceString& out_symbol);
+	void parseSymbol(Symbol& out_symbol);
+	void parseSymbolAttributes(Symbol& out_symbol);
+	void parseId(SourceString& out_symbol);
+	
+// ----------------------------------- [ Functions ] ---------------------------------------- //
+private:
+	void skipWhiteSpace();
+	
+	/**
+	 * @brief Skip all white-space characters except newline.
+	 * @param escapeable Determines if escaped newlines are permisable.
+	 */
+	void skipSpace(bool escapeable = false);
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 private:

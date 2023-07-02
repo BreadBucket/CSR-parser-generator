@@ -9,6 +9,13 @@ public:
 	SourceString name;	// The name of the symbol
 	SourceString id;	// Optional identifier
 	
-// -------------------------------- //
+// ----------------------------------- [ Functions ] ---------------------------------------- //
+public:
+	inline void clear(){
+		name.clear();
+		id.clear();
+	}
+	
+// ------------------------------------------------------------------------------------------ //
 };
 }

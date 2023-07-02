@@ -25,7 +25,7 @@ using ErrorCode = csg::Parser::ErrorCode;
 // }
 
 
-inline bool isFirstIdChar(char c){
+inline bool isSymbolNameFirstChar(char c){
 	return ('A' <= c && c <= 'Z');
 }
 
@@ -38,12 +38,6 @@ inline bool isIdChar(char c){
 		(c == '_')
 	);
 }
-
-
-// ---------------------------------- [ Structures ] ---------------------------------------- //
-
-
-
 
 
 // ----------------------------------- [ Functions ] ---------------------------------------- //
@@ -60,61 +54,118 @@ void Parser::parse(istream& in){
 	this->in = &in;
 	reset();
 	
-	// TEMP
-	parseRule();
-	parseRule();
-	parseRule();
+	
+	skipWhiteSpace();
+	
+	
+	// Is a reduction
+	if (isIdChar(ch())){
+		parseReduction();
+	}
+	
 }
 
 
-void Parser::parseRule(){
-	Rule rule = Rule();
+// ----------------------------------- [ Functions ] ---------------------------------------- //
+
+
+void Parser::parseReduction(){
+	Reduction r = Reduction();
+	
 	
 	// Parse left symbols
-	while (true){
-		skipWhiteSpace();
-		
-		Symbol& sym = rule.left.emplace_back();
-		if (!parseId(sym.name)){
-			rule.left.pop_back();
-			break;
+	if (isIdChar(ch())){
+		while (isIdChar(ch())){
+			Symbol& sym = r.left.emplace_back();
+			parseSymbol(sym);
+			skipSpace(true);
 		}
-		
+	} else {
+		throw ParserException(getLoc(), "Expected symbol name.");
 	}
+	
+	if (r.left.size() <= 0){
+		throw ParserException(getLoc(), "Missing left side of reduction.");
+	}
+	
 	
 	// Arrow
 	if (!match("->", 2)){
-		if (isIdChar(ch()))
-			throw ParserException(getLoc(), "Symbols must start with a capital letter.");
+		if (ch() == '[')
+			throw ParserException(getLoc(), "Symbol attributes missing symbol name.");
 		else
-			throw ParserException(getLoc(), "Unexpected character. Expected side separator \"->\".");
+			throw ParserException(getLoc(), "Expected left-right separator \"->\".");
 	}
+	
+	skipSpace(true);
+	
 	
 	// Parse right symbols
-	while (true){
-		skipWhiteSpace();
-		
-		Symbol& sym = rule.right.emplace_back();
-		if (!parseId(sym.name)){
-			rule.right.pop_back();
-			break;
+	if (isIdChar(ch())){
+		while (isIdChar(ch())){
+			Symbol& sym = r.right.emplace_back();
+			parseSymbol(sym);
+			skipSpace(true);
 		}
-		
+	} else {
+		throw ParserException(getLoc(), "Expected symbol name.");
 	}
 	
+	if (r.right.size() <= 0){
+		throw ParserException(getLoc(), "Missing right side of reduction.");
+	}
+	
+	
+	return;
+}
+
+
+void Parser::parseSymbol(Symbol& sym){
+	// First letter is capital
+	if (!isSymbolNameFirstChar(ch())){
+		throw ParserException(getLoc(), "Symbols must start with a capital letter.");
+	}
+	
+	// Parse symbol name
+	sym.clear();
+	parseId(sym.name);
+	
+	// Parse additional attributes
+	if (ch() == '['){
+		parseSymbolAttributes(sym);
+	}
 	
 }
 
 
-bool Parser::parseId(SourceString& str){
-	char c = ch();
-	if (!isFirstIdChar(c))
-		return false;
+void Parser::parseSymbolAttributes(Symbol& sym){
+	if (ch() != '['){
+		throw ParserException(getLoc(), "Expected '[' when declaring symbol attributes.");
+	}
 	
+	i++;
+	skipSpace(true);
+	
+	if (isIdChar(ch())){
+		parseId(sym.id);
+	} else {
+		throw ParserException(getLoc(), "Unexpected character.");
+	}
+	
+	skipSpace(true);
+	if (ch() != ']'){
+		throw ParserException(getLoc(), "Expected ']' at the end of symbol attributes declaration.");
+	}
+	
+	i++;
+}
+
+
+void Parser::parseId(SourceString& str){
 	str.clear();
 	str.start = getLoc();
 	
-	// Read name
+	char c = ch();
 	while (isIdChar(c)){
 		str.push_back(c);
 		i++;
@@ -122,7 +173,6 @@ bool Parser::parseId(SourceString& str){
 	}
 	
 	str.end = getLoc();
-	return true;
 }
 
 
@@ -138,6 +188,30 @@ void Parser::skipWhiteSpace(){
 		} else {
 			return;
 		}
+	}
+}
+
+
+void Parser::skipSpace(bool escapeable){
+	while (true){
+		char c = ch();
+		
+		if (isspace(c) && c != '\n'){
+			i++;
+		}
+		
+		else if (c == '\\' && escapeable){
+			lookAhead(2);
+			if (isspace(buff[i+1]))
+				i += 2;
+			else
+				break;
+		}
+		
+		else {
+			break;
+		}
+		
 	}
 }
 
