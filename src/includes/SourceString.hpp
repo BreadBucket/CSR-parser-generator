@@ -10,9 +10,35 @@ namespace csg {
 
 
 struct csg::Location {
+// -------------------------------- //
+public:
 	int i;		// Index of character
 	int row;	// Row index of character
 	int col;	// Column index of character
+	
+// -------------------------------- //
+public:
+	Location operator+(int n) const {
+		return {i + n, row, col + n};
+	}
+	
+	Location& operator+=(int n){
+		i += n;
+		col += n;
+		return *this;
+	}
+	
+	Location operator-(int n) const {
+		return {i - n, row, col - n};
+	}
+	
+	Location& operator-=(int n){
+		i -= n;
+		col -= n;
+		return *this;
+	}
+	
+// -------------------------------- //
 };
 
 

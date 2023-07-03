@@ -1,28 +1,50 @@
 #include "Parser.hpp"
 
 #include <iostream>
-
+#include "util/ANSI.h"
 
 using namespace std;
 using namespace csg;
-
-using ErrorCode = csg::Parser::ErrorCode;
 
 
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-// // DEBUG
-// void printSrc(const Source& src){
-// 	printf("[%d,%d): ", src.loc.start.i, src.loc.end.i);
-// 	printf("%d:%d-", src.loc.start.row, src.loc.end.row);
-// 	printf("%d:%d  ", src.loc.start.col, src.loc.end.col);
-// 	if (!src.str.empty())
-// 		printf("\"%s\"", src.str.c_str());
-// 	else
-// 		printf("null");
-// 	printf("\n");
-// }
+// DEBUG
+void printSrc(const SourceString& src){
+	printf("[%d,%d): ", src.start.i, src.end.i);
+	printf("%d:%d-", src.start.row+1, src.start.col+1);
+	printf("%d:%d  ", src.end.row+1, src.end.col+1);
+	if (!src.empty())
+		printf("\"%s\"", src.c_str());
+	else
+		printf("null");
+	printf("\n");
+}
+
+
+// DEBUG
+std::string locStr(const csg::Location& loc){
+	char s[100];
+	snprintf(s, 100, "[%d]: %d:%d", loc.i, loc.row+1, loc.col+1);
+	return std::string(s);
+}
+
+
+//DEBUG
+void Parser::printch(){
+	printf(ANSI_CYAN);
+	if (ch() == '\n')
+		printf("%s -- '\\n'", locStr(getLoc()).c_str());
+	else if (ch() == '\t')
+		printf("%s -- '\\t'", locStr(getLoc()).c_str());
+	else
+		printf("%s -- '%c'", locStr(getLoc()).c_str(), ch());
+	printf(ANSI_RESET "\n");
+}
+
+
+// ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
 inline bool isSymbolNameFirstChar(char c){
@@ -60,7 +82,8 @@ void Parser::parse(istream& in){
 	
 	// Is a reduction
 	if (isIdChar(ch())){
-		parseReduction();
+		Reduction r;
+		parseReduction(r);
 	}
 	
 }
@@ -69,10 +92,7 @@ void Parser::parse(istream& in){
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-void Parser::parseReduction(){
-	Reduction r = Reduction();
-	
-	
+void Parser::parseReduction(Reduction& r){
 	// Parse left symbols
 	if (isIdChar(ch())){
 		while (isIdChar(ch())){
@@ -101,17 +121,21 @@ void Parser::parseReduction(){
 	
 	
 	// Parse right symbols
-	if (isIdChar(ch())){
-		while (isIdChar(ch())){
-			Symbol& sym = r.right.emplace_back();
-			parseSymbol(sym);
-			skipSpace(true);
-		}
-	} else {
-		throw ParserException(getLoc(), "Expected symbol name.");
+	while (isIdChar(ch())){
+		Symbol& sym = r.right.emplace_back();
+		parseSymbol(sym);
+		skipSpace(true);
 	}
 	
-	if (r.right.size() <= 0){
+	// Parse inline code
+	if (ch() == '{'){
+		parseReductionInlineCode(r.code);
+		skipSpace(true);
+	}
+	
+	if (ch() != '\n' && ch() != 0){
+		throw ParserException(getLoc(), "Expected reduction termination using newline '\\n'.");
+	} else if (r.right.size() <= 0){
 		throw ParserException(getLoc(), "Missing right side of reduction.");
 	}
 	
@@ -143,7 +167,7 @@ void Parser::parseSymbolAttributes(Symbol& sym){
 		throw ParserException(getLoc(), "Expected '[' when declaring symbol attributes.");
 	}
 	
-	i++;
+	inc();
 	skipSpace(true);
 	
 	if (isIdChar(ch())){
@@ -157,7 +181,7 @@ void Parser::parseSymbolAttributes(Symbol& sym){
 		throw ParserException(getLoc(), "Expected ']' at the end of symbol attributes declaration.");
 	}
 	
-	i++;
+	inc();
 }
 
 
@@ -168,11 +192,79 @@ void Parser::parseId(SourceString& str){
 	char c = ch();
 	while (isIdChar(c)){
 		str.push_back(c);
-		i++;
+		inc();
 		c = ch();
 	}
 	
-	str.end = getLoc();
+	str.end = getLoc() - 1;
+}
+
+
+void Parser::parseReductionInlineCode(SourceString& code){
+	if (ch() != '{'){
+		throw ParserException(getLoc(), "Expected '{' at reduction inline code declaration.");
+	}
+	
+	code.clear();
+	code.start = getLoc();
+	
+	code.push_back('{');
+	inc();
+	
+	int bracket = 1;
+	int quote_1 = 0;
+	int quote_2 = 0;
+	while (bracket > 0){
+		char c = ch();
+		
+		if (c == 0){
+			break;
+		} else if (c == '\n'){
+			nl();
+			inc(-1);
+		} else if (c == '\t'){
+			tab();
+			inc(-1);
+		}
+		
+		// String context
+		else if (quote_1 > 0){
+			if (c == '"')
+				quote_1--;
+			else if (c == '\\')
+				inc();
+		}
+		
+		// Literal context
+		else if (quote_2 > 0){
+			if (c == '\'')
+				quote_2--;
+			else if (c == '\\')
+				inc();
+		}
+		
+		// Default context
+		else {
+			if (c == '{')
+				bracket++;
+			else if (c == '}'){
+				bracket--;
+			}
+			else if (c == '"')
+				quote_1++;
+			else if (c == '\'')
+				quote_1++;
+		}
+		
+		code.push_back(c);
+		inc();
+	}
+	
+	if (bracket > 0){
+		throw ParserException(code.start, "Missing closing bracket '}'.");
+	}
+	
+	code.end = getLoc() - 1;
 }
 
 
@@ -181,10 +273,13 @@ void Parser::parseId(SourceString& str){
 
 void Parser::skipWhiteSpace(){
 	while (true){
-		if (isspace(ch())){
-			if (buff[i] == '\n')
-				nl();
-			i++;
+		char c = ch();
+		if (c == '\n'){
+			nl();
+		} else if (c == '\t'){
+			tab();
+		} else if (isspace(c)){
+			inc();
 		} else {
 			return;
 		}
@@ -196,18 +291,34 @@ void Parser::skipSpace(bool escapeable){
 	while (true){
 		char c = ch();
 		
-		if (isspace(c) && c != '\n'){
-			i++;
+		// Regular whitespace
+		if (c == '\t'){
+			tab();
+		} else if (c == '\n'){
+			break;
+		} else if (isspace(c)){
+			inc();
 		}
 		
+		// Escaped whitespace
 		else if (c == '\\' && escapeable){
 			lookAhead(2);
-			if (isspace(buff[i+1]))
-				i += 2;
-			else
+			
+			if (buff[i+1] == '\n'){
+				inc();
+				nl();
+			} else if (buff[i+1] == '\t'){
+				inc();
+				tab();
+			} else if (isspace(buff[i+1])){
+				inc(2);
+			} else {
 				break;
+			}
+			
 		}
 		
+		// Solid character
 		else {
 			break;
 		}
@@ -229,7 +340,7 @@ bool Parser::match(const char* s, int n){
 			return false;
 	}
 	
-	i += n;
+	inc(n);
 	return true;
 }
 
@@ -240,7 +351,7 @@ bool Parser::match(const char* s, int n){
 void Parser::reset(){
 	i = 0;
 	bi = 0;
-	ci0 = 0;
+	ci = 0;
 	ri = 0;
 	eof = false;
 	if (buff == nullptr)
@@ -260,12 +371,6 @@ bool Parser::fillBuffer(){
 	eof = (n == 0);
 	
 	return !eof;
-}
-
-
-void Parser::nl(){
-	ri++;
-	ci0 = gi() + 1;
 }
 
 

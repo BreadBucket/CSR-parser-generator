@@ -14,16 +14,17 @@ namespace csg {
 }
 
 
+// DEBUG
+std::string locStr(const csg::Location& loc);
+
+
 class csg::Parser {
-// ----------------------------------- [ Constants ] ---------------------------------------- //
-public:
-	enum ErrorCode {
-		OK = 0,
-		SYMBOL_NONCAPITAL_START,
-		RULE_MISSING_SEPARATOR
-	};
-	
+public:					// DEBUG
+	void printch();		// DEBUG
 // ------------------------------------[ Properties ] --------------------------------------- //
+public:
+	int tabSize = 4;
+	
 private:
 	std::istream* in;
 	int buffSize;
@@ -34,7 +35,7 @@ private:
 	int i;		// Local index of current buffer character
 	int bi;		// Global index of first character in buffer
 	int ri;		// Current global row index
-	int ci0;	// Current global index of character in column 0 of current row
+	int ci;		// Current global column index
 	bool eof;	// EOF reached
 	
 // ---------------------------------- [ Constructors ] -------------------------------------- //
@@ -58,7 +59,8 @@ private:
 	/**
 	 * @throws csg::ParserException on syntax error.
 	 */
-	void parseReduction();
+	void parseReduction(Reduction& out_reduction);
+	void parseReductionInlineCode(SourceString& out_code);
 	
 	void parseSymbol(Symbol& out_symbol);
 	void parseSymbolAttributes(Symbol& out_symbol);
@@ -84,10 +86,32 @@ private:
 	}
 	
 	/**
-	 * @return Current column index.
+	 * @brief Increment column index and local index by n.
 	 */
-	inline int ci(){
-		return gi() - ci0;
+	inline void inc(int n = 1){
+		i += n;
+		ci += n;
+	}
+	
+	/**
+	 * @brief Increment row index.
+	 *        Increment local index by 1.
+	 *        Set column index to 0.
+	 */
+	inline void nl(){
+		ri++;
+		i++;
+		ci = 0;
+	}
+	
+	/**
+	 * @brief Increment column index by tabSize.
+	 *        Increment local index by 1.
+	 */
+	inline void tab(){
+		i++;
+		ci += tabSize;
+		ci -= ci % tabSize;
 	}
 	
 	/**
@@ -105,7 +129,7 @@ private:
 	 * @returns Current carret position.
 	 */
 	inline csg::Location getLoc(){
-		return {gi(), ri, ci()};
+		return {gi(), ri, ci};
 	}
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
@@ -129,12 +153,6 @@ private:
 	 * @return True if refill was successful.
 	 */
 	bool fillBuffer();
-	
-	/**
-	 * @brief Increment row index.
-	 *        Set column index to global index of first character in the new row.
-	 */
-	void nl();
 	
 	/**
 	 * @brief  Ensure buffer has at least n characters.

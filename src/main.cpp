@@ -42,6 +42,7 @@ int main(int argc, char** arg){
 	// Parse
 	{
 		Parser* parser = new Parser();
+		parser->tabSize = 1;
 		
 		try {
 			parser->parse(*in);
