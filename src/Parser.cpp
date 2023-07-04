@@ -1,7 +1,9 @@
 #include "Parser.hpp"
 
+#include <cstring>
 #include <iostream>
 #include "util/ANSI.h"
+#include "util/utils.hpp"
 
 using namespace std;
 using namespace csg;
@@ -77,14 +79,11 @@ void Parser::parse(istream& in){
 	reset();
 	
 	
-	skipWhiteSpace();
+	vector<Reduction> reductions;
+	vector<SourceString> code;
+	reductions.reserve(32);
+	code.reserve(32);
 	
-	
-	// Is a reduction
-	if (isIdChar(ch())){
-		Reduction r;
-		parseReduction(r);
-	}
 	
 }
 
@@ -110,7 +109,7 @@ void Parser::parseReduction(Reduction& r){
 	
 	
 	// Arrow
-	if (!match("->", 2)){
+	if (!match("->")){
 		if (ch() == '[')
 			throw ParserException(getLoc(), "Symbol attributes missing symbol name.");
 		else
@@ -330,17 +329,33 @@ void Parser::skipSpace(bool escapeable){
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-bool Parser::match(const char* s, int n){
-	if (lookAhead(n) < n){
-		return false;
-	}
+bool Parser::match(const char* s, bool move){
+	int ii = 0;
 	
-	for (int ii = 0 ; ii < n ; ii++){
+	// Try to match with current buffer
+	while (s[ii] != 0 && (i+ii) < n){
 		if (buff[i+ii] != s[ii])
 			return false;
+		ii++;
 	}
 	
-	inc(n);
+	// Buffer underflow
+	if (s[ii] != 0 && (i+ii) >= n){
+		int len = ii + strlen(&s[ii]);
+		lookAhead(len);
+		
+		// Match remaining string
+		while (ii < len){
+			if (buff[i+ii] != s[ii])
+				return false;
+			ii++;
+		}
+		
+	}
+	
+	if (move)
+		inc(ii);
+	
 	return true;
 }
 
@@ -349,27 +364,27 @@ bool Parser::match(const char* s, int n){
 
 
 void Parser::reset(){
+	eof = false;
 	i = 0;
 	bi = 0;
 	ci = 0;
 	ri = 0;
-	eof = false;
+	n = 0;
 	if (buff == nullptr)
 		buff = new char[buffSize];
-	n = 0;
 	buff[0] = 0;
 }
 
 
 bool Parser::fillBuffer(){
-	in->read(buff, buffSize-1);
-	
 	i = 0;
 	bi += n;
+	
+	in->read(buff, buffSize-1);
 	n = in->gcount();
+	
 	buff[n] = 0;
 	eof = (n == 0);
-	
 	return !eof;
 }
 
@@ -387,9 +402,9 @@ int Parser::lookAhead(int count){
 			// Allocate bigger buffer
 			if (count >= buffSize){
 				buffSize = count + 1;
-				char* _buff = buff;
-				buff = new char[buffSize];
-				copy(_buff + i, _buff + n, buff);
+				char* _buff = new char[buffSize];
+				copy(buff + i, buff + n, _buff);
+				swap(_buff, buff);
 				delete _buff;
 			}
 			

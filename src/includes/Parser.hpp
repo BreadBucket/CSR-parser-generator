@@ -14,6 +14,7 @@ namespace csg {
 }
 
 
+
 // DEBUG
 std::string locStr(const csg::Location& loc);
 
@@ -54,7 +55,14 @@ public:
 public:
 	void parse(std::istream& in);
 	
+	void parseReductionSegment(SourceString& out_s);
+	void parseCodeSegment(SourceString& out_s);
+	void skipMacro(SourceString& out_s);
+	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
+private:
+	void parseMacro();
+	
 private:
 	/**
 	 * @throws csg::ParserException on syntax error.
@@ -118,7 +126,7 @@ private:
 	 * @brief  Get current character in buffer, index is not incremented.
 	 *         Buffer is automatically refilled if needed.
 	 * @return Current character or '\0' if EOF.
-	 */ 
+	 */
 	inline char ch(){
 		if (buff[i] == 0) [[unlikely]]
 			fillBuffer();
@@ -126,7 +134,7 @@ private:
 	}
 	
 	/**
-	 * @returns Current carret position.
+	 * @return Current carret position.
 	 */
 	inline csg::Location getLoc(){
 		return {gi(), ri, ci};
@@ -135,10 +143,18 @@ private:
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 private:
 	/**
-	 * @brief  Try to match buff[i..i+n] with s[0..n]. Increment i by n if successful.
+	 * @brief  Try to match buff[i..i+n] with s[0..n].
+	 *         Increment i by n if successful.
 	 * @return True if matched.
 	 */
-	bool match(const char* s, int n);
+	bool match(const char* s, bool move = true);
+	
+	// /**
+	//  * @brief Try to match buff[i..] with unlimited non-newline whitespace.
+	//  * @param escapeable Newline can be escaped.
+	//  * @return Number of characters matched.
+	//  */
+	// int matchSpace(Location& out_endPos, bool escapeable = false);
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 private:
@@ -149,7 +165,7 @@ private:
 	
 	/** 
 	 * @brief  Fills buffer with new data.
-	 *         Resets index i, stores new char count to n, recalculates global index.
+	 *         Resets index i, sets n to new char count, recalculates global index.
 	 * @return True if refill was successful.
 	 */
 	bool fillBuffer();
@@ -178,7 +194,7 @@ public:
 	
 // ---------------------------------- [ Constructors ] -------------------------------------- //
 public:
-	ParserException(const char* msg) : runtime_error(msg), loc{} {}
+	ParserException(const char* msg) : runtime_error(msg), loc{-1} {}
 	ParserException(Location& loc, const char* msg) : runtime_error(msg), loc{loc} {}
 	ParserException(Location&& loc, const char* msg) : runtime_error(msg), loc{loc} {}
 	

@@ -18,6 +18,12 @@ public:
 	
 // -------------------------------- //
 public:
+	inline bool valid(){
+		return i >= 0;
+	}
+	
+// -------------------------------- //
+public:
 	Location operator+(int n) const {
 		return {i + n, row, col + n};
 	}
