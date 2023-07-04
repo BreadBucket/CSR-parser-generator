@@ -27,14 +27,16 @@ public:
 	int tabSize = 4;
 	
 private:
-	std::istream* in;
-	int buffSize;
-	char* buff;
+	std::istream* in	= nullptr;
+	int buffSize		= 1024;		// Preffered buffer size
+	int _buffSize		= 0;		// Actual buffer size
+	char* buff			= nullptr;
+	std::vector<Location> frames;
 	
 private:
 	int n;		// Number of characters in buffer
 	int i;		// Local index of current buffer character
-	int bi;		// Global index of first character in buffer
+	int bi;		// Global index of character at buff[0]
 	int ri;		// Current global row index
 	int ci;		// Current global column index
 	bool eof;	// EOF reached
@@ -128,8 +130,8 @@ private:
 	 * @return Current character or '\0' if EOF.
 	 */
 	inline char ch(){
-		if (buff[i] == 0) [[unlikely]]
-			fillBuffer();
+		if (i >= n) [[unlikely]]
+			fillBuffer(i - n + 1, true);
 		return buff[i];
 	}
 	
@@ -149,12 +151,20 @@ private:
 	 */
 	bool match(const char* s, bool move = true);
 	
-	// /**
-	//  * @brief Try to match buff[i..] with unlimited non-newline whitespace.
-	//  * @param escapeable Newline can be escaped.
-	//  * @return Number of characters matched.
-	//  */
-	// int matchSpace(Location& out_endPos, bool escapeable = false);
+// ----------------------------------- [ Functions ] ---------------------------------------- //
+private:
+	/**
+	 * @brief Push carret location to the stack.
+	 *        Buffer resizing will not erase characters from this point on.
+	 */
+	void push();
+	
+	/**
+	 * @brief Return to previously pushed carret location.
+	 * @param applyLocation Set carret location to the popped location.
+	 * @param count Amount of location frames to pop. -1 to pop all frames.
+	 */
+	void pop(bool applyLocation = true, int count = 1);
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 private:
@@ -164,15 +174,18 @@ private:
 	void reset();
 	
 	/** 
-	 * @brief  Fills buffer with new data.
-	 *         Resets index i, sets n to new char count, recalculates global index.
-	 * @return True if refill was successful.
+	 * @brief Fills buffer with new data.
+	 *        Characters before frame[0] are discarded if it exists, otherwise all characters before index i.
+	 *        Resets index i, sets n to new char count, recalculates global index.
+	 * @param count Min amount of characters to add to the buffer.
+	 * @param fill  Add more characters if there is space available.
+	 * @return Amount of new characters in buffer.
 	 */
-	bool fillBuffer();
+	int fillBuffer(int count, bool fill = true);
 	
 	/**
-	 * @brief  Ensure buffer has at least n characters.
-	 * @return New amount of characters in buffer. Returned value can be less than n if EOF is reached.
+	 * @brief  Ensure buffer has at least n more characters i.e. buff[i..i+n].
+	 * @return Available characters in buffer. Returned value can be less than n if EOF is reached.
 	 */
 	int lookAhead(int n);
 	

@@ -35,13 +35,15 @@ std::string locStr(const csg::Location& loc){
 
 //DEBUG
 void Parser::printch(){
+	char c = ch();
 	printf(ANSI_CYAN);
-	if (ch() == '\n')
+	printf("[%d/%d]", i, n);
+	if (c == '\n')
 		printf("%s -- '\\n'", locStr(getLoc()).c_str());
-	else if (ch() == '\t')
+	else if (c == '\t')
 		printf("%s -- '\\t'", locStr(getLoc()).c_str());
 	else
-		printf("%s -- '%c'", locStr(getLoc()).c_str(), ch());
+		printf("%s -- '%c'", locStr(getLoc()).c_str(), c);
 	printf(ANSI_RESET "\n");
 }
 
@@ -68,7 +70,7 @@ inline bool isIdChar(char c){
 
 
 void Parser::parse(istream& in){
-	buffSize = 6;
+	buffSize = 4;
 	
 	if (in.bad() || buffSize < 1){
 		return;
@@ -363,70 +365,113 @@ bool Parser::match(const char* s, bool move){
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
+void Parser::push(){
+	frames.emplace_back(getLoc());
+}
+
+
+void Parser::pop(bool apply, int count){
+	count = (count < 0) ? frames.size() : count;
+	
+	if (0 < count && count <= frames.size()){
+		if (apply){
+			const Location loc = frames[frames.size() - count];
+			i = loc.i - bi;
+			ri = loc.row;
+			ci = loc.col;
+		}
+		frames.resize(frames.size() - count);
+	} else {
+		throw new ParserException("Internal stack error.");
+	}
+	
+}
+
+
+// ----------------------------------- [ Functions ] ---------------------------------------- //
+
+
 void Parser::reset(){
-	eof = false;
 	i = 0;
 	bi = 0;
 	ci = 0;
 	ri = 0;
 	n = 0;
-	if (buff == nullptr)
-		buff = new char[buffSize];
+	eof = false;
+	frames.clear();
+	if (buff == nullptr){
+		_buffSize = buffSize;
+		buff = new char[_buffSize];
+	}
 	buff[0] = 0;
 }
 
 
-bool Parser::fillBuffer(){
-	i = 0;
-	bi += n;
+int Parser::fillBuffer(int count, bool fill){
+	if (count <= 0){
+		return 0;
+	}
 	
-	in->read(buff, buffSize-1);
-	n = in->gcount();
+	// Frame global index must be converted to local index
+	const int p = (!frames.empty()) ? (frames[0].i - bi) : i;
+	const int preserve = n - p;
 	
+	int space = _buffSize - n - 1;
+	count = (fill & count < space) ? space : count;
+	
+	const int requiredSize = preserve + count + 1;
+	
+	
+	// Reorganize buffer
+	if (count > space){
+		
+		// Create larger buffer
+		if (requiredSize > _buffSize){
+			_buffSize = buffSize * ((requiredSize + buffSize)/buffSize) + 1;	// (multiple of buffSize) + 1
+			char* _buff = new char[_buffSize];
+			
+			if (preserve > 0){
+				copy(&buff[p], &buff[n], &_buff[0]);
+			}
+			
+			swap(buff, _buff);
+			delete[] _buff;
+		}
+		
+		// Shift data in current buffer to the left
+		else if (preserve > 0){
+			copy(&buff[p], &buff[n], &buff[0]);
+		}
+		
+		// Adjust indexes
+		i -= p;
+		n = max(0, preserve);
+		bi += p;
+		
+		// Recalculate available space
+		space = _buffSize - n - 1;
+		if (fill & count < space){
+			count = space;
+		}
+		
+	}
+	
+	
+	// Read data to empty space in buffer
+	in->read(&buff[n], count);
+	count = in->gcount();
+	n += count;
 	buff[n] = 0;
-	eof = (n == 0);
-	return !eof;
+	
+	eof = (count == 0);
+	return count;
 }
 
 
 int Parser::lookAhead(int count){
 	int chars = n - i;
-	
-	// Fill buffer
-	if (chars < count){
-		int space = buffSize - n - 1;
-		
-		// Not enough space in buffer
-		if ((count - chars) > space){
-			
-			// Allocate bigger buffer
-			if (count >= buffSize){
-				buffSize = count + 1;
-				char* _buff = new char[buffSize];
-				copy(buff + i, buff + n, _buff);
-				swap(_buff, buff);
-				delete _buff;
-			}
-			
-			// Move leftover chars (right side) to beginning of buffer (left side)
-			else if (i > 0){
-				copy(buff + i, buff + n, buff);
-			}
-			
-			bi += i;
-			i = 0;
-			n = chars;
-			space = buffSize - n - 1;
-		}
-		
-		// Fill empty space in buffer (right side) 
-		in->read(buff + n, space);
-		n += in->gcount();
-		buff[n] = 0;
-		eof = (in->gcount() == 0);
-		chars = n - i;
-	}
-	
+	if (chars < count)
+		chars += fillBuffer(count - chars);
 	return chars;
 }
 
