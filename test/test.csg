@@ -1,33 +1,5 @@
-#define HELL { whomp \
-
-
-
-
-#ifdef CSG
-
-void f(){
-	
-}
-
-#endif
-
-
-
-#ifdef CSG
-
 A B[ ddd  ] C -> B A \
 {
 	p
 	
-} 
-
-#else
-
-
-void main(){
-	
 }
-
-#endif
-
-

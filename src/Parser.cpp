@@ -26,10 +26,10 @@ void printSrc(const SourceString& src){
 
 
 // DEBUG
-std::string locStr(const csg::Location& loc){
-	char s[100];
+const char* locStr(const csg::Location& loc){
+	char* s = new char[100];
 	snprintf(s, 100, "[%d]: %d:%d", loc.i, loc.row+1, loc.col+1);
-	return std::string(s);
+	return s;
 }
 
 
@@ -39,11 +39,11 @@ void Parser::printch(){
 	printf(ANSI_CYAN);
 	printf("[%d/%d]", i, n);
 	if (c == '\n')
-		printf("%s -- '\\n'", locStr(getLoc()).c_str());
+		printf("%s -- '\\n'", locStr(getLoc()));
 	else if (c == '\t')
-		printf("%s -- '\\t'", locStr(getLoc()).c_str());
+		printf("%s -- '\\t'", locStr(getLoc()));
 	else
-		printf("%s -- '%c'", locStr(getLoc()).c_str(), c);
+		printf("%s -- '%c'", locStr(getLoc()), c);
 	printf(ANSI_RESET "\n");
 }
 
@@ -51,12 +51,31 @@ void Parser::printch(){
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-inline bool isSymbolNameFirstChar(char c){
+inline bool isIdFirstChar(char c){
 	return ('A' <= c && c <= 'Z');
 }
 
 
 inline bool isIdChar(char c){
+	return (
+		('a' <= c && c <= 'z') ||
+		('A' <= c && c <= 'Z') ||
+		('0' <= c && c <= '9') ||
+		(c == '_')
+	);
+}
+
+
+inline bool isMacroFirstChar(char c){
+	return (
+		('a' <= c && c <= 'z') ||
+		('A' <= c && c <= 'Z') ||
+		(c == '_')
+	);
+}
+
+
+inline bool isMacroChar(char c){
 	return (
 		('a' <= c && c <= 'z') ||
 		('A' <= c && c <= 'Z') ||
@@ -87,6 +106,81 @@ void Parser::parse(istream& in){
 	code.reserve(32);
 	
 	
+	while (true){
+		push();
+		
+		skipSpace(true);
+		char c = ch();
+		printch();
+		
+		if (c == '\n'){
+			nl();
+		} else if (c == '#'){
+			pop();
+			parseMacro();
+		} else if (isIdChar(c)){
+			Reduction r;
+			parseReduction(r);
+		} else if (c == 0){
+			pop(-1, false);
+			break;
+		} else {
+			pop(-1, false);
+			throw ParserException(getLoc(), "Unexpected character.");
+		}
+		
+		pop(-1, false);
+		break;
+	}
+	
+	
+}
+
+
+// ----------------------------------- [ Functions ] ---------------------------------------- //
+
+
+void Parser::parseMacro(){
+	const Location& start = push();
+	
+	skipSpace(true);
+	if (ch() != '#'){
+		throw ParserException(getLoc(), "Preprocessor directive declaration expected.");
+	}
+	
+	inc();
+	while (true){
+		char c = ch();
+		
+		if (c == '"' || c == '\''){
+			skipString();
+		} else if (c == '\t'){
+			tab();
+		} else if (c == '\n'){
+			break;
+		} else if (c == '\\'){
+			inc();
+			if (ch() == '\n')
+				nl();
+		} else if (match("//") || match("/*")){
+			skipComment();
+		} else {
+			inc();
+		}
+		
+	}
+	
+	
+	const Location end = getLoc();
+	string s;
+	extractString(start, end, s);
+	printf("%s -- %s {" ANSI_GREEN "%s" ANSI_RESET "}\n", locStr(start), locStr(end), s.c_str());
+	
+	// if (match("ifndef") || match("ifdef") || match("if")){}
+	
+	
+	
+	
 }
 
 
@@ -111,7 +205,7 @@ void Parser::parseReduction(Reduction& r){
 	
 	
 	// Arrow
-	if (!match("->")){
+	if (!match("->", true)){
 		if (ch() == '[')
 			throw ParserException(getLoc(), "Symbol attributes missing symbol name.");
 		else
@@ -147,7 +241,7 @@ void Parser::parseReduction(Reduction& r){
 
 void Parser::parseSymbol(Symbol& sym){
 	// First letter is capital
-	if (!isSymbolNameFirstChar(ch())){
+	if (!isIdFirstChar(ch())){
 		throw ParserException(getLoc(), "Symbols must start with a capital letter.");
 	}
 	
@@ -328,6 +422,75 @@ void Parser::skipSpace(bool escapeable){
 }
 
 
+void Parser::skipString(){
+	
+}
+
+
+void Parser::skipComment(){
+	if (ch() != '/'){
+		throw ParserException(getLoc(), "Expected comment.");
+	}
+	
+	const Location start = getLoc();
+	inc();
+	
+	// Comment line
+	if (ch() == '/'){
+		inc();
+		
+		while (true){
+			const char c = ch();
+			
+			if (c == '\t'){
+				tab();
+			} else if (c == '\\'){
+				inc();
+				if (ch() == '\n')
+					nl();
+			} else if (c == '\n' || c == 0){
+				break;
+			} else {
+				inc();
+			}
+			
+		}
+		
+	}
+	
+	// Comment Block
+	else if (ch() == '*'){
+		inc();
+		
+		while (true){
+			const char c = ch();
+			
+			if (c == '\t'){
+				tab();
+			} if (c == '\n'){
+				nl();
+			} else if (c == '*'){
+				inc();
+				if (ch() == '/')
+					break;
+			} else if (c == 0){
+				throw ParserException(start, "Unterminated comment block.");
+			} else {
+				inc();
+			}
+			
+		}
+		
+	}
+	
+	else {
+		throw ParserException(getLoc(), "Expected comment.");
+	}
+	
+	return;
+}
+
+
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
@@ -365,12 +528,12 @@ bool Parser::match(const char* s, bool move){
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-void Parser::push(){
-	frames.emplace_back(getLoc());
+const Location& Parser::push(){
+	return frames.emplace_back(getLoc());
 }
 
 
-void Parser::pop(bool apply, int count){
+void Parser::pop(int count, bool apply){
 	count = (count < 0) ? frames.size() : count;
 	
 	if (0 < count && count <= frames.size()){
@@ -382,9 +545,23 @@ void Parser::pop(bool apply, int count){
 		}
 		frames.resize(frames.size() - count);
 	} else {
-		throw new ParserException("Internal stack error.");
+		throw ParserException("Internal stack error.");
 	}
 	
+}
+
+
+bool Parser::extractString(const Location& start, const Location& end, std::string& out_str){
+	const int start_i = start.i - bi;
+	const int end_i = end.i - bi;
+	const int count = end_i - start_i;
+	
+	if (start_i >= 0 && end_i <= n && count > 0){
+		out_str.append(&buff[start_i], count);
+		return true;
+	}
+	
+	return false;
 }
 
 
@@ -474,6 +651,5 @@ int Parser::lookAhead(int count){
 		chars += fillBuffer(count - chars);
 	return chars;
 }
-
 
 // ------------------------------------------------------------------------------------------ //

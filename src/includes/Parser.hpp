@@ -15,8 +15,10 @@ namespace csg {
 
 
 
+
+
 // DEBUG
-std::string locStr(const csg::Location& loc);
+const char* locStr(const csg::Location& loc);
 
 
 class csg::Parser {
@@ -59,7 +61,6 @@ public:
 	
 	void parseReductionSegment(SourceString& out_s);
 	void parseCodeSegment(SourceString& out_s);
-	void skipMacro(SourceString& out_s);
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 private:
@@ -85,6 +86,9 @@ private:
 	 * @param escapeable Determines if escaped newlines are permisable.
 	 */
 	void skipSpace(bool escapeable = false);
+	
+	void skipString();
+	void skipComment();
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 private:
@@ -145,26 +149,35 @@ private:
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 private:
 	/**
-	 * @brief  Try to match buff[i..i+n] with s[0..n].
-	 *         Increment i by n if successful.
-	 * @return True if matched.
+	 * @brief Push carret location to the stack.
+	 *        Buffer resizing will not erase characters from this point on.
 	 */
-	bool match(const char* s, bool move = true);
+	const Location& push();
+	
+	/**
+	 * @brief Return to previously pushed carret location.
+	 * @param count Amount of location frames to pop. -1 to pop all frames.
+	 * @param applyLocation Set carret location to the popped location.
+	 */
+	void pop(int count = 1, bool applyLocation = true);
+	
+	/**
+	 * @brief Copy string from buffer, if start and end are within range of existing buffer: str += buff[start,end).
+	 * @param start   Starting position.
+	 * @param end     End position.
+	 * @param out_str Appended result string.
+	 * @return True if extraction was successful.
+	 */
+	bool extractString(const Location& start, const Location& end, std::string& out_str);
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 private:
 	/**
-	 * @brief Push carret location to the stack.
-	 *        Buffer resizing will not erase characters from this point on.
+	 * @brief Try to match buff[i..] with s[0..].
+	 * @param move Increment i by n if successful.
+	 * @return True if matched.
 	 */
-	void push();
-	
-	/**
-	 * @brief Return to previously pushed carret location.
-	 * @param applyLocation Set carret location to the popped location.
-	 * @param count Amount of location frames to pop. -1 to pop all frames.
-	 */
-	void pop(bool applyLocation = true, int count = 1);
+	bool match(const char* s, bool move = false);
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 private:
@@ -208,7 +221,7 @@ public:
 // ---------------------------------- [ Constructors ] -------------------------------------- //
 public:
 	ParserException(const char* msg) : runtime_error(msg), loc{-1} {}
-	ParserException(Location& loc, const char* msg) : runtime_error(msg), loc{loc} {}
+	ParserException(const Location& loc, const char* msg) : runtime_error(msg), loc{loc} {}
 	ParserException(Location&& loc, const char* msg) : runtime_error(msg), loc{loc} {}
 	
 // ------------------------------------------------------------------------------------------ //
