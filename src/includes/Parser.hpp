@@ -30,12 +30,12 @@ public:
 	std::istream* in = nullptr;
 	
 private:
-	int buffSize  = 1024;		// Preffered buffer size
+	int buffSize  = 1024;	// Preffered buffer size
 	int _buffSize = 0;		// Actual buffer size
 	char* buff    = nullptr;
 	
 private:
-	std::string trash;
+	SourceString trash;
 	std::vector<Location> frames;
 	
 private:
@@ -45,6 +45,20 @@ private:
 	int ri;		// Current global row index
 	int ci;		// Current global column index
 	bool eof;	// EOF reached
+	
+// ---------------------------------- [ Structures ] ---------------------------------------- //
+private:
+	enum MacroType {
+		UNKNOWN,
+		IF,
+		IFDEF,
+		IFNDEF,
+		ELIF,
+		ELIFDEF,
+		ELIFNDEF,
+		ELSE,
+		ENDIF
+	};
 	
 // ---------------------------------- [ Constructors ] -------------------------------------- //
 public:
@@ -67,7 +81,15 @@ public:
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 private:
-	void parseMacro(SourceString& s);
+	/**
+	 * @brief Parse C style preprocessor directives.
+	 * @param s String buffer for appending parsed characters.
+	 * @param out_condition Optional output for parsed condition of conditional directives.
+	 * @returns Parsed directive type or unknown.
+	 * @throws ParserException when preprocessor directive does not start with '#'.
+	 * @throws ParserException on unterminated string literals or comments.
+	 */
+	MacroType parseMacro(SourceString& s, SourceString* out_condition = nullptr);
 	
 // private:
 // 	/**
@@ -83,14 +105,20 @@ private:
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 private:
 	/**
+	 * @brief Skip all non white-space characters.
+	 */
+	int parseSolidSpace(std::string& s);
+	
+	/**
 	 * @brief Skip all white-space characters.
 	 * @param escapedNewline Newline must be escaped.
+	 * @return Amount of characters parsed.
 	 */
-	void parseWhiteSpace(std::string& s, bool escapedNewline = false);
+	int parseWhiteSpace(std::string& s, bool escapedNewline = false);
 	
-	void parseStringLiteral(std::string& s);
+	int parseStringLiteral(std::string& s);
 	
-	void parseComment(std::string& s);
+	int parseComment(std::string& s);
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 private:
@@ -103,6 +131,7 @@ private:
 	
 	/**
 	 * @brief Increment column index and local index by n.
+	 * @param n Amount of characters to skip. Negative values cause undefined behaviour.
 	 */
 	inline void inc(int n = 1){
 		i += n;
@@ -176,10 +205,12 @@ private:
 private:
 	/**
 	 * @brief Try to match buff[i..] with s[0..].
-	 * @param move Increment i by n if successful.
+	 * @param s String to match.
+	 * @param move Increment i by |s| if successful.
+	 * @param out_match Optionally append matched string as out_match += s.
 	 * @return True if matched.
 	 */
-	bool match(const char* s, bool move = false);
+	bool match(const char* s, bool move = false, std::string* out_match = nullptr);
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 private:

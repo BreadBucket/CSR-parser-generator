@@ -125,15 +125,23 @@ void Parser::parse(istream& in){
 		parseWhiteSpace(tmp, true);
 		
 		char c = ch();
-		printch();
+		// printch();
 		
 		if (c == '\n'){
 			nl();
 		} else if (c == '#'){
-			parseMacro(tmp);
+			
+			SourceString cond;
+			MacroType m = parseMacro(tmp, &cond);
+			
+			printSrc(tmp);
+			printf("%d: {" ANSI_RED "%s" ANSI_RESET "}\n", m, cond.c_str());
+			printf("\n");
+			
 			code.push_back(move(tmp));
 		} else if (isIdChar(c)){
 			Reduction r;
+			inc(); //
 			// parseReduction(r);
 		} else if (c == 0){
 			break;
@@ -154,19 +162,66 @@ void Parser::parse(istream& in){
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-void Parser::parseMacro(SourceString& s){
+Parser::MacroType Parser::parseMacro(SourceString& s, SourceString* condition){
 	if (s.size() == 0 && !s.start.valid()){
 		s.start = getLoc();
 	}
 	
-	// Parse initial # symbol
 	parseWhiteSpace(s);
+	
+	// Parse initial # symbol
 	if (ch() == '#'){
 		s.push_back('#');
 		inc();
 	} else {
 		throw ParserException(getLoc(), "Preprocessor directive declaration expected.");
 	}
+	
+	parseWhiteSpace(s);
+	
+	
+	// Parse macro type
+	MacroType type = MacroType::UNKNOWN;
+	if (match("ifndef", true, &s)){
+		type = MacroType::IFNDEF;
+	} else if (match("ifdef", true, &s)){
+		type = MacroType::IFDEF;
+	} else if (match("if", true, &s)){
+		type = MacroType::IF;
+	} else if (match("elifndef", true, &s)){
+		type = MacroType::ELIFNDEF;
+	} else if (match("elifdef", true, &s)){
+		type = MacroType::ELIFDEF;
+	} else if (match("elif", true, &s)){
+		type = MacroType::ELIF;
+	} else if (match("else", true, &s)){
+		type = MacroType::ELSE;
+	} else if (match("endif", true, &s)){
+		type = MacroType::ENDIF;
+	}
+	
+	// Space after macro type
+	if (type != MacroType::UNKNOWN && parseWhiteSpace(s) < 1){
+		type = MacroType::UNKNOWN;
+	}
+	
+	
+	// Conditional
+	if (condition != nullptr && type != MacroType::UNKNOWN){
+		while (true){
+			char c = ch();
+			
+			if (BETWEEN(c, 'a', 'z') || BETWEEN(c, 'A', 'Z') || BETWEEN(c, '0', '9') || c == '_'){
+				s.push_back(c);
+				condition->push_back(c);
+				inc();
+			} else {
+				break;
+			}
+			
+		}
+	}
+	
 	
 	// Parse macro body
 	while (true){
@@ -199,9 +254,12 @@ void Parser::parseMacro(SourceString& s){
 		
 	}
 	
+	
 	s.end = getLoc();
 	if (ch() == '\n')
 		nl();
+	
+	return type;
 }
 
 
@@ -387,7 +445,9 @@ void Parser::parseMacro(SourceString& s){
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-void Parser::parseWhiteSpace(string& s, bool escapedNewline){
+int Parser::parseWhiteSpace(string& s, bool escapedNewline){
+	const int size = s.size();
+	
 	while (true){
 		char c = ch();
 		
@@ -415,16 +475,20 @@ void Parser::parseWhiteSpace(string& s, bool escapedNewline){
 		
 		s.push_back(c);
 	}
+	
+	return s.size() - size;
 }
 
 
-void Parser::parseStringLiteral(string& s){
+int Parser::parseStringLiteral(string& s){
 	const char terminator = ch();
 	if (terminator != '\'' && terminator != '"'){
 		throw ParserException(getLoc(), "Expected string or character literal.");
 	}
 	
 	const Location start = getLoc();
+	const int size = s.size();
+	
 	s.push_back(terminator);
 	inc();
 	
@@ -454,15 +518,18 @@ void Parser::parseStringLiteral(string& s){
 		
 	}
 	
+	return s.size() - size;
 }
 
 
-void Parser::parseComment(string& s){
+int Parser::parseComment(string& s){
 	if (ch() != '/'){
 		throw ParserException(getLoc(), "Expected comment.");
 	}
 	
 	const Location start = getLoc();
+	const int size = s.size();
+	
 	s.push_back('/');
 	inc();
 	
@@ -525,14 +592,14 @@ void Parser::parseComment(string& s){
 		throw ParserException(getLoc(), "Expected comment.");
 	}
 	
-	return;
+	return s.size() - size;
 }
 
 
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-bool Parser::match(const char* s, bool move){
+bool Parser::match(const char* s, bool move, string* out){
 	int ii = 0;
 	
 	// Try to match with current buffer
@@ -558,6 +625,8 @@ bool Parser::match(const char* s, bool move){
 	
 	if (move)
 		inc(ii);
+	if (out != nullptr)
+		out->append(s);
 	
 	return true;
 }

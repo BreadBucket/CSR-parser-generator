@@ -5,3 +5,8 @@
 	def \ ter /* commend
 */ aaa
 
+
+
+# ifdef TEST\g
+	then die
+#endif 
