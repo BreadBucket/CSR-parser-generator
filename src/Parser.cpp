@@ -14,11 +14,14 @@ using namespace csg;
 
 // DEBUG
 void printSrc(const SourceString& src){
-	printf("[%d,%d): ", src.start.i, src.end.i);
-	printf("%d:%d-", src.start.row+1, src.start.col+1);
-	printf("%d:%d  ", src.end.row+1, src.end.col+1);
+	printf("[%d,%d): @", src.start.i, src.end.i);
+	if (src.start.valid())
+		printf("%d:%d", src.start.row+1, src.start.col+1);
+	if (src.end.valid())
+		printf("-%d:%d", src.end.row+1, src.end.col+1);
+	printf("  ");
 	if (!src.empty())
-		printf("\"%s\"", src.c_str());
+		printf("\"" ANSI_GREEN "%s" ANSI_RESET "\"", src.c_str());
 	else
 		printf("null");
 	printf("\n");
@@ -26,7 +29,7 @@ void printSrc(const SourceString& src){
 
 
 // DEBUG
-const char* locStr(const csg::Location& loc){
+char* locStr(const csg::Location& loc){
 	char* s = new char[100];
 	snprintf(s, 100, "[%d]: %d:%d", loc.i, loc.row+1, loc.col+1);
 	return s;
@@ -42,9 +45,19 @@ void Parser::printch(){
 		printf("%s -- '\\n'", locStr(getLoc()));
 	else if (c == '\t')
 		printf("%s -- '\\t'", locStr(getLoc()));
+	else if (c == '\0')
+		printf("%s -- '\\0'", locStr(getLoc()));
 	else
 		printf("%s -- '%c'", locStr(getLoc()), c);
 	printf(ANSI_RESET "\n");
+}
+
+
+// DEBUG
+char* strstr(const string& s){
+	char* str = new char[256];
+	snprintf(str, 256, "{" ANSI_GREEN "%s" ANSI_RESET "}", s.c_str());
+	return str;
 }
 
 
@@ -106,32 +119,33 @@ void Parser::parse(istream& in){
 	code.reserve(32);
 	
 	
+	SourceString tmp;
 	while (true){
-		push();
+		tmp.start = getLoc();
+		parseWhiteSpace(tmp, true);
 		
-		skipSpace(true);
 		char c = ch();
 		printch();
 		
 		if (c == '\n'){
 			nl();
 		} else if (c == '#'){
-			pop();
-			parseMacro();
+			parseMacro(tmp);
+			code.push_back(move(tmp));
 		} else if (isIdChar(c)){
 			Reduction r;
-			parseReduction(r);
+			// parseReduction(r);
 		} else if (c == 0){
-			pop(-1, false);
 			break;
 		} else {
-			pop(-1, false);
 			throw ParserException(getLoc(), "Unexpected character.");
 		}
 		
-		pop(-1, false);
-		break;
+		tmp.clear();
 	}
+	
+	
+	
 	
 	
 }
@@ -140,345 +154,369 @@ void Parser::parse(istream& in){
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-void Parser::parseMacro(){
-	const Location& start = push();
+void Parser::parseMacro(SourceString& s){
+	if (s.size() == 0 && !s.start.valid()){
+		s.start = getLoc();
+	}
 	
-	skipSpace(true);
-	if (ch() != '#'){
+	// Parse initial # symbol
+	parseWhiteSpace(s);
+	if (ch() == '#'){
+		s.push_back('#');
+		inc();
+	} else {
 		throw ParserException(getLoc(), "Preprocessor directive declaration expected.");
 	}
 	
-	inc();
+	// Parse macro body
 	while (true){
 		char c = ch();
+		s.push_back(c);
 		
 		if (c == '"' || c == '\''){
-			skipString();
+			s.pop_back();
+			parseStringLiteral(s);
 		} else if (c == '\t'){
 			tab();
 		} else if (c == '\n'){
+			s.pop_back();
 			break;
 		} else if (c == '\\'){
 			inc();
-			if (ch() == '\n')
+			if (ch() == '\n'){
+				s.push_back('\n');
 				nl();
-		} else if (match("//") || match("/*")){
-			skipComment();
-		} else {
-			inc();
-		}
-		
-	}
-	
-	
-	const Location end = getLoc();
-	string s;
-	extractString(start, end, s);
-	printf("%s -- %s {" ANSI_GREEN "%s" ANSI_RESET "}\n", locStr(start), locStr(end), s.c_str());
-	
-	// if (match("ifndef") || match("ifdef") || match("if")){}
-	
-	
-	
-	
-}
-
-
-// ----------------------------------- [ Functions ] ---------------------------------------- //
-
-
-void Parser::parseReduction(Reduction& r){
-	// Parse left symbols
-	if (isIdChar(ch())){
-		while (isIdChar(ch())){
-			Symbol& sym = r.left.emplace_back();
-			parseSymbol(sym);
-			skipSpace(true);
-		}
-	} else {
-		throw ParserException(getLoc(), "Expected symbol name.");
-	}
-	
-	if (r.left.size() <= 0){
-		throw ParserException(getLoc(), "Missing left side of reduction.");
-	}
-	
-	
-	// Arrow
-	if (!match("->", true)){
-		if (ch() == '[')
-			throw ParserException(getLoc(), "Symbol attributes missing symbol name.");
-		else
-			throw ParserException(getLoc(), "Expected left-right separator \"->\".");
-	}
-	
-	skipSpace(true);
-	
-	
-	// Parse right symbols
-	while (isIdChar(ch())){
-		Symbol& sym = r.right.emplace_back();
-		parseSymbol(sym);
-		skipSpace(true);
-	}
-	
-	// Parse inline code
-	if (ch() == '{'){
-		parseReductionInlineCode(r.code);
-		skipSpace(true);
-	}
-	
-	if (ch() != '\n' && ch() != 0){
-		throw ParserException(getLoc(), "Expected reduction termination using newline '\\n'.");
-	} else if (r.right.size() <= 0){
-		throw ParserException(getLoc(), "Missing right side of reduction.");
-	}
-	
-	
-	return;
-}
-
-
-void Parser::parseSymbol(Symbol& sym){
-	// First letter is capital
-	if (!isIdFirstChar(ch())){
-		throw ParserException(getLoc(), "Symbols must start with a capital letter.");
-	}
-	
-	// Parse symbol name
-	sym.clear();
-	parseId(sym.name);
-	
-	// Parse additional attributes
-	if (ch() == '['){
-		parseSymbolAttributes(sym);
-	}
-	
-}
-
-
-void Parser::parseSymbolAttributes(Symbol& sym){
-	if (ch() != '['){
-		throw ParserException(getLoc(), "Expected '[' when declaring symbol attributes.");
-	}
-	
-	inc();
-	skipSpace(true);
-	
-	if (isIdChar(ch())){
-		parseId(sym.id);
-	} else {
-		throw ParserException(getLoc(), "Unexpected character.");
-	}
-	
-	skipSpace(true);
-	if (ch() != ']'){
-		throw ParserException(getLoc(), "Expected ']' at the end of symbol attributes declaration.");
-	}
-	
-	inc();
-}
-
-
-void Parser::parseId(SourceString& str){
-	str.clear();
-	str.start = getLoc();
-	
-	char c = ch();
-	while (isIdChar(c)){
-		str.push_back(c);
-		inc();
-		c = ch();
-	}
-	
-	str.end = getLoc() - 1;
-}
-
-
-void Parser::parseReductionInlineCode(SourceString& code){
-	if (ch() != '{'){
-		throw ParserException(getLoc(), "Expected '{' at reduction inline code declaration.");
-	}
-	
-	code.clear();
-	code.start = getLoc();
-	
-	code.push_back('{');
-	inc();
-	
-	int bracket = 1;
-	int quote_1 = 0;
-	int quote_2 = 0;
-	while (bracket > 0){
-		char c = ch();
-		
-		if (c == 0){
-			break;
-		} else if (c == '\n'){
-			nl();
-			inc(-1);
-		} else if (c == '\t'){
-			tab();
-			inc(-1);
-		}
-		
-		// String context
-		else if (quote_1 > 0){
-			if (c == '"')
-				quote_1--;
-			else if (c == '\\')
-				inc();
-		}
-		
-		// Literal context
-		else if (quote_2 > 0){
-			if (c == '\'')
-				quote_2--;
-			else if (c == '\\')
-				inc();
-		}
-		
-		// Default context
-		else {
-			if (c == '{')
-				bracket++;
-			else if (c == '}'){
-				bracket--;
 			}
-			else if (c == '"')
-				quote_1++;
-			else if (c == '\'')
-				quote_1++;
+		} else if (c =='/' && (match("//") || match("/*"))){
+			s.pop_back();
+			parseComment(s);
+		} else if (c != 0){
+			inc();
+		} else {
+			s.pop_back();
+			break;
 		}
 		
-		code.push_back(c);
-		inc();
 	}
 	
-	if (bracket > 0){
-		throw ParserException(code.start, "Missing closing bracket '}'.");
-	}
-	
-	code.end = getLoc() - 1;
+	s.end = getLoc();
+	if (ch() == '\n')
+		nl();
 }
 
 
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-void Parser::skipWhiteSpace(){
-	while (true){
-		char c = ch();
-		if (c == '\n'){
-			nl();
-		} else if (c == '\t'){
-			tab();
-		} else if (isspace(c)){
-			inc();
-		} else {
-			return;
-		}
-	}
-}
+// void Parser::parseReduction(Reduction& r){
+// 	// Parse left symbols
+// 	if (isIdChar(ch())){
+// 		while (isIdChar(ch())){
+// 			Symbol& sym = r.left.emplace_back();
+// 			parseSymbol(sym);
+// 			skipSpace(true);
+// 		}
+// 	} else {
+// 		throw ParserException(getLoc(), "Expected symbol name.");
+// 	}
+	
+// 	if (r.left.size() <= 0){
+// 		throw ParserException(getLoc(), "Missing left side of reduction.");
+// 	}
+	
+	
+// 	// Arrow
+// 	if (!match("->", true)){
+// 		if (ch() == '[')
+// 			throw ParserException(getLoc(), "Symbol attributes missing symbol name.");
+// 		else
+// 			throw ParserException(getLoc(), "Expected left-right separator \"->\".");
+// 	}
+	
+// 	skipSpace(true);
+	
+	
+// 	// Parse right symbols
+// 	while (isIdChar(ch())){
+// 		Symbol& sym = r.right.emplace_back();
+// 		parseSymbol(sym);
+// 		skipSpace(true);
+// 	}
+	
+// 	// Parse inline code
+// 	if (ch() == '{'){
+// 		parseReductionInlineCode(r.code);
+// 		skipSpace(true);
+// 	}
+	
+// 	if (ch() != '\n' && ch() != 0){
+// 		throw ParserException(getLoc(), "Expected reduction termination using newline '\\n'.");
+// 	} else if (r.right.size() <= 0){
+// 		throw ParserException(getLoc(), "Missing right side of reduction.");
+// 	}
+	
+	
+// 	return;
+// }
 
 
-void Parser::skipSpace(bool escapeable){
+// void Parser::parseSymbol(Symbol& sym){
+// 	// First letter is capital
+// 	if (!isIdFirstChar(ch())){
+// 		throw ParserException(getLoc(), "Symbols must start with a capital letter.");
+// 	}
+	
+// 	// Parse symbol name
+// 	sym.clear();
+// 	parseId(sym.name);
+	
+// 	// Parse additional attributes
+// 	if (ch() == '['){
+// 		parseSymbolAttributes(sym);
+// 	}
+	
+// }
+
+
+// void Parser::parseSymbolAttributes(Symbol& sym){
+// 	if (ch() != '['){
+// 		throw ParserException(getLoc(), "Expected '[' when declaring symbol attributes.");
+// 	}
+	
+// 	inc();
+// 	skipSpace(true);
+	
+// 	if (isIdChar(ch())){
+// 		parseId(sym.id);
+// 	} else {
+// 		throw ParserException(getLoc(), "Unexpected character.");
+// 	}
+	
+// 	skipSpace(true);
+// 	if (ch() != ']'){
+// 		throw ParserException(getLoc(), "Expected ']' at the end of symbol attributes declaration.");
+// 	}
+	
+// 	inc();
+// }
+
+
+// void Parser::parseId(SourceString& str){
+// 	str.clear();
+// 	str.start = getLoc();
+	
+// 	char c = ch();
+// 	while (isIdChar(c)){
+// 		str.push_back(c);
+// 		inc();
+// 		c = ch();
+// 	}
+	
+// 	str.end = getLoc() - 1;
+// }
+
+
+// void Parser::parseReductionInlineCode(SourceString& code){
+// 	if (ch() != '{'){
+// 		throw ParserException(getLoc(), "Expected '{' at reduction inline code declaration.");
+// 	}
+	
+// 	code.clear();
+// 	code.start = getLoc();
+	
+// 	code.push_back('{');
+// 	inc();
+	
+// 	int bracket = 1;
+// 	int quote_1 = 0;
+// 	int quote_2 = 0;
+// 	while (bracket > 0){
+// 		char c = ch();
+		
+// 		if (c == 0){
+// 			break;
+// 		} else if (c == '\n'){
+// 			nl();
+// 			inc(-1);
+// 		} else if (c == '\t'){
+// 			tab();
+// 			inc(-1);
+// 		}
+		
+// 		// String context
+// 		else if (quote_1 > 0){
+// 			if (c == '"')
+// 				quote_1--;
+// 			else if (c == '\\')
+// 				inc();
+// 		}
+		
+// 		// Literal context
+// 		else if (quote_2 > 0){
+// 			if (c == '\'')
+// 				quote_2--;
+// 			else if (c == '\\')
+// 				inc();
+// 		}
+		
+// 		// Default context
+// 		else {
+// 			if (c == '{')
+// 				bracket++;
+// 			else if (c == '}'){
+// 				bracket--;
+// 			}
+// 			else if (c == '"')
+// 				quote_1++;
+// 			else if (c == '\'')
+// 				quote_1++;
+// 		}
+		
+// 		code.push_back(c);
+// 		inc();
+// 	}
+	
+// 	if (bracket > 0){
+// 		throw ParserException(code.start, "Missing closing bracket '}'.");
+// 	}
+	
+// 	code.end = getLoc() - 1;
+// }
+
+
+// ----------------------------------- [ Functions ] ---------------------------------------- //
+
+
+void Parser::parseWhiteSpace(string& s, bool escapedNewline){
 	while (true){
 		char c = ch();
 		
-		// Regular whitespace
 		if (c == '\t'){
 			tab();
 		} else if (c == '\n'){
-			break;
-		} else if (isspace(c)){
-			inc();
-		}
-		
-		// Escaped whitespace
-		else if (c == '\\' && escapeable){
-			lookAhead(2);
-			
-			if (buff[i+1] == '\n'){
-				inc();
+			if (!escapedNewline)
 				nl();
-			} else if (buff[i+1] == '\t'){
-				inc();
-				tab();
-			} else if (isspace(buff[i+1])){
+			else
+				break;
+		} else if (c == '\\'){
+			if (match("\\\n")){
+				s.push_back('\\');
+				s.push_back('\n');
 				inc(2);
+				continue;
 			} else {
 				break;
 			}
-			
-		}
-		
-		// Solid character
-		else {
+		} else if (isspace(c)){
+			inc();
+		} else {
 			break;
 		}
 		
+		s.push_back(c);
 	}
 }
 
 
-void Parser::skipString(){
+void Parser::parseStringLiteral(string& s){
+	const char terminator = ch();
+	if (terminator != '\'' && terminator != '"'){
+		throw ParserException(getLoc(), "Expected string or character literal.");
+	}
+	
+	const Location start = getLoc();
+	s.push_back(terminator);
+	inc();
+	
+	int lvl = 1;
+	while (lvl > 0){
+		char c = ch();
+		s.push_back(c);
+		
+		if (c == '\t'){
+			tab();
+		} else if (c == '\n'){
+			nl();
+		} else if (c == '\\'){
+			lookAhead(2);
+			inc();
+			if (ch() == terminator){
+				s.push_back(terminator);
+				inc();
+			}
+		} else if (c == terminator){
+			break;
+		} else if (c != 0){
+			inc();
+		} else {
+			throw ParserException(start, "Unterminated string or character literal.");
+		}
+		
+	}
 	
 }
 
 
-void Parser::skipComment(){
+void Parser::parseComment(string& s){
 	if (ch() != '/'){
 		throw ParserException(getLoc(), "Expected comment.");
 	}
 	
 	const Location start = getLoc();
+	s.push_back('/');
 	inc();
 	
 	// Comment line
 	if (ch() == '/'){
+		s.push_back('/');
 		inc();
 		
 		while (true){
-			const char c = ch();
+			char c = ch();
 			
 			if (c == '\t'){
 				tab();
-			} else if (c == '\\'){
+			} else if (c == '\\' && match("\\\n")){
+				s.push_back('\\');
+				s.push_back('\n');
 				inc();
-				if (ch() == '\n')
-					nl();
+				nl();
+				continue;
 			} else if (c == '\n' || c == 0){
 				break;
 			} else {
 				inc();
 			}
 			
+			s.push_back(c);
 		}
 		
 	}
 	
 	// Comment Block
 	else if (ch() == '*'){
+		s.push_back('*');
 		inc();
 		
 		while (true){
-			const char c = ch();
+			char c = ch();
 			
 			if (c == '\t'){
 				tab();
 			} if (c == '\n'){
 				nl();
-			} else if (c == '*'){
-				inc();
-				if (ch() == '/')
-					break;
+			} else if (c == '*' && match("*/")){
+				s.push_back('*');
+				s.push_back('/');
+				inc(2);
+				break;
 			} else if (c == 0){
 				throw ParserException(start, "Unterminated comment block.");
 			} else {
 				inc();
 			}
 			
+			s.push_back(c);
 		}
 		
 	}
@@ -536,7 +574,7 @@ const Location& Parser::push(){
 void Parser::pop(int count, bool apply){
 	count = (count < 0) ? frames.size() : count;
 	
-	if (0 < count && count <= frames.size()){
+	if (0 <= count && count <= frames.size()){
 		if (apply){
 			const Location loc = frames[frames.size() - count];
 			i = loc.i - bi;
@@ -575,12 +613,15 @@ void Parser::reset(){
 	ri = 0;
 	n = 0;
 	eof = false;
-	frames.clear();
+	
 	if (buff == nullptr){
 		_buffSize = buffSize;
 		buff = new char[_buffSize];
 	}
 	buff[0] = 0;
+	
+	trash.clear();
+	frames.clear();
 }
 
 

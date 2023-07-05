@@ -18,7 +18,7 @@ public:
 	
 // -------------------------------- //
 public:
-	inline bool valid(){
+	inline bool valid() const {
 		return i >= 0;
 	}
 	
@@ -57,7 +57,13 @@ public:
 	
 // ---------------------------------- [ Constructors ] -------------------------------------- //
 public:
-	// LocatableString 
+	SourceString() = default;
+	
+	// SourceString(const string& s) : std::string(s), start{-1}, end{-1} {};
+	// SourceString(string&& s) : std::string(s), start{-1}, end{-1} {};
+	
+	SourceString(const Location& start) : std::string(), start{start}, end{-1} {};
+	SourceString(Location&& start) : std::string(), start{start}, end{-1} {};
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 public:

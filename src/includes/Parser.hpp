@@ -18,7 +18,7 @@ namespace csg {
 
 
 // DEBUG
-const char* locStr(const csg::Location& loc);
+char* locStr(const csg::Location& loc);
 
 
 class csg::Parser {
@@ -27,12 +27,15 @@ public:					// DEBUG
 // ------------------------------------[ Properties ] --------------------------------------- //
 public:
 	int tabSize = 4;
+	std::istream* in = nullptr;
 	
 private:
-	std::istream* in	= nullptr;
-	int buffSize		= 1024;		// Preffered buffer size
-	int _buffSize		= 0;		// Actual buffer size
-	char* buff			= nullptr;
+	int buffSize  = 1024;		// Preffered buffer size
+	int _buffSize = 0;		// Actual buffer size
+	char* buff    = nullptr;
+	
+private:
+	std::string trash;
 	std::vector<Location> frames;
 	
 private:
@@ -64,31 +67,30 @@ public:
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 private:
-	void parseMacro();
+	void parseMacro(SourceString& s);
 	
-private:
-	/**
-	 * @throws csg::ParserException on syntax error.
-	 */
-	void parseReduction(Reduction& out_reduction);
-	void parseReductionInlineCode(SourceString& out_code);
+// private:
+// 	/**
+// 	 * @throws csg::ParserException on syntax error.
+// 	 */
+// 	void parseReduction(Reduction& out_reduction);
+// 	void parseReductionInlineCode(SourceString& out_code);
 	
-	void parseSymbol(Symbol& out_symbol);
-	void parseSymbolAttributes(Symbol& out_symbol);
-	void parseId(SourceString& out_symbol);
+// 	void parseSymbol(Symbol& out_symbol);
+// 	void parseSymbolAttributes(Symbol& out_symbol);
+// 	void parseId(SourceString& out_symbol);
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 private:
-	void skipWhiteSpace();
-	
 	/**
-	 * @brief Skip all white-space characters except newline.
-	 * @param escapeable Determines if escaped newlines are permisable.
+	 * @brief Skip all white-space characters.
+	 * @param escapedNewline Newline must be escaped.
 	 */
-	void skipSpace(bool escapeable = false);
+	void parseWhiteSpace(std::string& s, bool escapedNewline = false);
 	
-	void skipString();
-	void skipComment();
+	void parseStringLiteral(std::string& s);
+	
+	void parseComment(std::string& s);
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 private:
