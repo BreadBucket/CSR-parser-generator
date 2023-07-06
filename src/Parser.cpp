@@ -37,9 +37,9 @@ char* locStr(const csg::Location& loc){
 
 
 //DEBUG
-void Parser::printch(){
+void Parser::printch(const char* color){
 	char c = ch();
-	printf(ANSI_CYAN);
+	printf(color);
 	printf("[%d/%d]", i, n);
 	if (c == '\n')
 		printf("%s -- '\\n'", locStr(getLoc()));
@@ -65,15 +65,15 @@ char* strstr(const string& s){
 
 
 inline bool isIdFirstChar(char c){
-	return ('A' <= c && c <= 'Z');
+	return BETWEEN(c, 'A', 'Z');
 }
 
 
 inline bool isIdChar(char c){
 	return (
-		('a' <= c && c <= 'z') ||
-		('A' <= c && c <= 'Z') ||
-		('0' <= c && c <= '9') ||
+		BETWEEN(c, 'a', 'z') ||
+		BETWEEN(c, 'A', 'Z') ||
+		BETWEEN(c, '0', '9') ||
 		(c == '_')
 	);
 }
@@ -81,8 +81,8 @@ inline bool isIdChar(char c){
 
 inline bool isMacroFirstChar(char c){
 	return (
-		('a' <= c && c <= 'z') ||
-		('A' <= c && c <= 'Z') ||
+		BETWEEN(c, 'a', 'z') ||
+		BETWEEN(c, 'A', 'Z') ||
 		(c == '_')
 	);
 }
@@ -90,9 +90,9 @@ inline bool isMacroFirstChar(char c){
 
 inline bool isMacroChar(char c){
 	return (
-		('a' <= c && c <= 'z') ||
-		('A' <= c && c <= 'Z') ||
-		('0' <= c && c <= '9') ||
+		BETWEEN(c, 'a', 'z') ||
+		BETWEEN(c, 'A', 'Z') ||
+		BETWEEN(c, '0', '9') ||
 		(c == '_')
 	);
 }
@@ -125,7 +125,6 @@ void Parser::parse(istream& in){
 		parseWhiteSpace(tmp, true);
 		
 		char c = ch();
-		// printch();
 		
 		if (c == '\n'){
 			nl();
@@ -151,9 +150,6 @@ void Parser::parse(istream& in){
 		
 		tmp.clear();
 	}
-	
-	
-	
 	
 	
 }
@@ -256,9 +252,6 @@ Parser::MacroType Parser::parseMacro(SourceString& s, SourceString* condition){
 	
 	
 	s.end = getLoc();
-	if (ch() == '\n')
-		nl();
-	
 	return type;
 }
 
@@ -459,10 +452,12 @@ int Parser::parseWhiteSpace(string& s, bool escapedNewline){
 			else
 				break;
 		} else if (c == '\\'){
-			if (match("\\\n")){
+			lookAhead(2);
+			if (buff[i+1] == '\n'){
 				s.push_back('\\');
 				s.push_back('\n');
-				inc(2);
+				inc();
+				nl();
 				continue;
 			} else {
 				break;

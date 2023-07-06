@@ -23,7 +23,7 @@ char* locStr(const csg::Location& loc);
 
 class csg::Parser {
 public:					// DEBUG
-	void printch();		// DEBUG
+	void printch(const char* color = "\e[96m");		// DEBUG
 // ------------------------------------[ Properties ] --------------------------------------- //
 public:
 	int tabSize = 4;
