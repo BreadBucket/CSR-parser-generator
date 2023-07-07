@@ -21,6 +21,8 @@ namespace csg {
 char* locStr(const csg::Location& loc);
 
 
+
+
 class csg::Parser {
 public:					// DEBUG
 	void printch(const char* color = "\e[96m");		// DEBUG
@@ -28,6 +30,9 @@ public:					// DEBUG
 public:
 	int tabSize = 4;
 	std::istream* in = nullptr;
+	
+	std::vector<SourceString>* codeSegments;
+	std::vector<Reduction>* reductions;
 	
 private:
 	int buffSize  = 1024;	// Preffered buffer size
@@ -50,6 +55,8 @@ private:
 private:
 	enum MacroType {
 		UNKNOWN,
+		DEFINE,
+		INCLUDE,
 		IF,
 		IFDEF,
 		IFNDEF,
@@ -76,20 +83,26 @@ public:
 public:
 	void parse(std::istream& in);
 	
-	void parseReductionSegment(SourceString& out_s);
-	void parseCodeSegment(SourceString& out_s);
+private:
+	void parseMacroSegment();
+	bool parse_continueConditionalMacroBody(std::string& out_s);
+	
+	// void parseReductionSegment(SourceString& out_s);
+	// void parseCodeSegment(SourceString& out_s);
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 private:
+	void parseSegment();
+	
+	
 	/**
 	 * @brief Parse C style preprocessor directives.
 	 * @param s String buffer for appending parsed characters.
-	 * @param out_condition Optional output for parsed condition of conditional directives.
 	 * @returns Parsed directive type or unknown.
 	 * @throws ParserException when preprocessor directive does not start with '#'.
 	 * @throws ParserException on unterminated string literals or comments.
 	 */
-	MacroType parseMacro(SourceString& s, SourceString* out_condition = nullptr);
+	MacroType parseMacro(std::string& s);
 	
 // private:
 // 	/**
@@ -166,7 +179,7 @@ private:
 	 */
 	inline char ch(){
 		if (i >= n) [[unlikely]]
-			fillBuffer(i - n + 1, true);
+			fillBuffer(buffSize, true);
 		return buff[i];
 	}
 	
@@ -220,20 +233,14 @@ private:
 	void reset();
 	
 	/** 
-	 * @brief Fills buffer with new data.
-	 *        Characters before frame[0] are discarded if it exists, otherwise all characters before index i.
-	 *        Resets index i, sets n to new char count, recalculates global index.
+	 * @brief Ensure buffer has at least n more characters i.e. buff[i..i+n].
+	 *        Characters before frame[0] or i are discarded.
+	 *        Index i, char count n, and buffer pointer might change.
 	 * @param count Min amount of characters to add to the buffer.
 	 * @param fill  Add more characters if there is space available.
 	 * @return Amount of new characters in buffer.
 	 */
 	int fillBuffer(int count, bool fill = true);
-	
-	/**
-	 * @brief  Ensure buffer has at least n more characters i.e. buff[i..i+n].
-	 * @return Available characters in buffer. Returned value can be less than n if EOF is reached.
-	 */
-	int lookAhead(int n);
 	
 // ----------------------------------- [ Operators ] ---------------------------------------- //
 public:

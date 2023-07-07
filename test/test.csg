@@ -1,14 +1,9 @@
-
-# \
-define \
-HELL
-
-	#  \
-	def \ ter /* commend
-*/ aaa
+#ifdef CSG_CODE
 
 
-
-# ifdef TEST\g
-	then die
-#endif 
+void main(){
+	
+}
+	
+	
+#endif

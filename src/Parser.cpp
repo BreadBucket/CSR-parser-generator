@@ -13,17 +13,23 @@ using namespace csg;
 
 
 // DEBUG
+#define PATH "test/test.csg"
+
+
+// DEBUG
 void printSrc(const SourceString& src){
-	printf("[%d,%d): @", src.start.i, src.end.i);
-	if (src.start.valid())
-		printf("%d:%d", src.start.row+1, src.start.col+1);
-	if (src.end.valid())
-		printf("-%d:%d", src.end.row+1, src.end.col+1);
-	printf("  ");
-	if (!src.empty())
+	if (!src.empty()){
+		printf("[%d,%d): @", src.start.i, src.end.i);
+		if (src.start.valid())
+			printf("%d:%d", src.start.row+1, src.start.col+1);
+		if (src.end.valid())
+			printf("-%d:%d", src.end.row+1, src.end.col+1);
+		printf("  ");
+		
 		printf("\"" ANSI_GREEN "%s" ANSI_RESET "\"", src.c_str());
-	else
+	} else{
 		printf("null");
+	}
 	printf("\n");
 }
 
@@ -31,7 +37,7 @@ void printSrc(const SourceString& src){
 // DEBUG
 char* locStr(const csg::Location& loc){
 	char* s = new char[100];
-	snprintf(s, 100, "[%d]: %d:%d", loc.i, loc.row+1, loc.col+1);
+	snprintf(s, 100, "[%d]: " PATH ":%d:%d", loc.i, loc.row+1, loc.col+1);
 	return s;
 }
 
@@ -102,7 +108,7 @@ inline bool isMacroChar(char c){
 
 
 void Parser::parse(istream& in){
-	buffSize = 4;
+	buffSize = 8;
 	
 	if (in.bad() || buffSize < 1){
 		return;
@@ -113,43 +119,39 @@ void Parser::parse(istream& in){
 	reset();
 	
 	
-	vector<Reduction> reductions;
-	vector<SourceString> code;
-	reductions.reserve(32);
-	code.reserve(32);
 	
-	
-	SourceString tmp;
 	while (true){
-		tmp.start = getLoc();
-		parseWhiteSpace(tmp, true);
+		push();
 		
+		parseWhiteSpace(trash, true);
+		trash.clear();
 		char c = ch();
 		
 		if (c == '\n'){
+			pop(-1, false);
 			nl();
-		} else if (c == '#'){
-			
-			SourceString cond;
-			MacroType m = parseMacro(tmp, &cond);
-			
-			printSrc(tmp);
-			printf("%d: {" ANSI_RED "%s" ANSI_RESET "}\n", m, cond.c_str());
-			printf("\n");
-			
-			code.push_back(move(tmp));
 		} else if (isIdChar(c)){
-			Reduction r;
-			inc(); //
-			// parseReduction(r);
+			pop(-1, false);
+			inc();
+		} else if (c == '#'){
+			pop(-1, false);
+			parseSegment();
 		} else if (c == 0){
+			pop(-1, false);
 			break;
 		} else {
+			pop(-1, false);
 			throw ParserException(getLoc(), "Unexpected character.");
 		}
 		
-		tmp.clear();
 	}
+	
+	
+	
+	// for (auto& s : *codeSegments){
+	// 	printSrc(s);
+	// }
+	
 	
 	
 }
@@ -158,66 +160,108 @@ void Parser::parse(istream& in){
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-Parser::MacroType Parser::parseMacro(SourceString& s, SourceString* condition){
-	if (s.size() == 0 && !s.start.valid()){
-		s.start = getLoc();
+void Parser::parseSegment(){
+	if (ch() != '#'){
+		throw ParserException(getLoc(), "Expected segment declaration.");
 	}
 	
-	parseWhiteSpace(s);
 	
-	// Parse initial # symbol
-	if (ch() == '#'){
-		s.push_back('#');
-		inc();
-	} else {
+	printch();
+	
+	inc(8);
+	printch();
+}
+
+
+// ----------------------------------- [ Functions ] ---------------------------------------- //
+
+
+// void Parser::parseMacroSegment(){
+// 	SourceString& s = codeSegments->emplace_back(getLoc());
+	
+// 	MacroType type = parseMacro(s);
+	
+// 	// Check if conditional macro
+// 	int lvl = 0;
+// 	switch (type){
+// 		case MacroType::IF:
+// 		case MacroType::IFDEF:
+// 		case MacroType::IFNDEF:
+// 		case MacroType::ELIF:
+// 		case MacroType::ELIFDEF:
+// 		case MacroType::ELIFNDEF:
+// 		case MacroType::ELSE:
+// 			lvl = 1;
+// 			break;
+// 	}
+	
+	
+// 	printf("%d: ", type);
+// 	// printSrc();
+	
+	
+// 	// Parse conditional macro body
+// 	while (lvl > 0){
+// 		char c = ch();
+		
+// 		if (c == '\n'){
+// 			s.push_back(c);
+// 			nl();
+// 		} else if (c == '\t'){
+// 			s.push_back(c);
+// 			tab();
+// 		} else if (c == '"' || c == '\''){
+// 			parseStringLiteral(s);
+// 		} else if (c == '/' && match("//")){
+// 			parseComment(s);
+// 		} else if (c == '#'){
+// 			MacroType type = parseMacro(s);
+			
+// 			switch (type){
+// 				case MacroType::IF:
+// 				case MacroType::IFDEF:
+// 				case MacroType::IFNDEF:
+// 					lvl++;
+// 					break;
+// 				case MacroType::ENDIF:
+// 					lvl--;
+// 					break;
+// 				default:
+// 					break;
+// 			}
+			
+// 		} else if (c != 0){
+// 			s.push_back(c);
+// 			inc();
+// 		} else {
+// 			throw ParserException(s.start, "Unterminated conditional preprocessor directive.");
+// 		}
+		
+// 	}
+	
+// 	s.end = getLoc();
+// }
+
+
+// bool Parser::parse_continueConditionalMacroBody(std::string& s){
+// 	int lvl = 1;
+	
+
+	
+// 	return true;
+// }
+
+
+// ----------------------------------- [ Functions ] ---------------------------------------- //
+
+
+Parser::MacroType Parser::parseMacro(string& s){
+	if (ch() != '#'){
 		throw ParserException(getLoc(), "Preprocessor directive declaration expected.");
 	}
 	
-	parseWhiteSpace(s);
-	
-	
-	// Parse macro type
-	MacroType type = MacroType::UNKNOWN;
-	if (match("ifndef", true, &s)){
-		type = MacroType::IFNDEF;
-	} else if (match("ifdef", true, &s)){
-		type = MacroType::IFDEF;
-	} else if (match("if", true, &s)){
-		type = MacroType::IF;
-	} else if (match("elifndef", true, &s)){
-		type = MacroType::ELIFNDEF;
-	} else if (match("elifdef", true, &s)){
-		type = MacroType::ELIFDEF;
-	} else if (match("elif", true, &s)){
-		type = MacroType::ELIF;
-	} else if (match("else", true, &s)){
-		type = MacroType::ELSE;
-	} else if (match("endif", true, &s)){
-		type = MacroType::ENDIF;
-	}
-	
-	// Space after macro type
-	if (type != MacroType::UNKNOWN && parseWhiteSpace(s) < 1){
-		type = MacroType::UNKNOWN;
-	}
-	
-	
-	// Conditional
-	if (condition != nullptr && type != MacroType::UNKNOWN){
-		while (true){
-			char c = ch();
-			
-			if (BETWEEN(c, 'a', 'z') || BETWEEN(c, 'A', 'Z') || BETWEEN(c, '0', '9') || c == '_'){
-				s.push_back(c);
-				condition->push_back(c);
-				inc();
-			} else {
-				break;
-			}
-			
-		}
-	}
-	
+	s.push_back('#');
+	inc();
 	
 	// Parse macro body
 	while (true){
@@ -250,9 +294,7 @@ Parser::MacroType Parser::parseMacro(SourceString& s, SourceString* condition){
 		
 	}
 	
-	
-	s.end = getLoc();
-	return type;
+	return MacroType::UNKNOWN;
 }
 
 
@@ -452,7 +494,7 @@ int Parser::parseWhiteSpace(string& s, bool escapedNewline){
 			else
 				break;
 		} else if (c == '\\'){
-			lookAhead(2);
+			fillBuffer(2);
 			if (buff[i+1] == '\n'){
 				s.push_back('\\');
 				s.push_back('\n');
@@ -497,7 +539,7 @@ int Parser::parseStringLiteral(string& s){
 		} else if (c == '\n'){
 			nl();
 		} else if (c == '\\'){
-			lookAhead(2);
+			fillBuffer(2);
 			inc();
 			if (ch() == terminator){
 				s.push_back(terminator);
@@ -607,7 +649,7 @@ bool Parser::match(const char* s, bool move, string* out){
 	// Buffer underflow
 	if (s[ii] != 0 && (i+ii) >= n){
 		int len = ii + strlen(&s[ii]);
-		lookAhead(len);
+		fillBuffer(len);
 		
 		// Match remaining string
 		while (ii < len){
@@ -679,10 +721,20 @@ void Parser::reset(){
 	eof = false;
 	
 	if (buff == nullptr){
-		_buffSize = buffSize;
+		_buffSize = buffSize + 1;
 		buff = new char[_buffSize];
 	}
 	buff[0] = 0;
+	
+	if (codeSegments == nullptr)
+		codeSegments = new vector<SourceString>();
+	if (reductions == nullptr)
+		reductions = new vector<Reduction>();
+	
+	codeSegments->clear();
+	reductions->clear();
+	codeSegments->reserve(32);
+	reductions->reserve(32);
 	
 	trash.clear();
 	frames.clear();
@@ -690,71 +742,99 @@ void Parser::reset(){
 
 
 int Parser::fillBuffer(int count, bool fill){
-	if (count <= 0){
+	if (count <= 0 || count <= (n - i)){
 		return 0;
 	}
 	
-	// Frame global index must be converted to local index
-	const int p = (!frames.empty()) ? (frames[0].i - bi) : i;
-	const int preserve = n - p;
-	
-	int space = _buffSize - n - 1;
-	count = (fill & count < space) ? space : count;
-	
-	const int requiredSize = preserve + count + 1;
+	printf("READ: %d\n", count);
 	
 	
-	// Reorganize buffer
+	const int space = _buffSize - n - 1;
+	int skip = 0;
+	int p;
+	int preserve;
+	int requiredSize;
+	
+	if (frames.empty()){
+		p = min(i, n);
+	} else {
+		p = min(frames[0].i - bi, n);
+	}
+	
+	preserve = n - p;
+	
+	if (i > n){
+		if (preserve == 0)
+			skip = i - n;
+		else
+			count += i - n;
+	} else {
+		count -= n - i;
+	}
+	
+	requiredSize = preserve + count + 1;
+	
+	printf("  [%d/%d]: preserve:%d, p:%d, count:%d, space:%d, skip:%d, req:%d/%d \n", i, n, preserve, p, count, space, skip, requiredSize, _buffSize);
+	
+	
+	// Not enough empty space at the end
 	if (count > space){
 		
-		// Create larger buffer
+		// Resize buffer
 		if (requiredSize > _buffSize){
-			_buffSize = buffSize * ((requiredSize + buffSize)/buffSize) + 1;	// (multiple of buffSize) + 1
+			printf("  RESIZE: %d", _buffSize);
+			
+			// (multiple of buffSize) + 1
+			_buffSize = buffSize * ((requiredSize + buffSize)/buffSize) + 1;
 			char* _buff = new char[_buffSize];
 			
-			if (preserve > 0){
-				copy(&buff[p], &buff[n], &_buff[0]);
-			}
+			printf(" -> %d\n", _buffSize);
+			copy(&buff[p], &buff[n], &_buff[0]);
 			
 			swap(buff, _buff);
 			delete[] _buff;
+			
 		}
 		
-		// Shift data in current buffer to the left
-		else if (preserve > 0){
+		// Shift buffer
+		else {
+			printf("  SHIFT: [%d..%d] -> [0..%d]\n", i, n, preserve);
 			copy(&buff[p], &buff[n], &buff[0]);
 		}
 		
-		// Adjust indexes
-		i -= p;
-		n = max(0, preserve);
+		n = preserve;
 		bi += p;
-		
-		// Recalculate available space
-		space = _buffSize - n - 1;
-		if (fill & count < space){
-			count = space;
-		}
-		
+		i -= p;
 	}
 	
+	// Skip characters
+	if (skip > 0){
+		printf("  SKIP: %d\n", skip);
+		in->seekg(skip, ios::cur);
+		n = 0;
+		bi += i;
+		i = 0;
+	}
+	
+	// Use all remaining space
+	if (fill && (n + count + 1) < _buffSize){
+		count = _buffSize - n - 1;
+		printf("  count:%d\n", count);
+	}
 	
 	// Read data to empty space in buffer
-	in->read(&buff[n], count);
-	count = in->gcount();
-	n += count;
-	buff[n] = 0;
+	if (count > 0){
+		in->read(&buff[n], count);
+		count = in->gcount();
+		printf("  IO: %d\n", count);
+		n += count;
+		buff[n] = 0;
+	} else {
+		count = 0;
+	}
 	
 	eof = (count == 0);
 	return count;
-}
-
-
-int Parser::lookAhead(int count){
-	int chars = n - i;
-	if (chars < count)
-		chars += fillBuffer(count - chars);
-	return chars;
 }
 
 // ------------------------------------------------------------------------------------------ //
