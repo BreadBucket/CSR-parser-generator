@@ -1,6 +1,5 @@
 
 
-
 #ifdef CSG_CODE
 int c;
 #ifdef MAC
@@ -14,7 +13,7 @@ void main(){
 }
 #elif CSG
 
-A[  tex] -> B [hell]
+A[  tex] -> B [hell] {int a;}
 
 #endif
 

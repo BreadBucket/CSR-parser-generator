@@ -504,7 +504,7 @@ void Parser::parseReduction(Reduction& r){
 	if (isIdChar(ch())){
 		while (isIdChar(ch())){
 			Symbol& sym = r.left.emplace_back();
-			parseSymbol(sym);
+			parseReduction_symbol(sym);
 			parseWhiteSpace(trash.clear(), true);
 		}
 	} else {
@@ -530,13 +530,13 @@ void Parser::parseReduction(Reduction& r){
 	// Parse right symbols
 	while (isIdChar(ch())){
 		Symbol& sym = r.right.emplace_back();
-		parseSymbol(sym);
+		parseReduction_symbol(sym);
 		parseWhiteSpace(trash.clear(), true);
 	}
 	
 	// Parse inline code
 	if (ch() == '{'){
-		parseReductionInlineCode(r.code);
+		parseReduction_inlineCode(r.code);
 		parseWhiteSpace(trash.clear(), true);
 	}
 	
@@ -551,7 +551,7 @@ void Parser::parseReduction(Reduction& r){
 }
 
 
-void Parser::parseSymbol(Symbol& sym){
+void Parser::parseReduction_symbol(Symbol& sym){
 	// First letter is capital
 	if (!isIdFirstChar(ch())){
 		throw ParserException(getLoc(), "Symbols must start with a capital letter.");
@@ -567,7 +567,7 @@ void Parser::parseSymbol(Symbol& sym){
 	
 	if (ch() == '['){
 		pop(1, false);
-		parseSymbolAttributes(sym);
+		parseReduction_symbol_attributes(sym);
 	} else {
 		pop(1, true);
 	}
@@ -575,7 +575,7 @@ void Parser::parseSymbol(Symbol& sym){
 }
 
 
-void Parser::parseSymbolAttributes(Symbol& sym){
+void Parser::parseReduction_symbol_attributes(Symbol& sym){
 	if (ch() != '['){
 		throw ParserException(getLoc(), "Expected '[' when declaring symbol attributes.");
 	}
@@ -598,88 +598,82 @@ void Parser::parseSymbolAttributes(Symbol& sym){
 }
 
 
-void Parser::parseId(SourceString& str){
-	str.clear();
-	str.start = getLoc();
-	
-	char c = ch();
-	while (isIdChar(c)){
-		str.push_back(c);
-		inc();
-		c = ch();
+void Parser::parseReduction_inlineCode(SourceString& code){
+	if (ch() != '{'){
+		throw ParserException(getLoc(), "Expected '{' at reduction inline code segment.");
 	}
 	
-	str.end = getLoc();
-}
-
-
-void Parser::parseReductionInlineCode(SourceString& code){
-	// TODO
-	throw ParserException(getLoc(), "!!! inline code TODO !!!");
-	// if (ch() != '{'){
-	// 	throw ParserException(getLoc(), "Expected '{' at reduction inline code segment.");
-	// }
+	code.clear();
+	code.start = getLoc();
 	
-	// code.clear();
-	// code.start = getLoc();
+	code.push_back('{');
+	inc();
 	
-	// code.push_back('{');
-	// inc();
+	bool macro = true;
+	int lvl = 1;
 	
-	// int bracket = 1;
-	// int quote_1 = 0;
-	// int quote_2 = 0;
-	// while (bracket > 0){
-	// 	char c = ch();
+	while (lvl > 0){
+		char c = ch();
+		code.push_back(c);
 		
-	// 	if (c == 0){
-	// 		break;
-	// 	} else if (c == '\n'){
-	// 		nl();
-	// 		inc(-1);
-	// 	} else if (c == '\t'){
-	// 		tab();
-	// 		inc(-1);
-	// 	}
+		// Whitespace
+		if (c == '\n'){
+			macro = true;
+			nl();
+		} else if (c == '\t'){
+			tab();
+		} else if (isspace(c)){
+			inc();
+		}
 		
-	// 	// String context
-	// 	else if (quote_1 > 0){
-	// 		if (c == '"')
-	// 			quote_1--;
-	// 		else if (c == '\\')
-	// 			inc();
-	// 	}
+		// Bracket context
+		else if (c == '{'){
+			lvl++;
+			inc();
+		} else if (c == '}'){
+			lvl--;
+			inc();
+			if (lvl <= 0)
+				break;
+		}
 		
-	// 	// Literal context
-	// 	else if (quote_2 > 0){
-	// 		if (c == '\'')
-	// 			quote_2--;
-	// 		else if (c == '\\')
-	// 			inc();
-	// 	}
+		// Other contexts
+		else if (c == '"' || c == '\''){
+			macro = false;
+			code.pop_back();
+			parseStringLiteral(code);
+		} else if (c == '/'){
+			macro = false;
+			
+			if (match("//") || match("/*")){
+				code.pop_back();
+				parseComment(code);
+			} else {
+				inc();
+			}
+			
+		}
 		
-	// 	// Default context
-	// 	else {
-	// 		if (c == '{')
-	// 			bracket++;
-	// 		else if (c == '}'){
-	// 			bracket--;
-	// 		}
-	// 		else if (c == '"')
-	// 			quote_1++;
-	// 		else if (c == '\'')
-	// 			quote_1++;
-	// 	}
+		// Macro
+		else if (c == '#' && macro){
+			macro = false;
+			code.pop_back();
+			parseMacro(code, trash.clear());
+		}
 		
-	// 	code.push_back(c);
-	// 	inc();
-	// }
+		// Other
+		else if (c != 0){
+			inc();
+		}
+		
+		// EOF
+		else {
+			throw ParserException(code.start, "Missing closing bracket '}'.");
+		}
+		
+	}
 	
-	// if (bracket > 0){
-	// 	throw ParserException(code.start, "Missing closing bracket '}'.");
-	// }
-	
-	// code.end = getLoc() - 1;
+	code.end = getLoc();
 }
 
 
@@ -749,6 +743,22 @@ void Parser::parseMacro(string& s, SourceString& directive){
 	
 	
 	return;
+}
+
+
+int Parser::parseId(SourceString& s){
+	s.clear();
+	s.start = getLoc();
+	
+	char c = ch();
+	while (isIdChar(c)){
+		s.push_back(c);
+		inc();
+		c = ch();
+	}
+	
+	s.end = getLoc();
+	return s.size();
 }
 
 
@@ -1020,12 +1030,9 @@ void Parser::reset(){
 
 
 int Parser::fillBuffer(int count, bool fill){
-	if (count <= 0 || count <= (n - i)){
+	if (count <= (n - i) || count <= 0){
 		return 0;
 	}
-	
-	PRINTF("READ: %d\n", count);
-	
 	
 	const int space = _buffSize - n - 1;
 	int skip = 0;
@@ -1052,31 +1059,22 @@ int Parser::fillBuffer(int count, bool fill){
 	
 	requiredSize = preserve + count + 1;
 	
-	PRINTF("  [%d/%d]: preserve:%d, p:%d, count:%d, space:%d, skip:%d, req:%d/%d \n", i, n, preserve, p, count, space, skip, requiredSize, _buffSize);
-	
 	
 	// Not enough empty space at the end
 	if (count > space){
 		
 		// Resize buffer
 		if (requiredSize > _buffSize){
-			PRINTF("  RESIZE: %d", _buffSize);
-			
 			// (multiple of buffSize) + 1
 			_buffSize = buffSize * ((requiredSize + buffSize)/buffSize) + 1;
 			char* _buff = new char[_buffSize];
-			
-			PRINTF(" -> %d\n", _buffSize);
 			copy(&buff[p], &buff[n], &_buff[0]);
-			
 			swap(buff, _buff);
 			delete[] _buff;
-			
 		}
 		
 		// Shift buffer
 		else {
-			PRINTF("  SHIFT: [%d..%d] -> [0..%d]\n", i, n, preserve);
 			copy(&buff[p], &buff[n], &buff[0]);
 		}
 		
@@ -1087,7 +1085,6 @@ int Parser::fillBuffer(int count, bool fill){
 	
 	// Skip characters
 	if (skip > 0){
-		PRINTF("  SKIP: %d\n", skip);
 		in->seekg(skip, ios::cur);
 		n = 0;
 		bi += i;
@@ -1097,14 +1094,12 @@ int Parser::fillBuffer(int count, bool fill){
 	// Use all remaining space
 	if (fill && (n + count + 1) < _buffSize){
 		count = _buffSize - n - 1;
-		PRINTF("  count:%d\n", count);
 	}
 	
 	// Read data to empty space in buffer
 	if (count > 0){
 		in->read(&buff[n], count);
 		count = in->gcount();
-		PRINTF("  IO: %d\n", count);
 		n += count;
 		buff[n] = 0;
 	} else {

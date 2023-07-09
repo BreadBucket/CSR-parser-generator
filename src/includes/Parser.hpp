@@ -45,27 +45,11 @@ private:
 	
 private:
 	int n;		// Number of characters in buffer
-	int i;		// Local index of current buffer character
+	int i;		// Local index of current buffered character
 	int bi;		// Global index of character at buff[0]
 	int ri;		// Current global row index
 	int ci;		// Current global column index
 	bool eof;	// EOF reached
-	
-// ---------------------------------- [ Structures ] ---------------------------------------- //
-private:
-	enum MacroType {
-		UNKNOWN,
-		DEFINE,
-		INCLUDE,
-		IF,
-		IFDEF,
-		IFNDEF,
-		ELIF,
-		ELIFDEF,
-		ELIFNDEF,
-		ELSE,
-		ENDIF
-	};
 	
 // ---------------------------------- [ Constructors ] -------------------------------------- //
 public:
@@ -81,6 +65,9 @@ public:
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 public:
+	/**
+	 * @throws ParserException for various parsing issues.
+	 */
 	void parse(std::istream& in);
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
@@ -90,7 +77,13 @@ private:
 	void parseSegment_reductions(std::vector<Reduction>& out_reductions);
 	void parseSegment_code(std::string& out_s);
 	
+private:
+	void parseReduction(Reduction& out_reduction);
+	void parseReduction_symbol(Symbol& out_symbol);
+	void parseReduction_symbol_attributes(Symbol& out_symbol);
+	void parseReduction_inlineCode(SourceString& out_code);
 	
+private:
 	/**
 	 * @brief Parse C style preprocessor directives.
 	 * @param s String buffer for appending parsed characters.
@@ -100,39 +93,47 @@ private:
 	 */
 	void parseMacro(std::string& s, SourceString& out_directive);
 	
-private:
 	/**
-	 * @throws csg::ParserException on syntax error.
+	 * @brief Parse identifier containing alphabetical letters, digits or underscore '_'.
+	 * @param out_id Parsed ID replaces content within the string and sets its location.
+	 * @returns Amount of characters parsed.
 	 */
-	void parseReduction(Reduction& out_reduction);
-	void parseReductionInlineCode(SourceString& out_code);
-	
-	void parseSymbol(Symbol& out_symbol);
-	void parseSymbolAttributes(Symbol& out_symbol);
-	void parseId(SourceString& out_symbol);
+	int parseId(SourceString& out_id);
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 private:
 	/**
-	 * @brief Skip all non white-space characters.
-	 */
-	int parseSolidSpace(std::string& s);
-	
-	/**
 	 * @brief Skip all white-space characters.
+	 * @param s Where parsed white-space is appended.
 	 * @param escapedNewline Newline must be escaped.
 	 * @return Amount of characters parsed.
 	 */
 	int parseWhiteSpace(std::string& s, bool escapedNewline = false);
 	
+	/**
+	 * @brief Parse C-style string literal (everything between two double quotes `"`)
+	 *        or character literal (everything between two single quotes `'`).
+	 * @param s Where parsed literal is appended.
+	 * @return Amount of parsed characters.
+	 * @throws ParserException when literal does not start with `"` or `'`.
+	 * @throws ParserException when literal does not end with `"` or `'`.
+	 */
 	int parseStringLiteral(std::string& s);
 	
+	/**
+	 * @brief Parse C-style line comment (starts with "//" and extends to EOL) or block comment.
+	 * @param s Where parsed comment is appended.
+	 * @return Amount of parsed characters.
+	 * @throws ParserException when comment does not start with "//" or ("/" + "*").
+	 * @throws ParserException when comment does not end with "//" or ("*" + "/").
+	 */
 	int parseComment(std::string& s);
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 private:
 	/**
 	 * @return Current global index.
+	 *         Global index maps to a position in a file.
 	 */
 	inline int gi(){
 		return bi + i;
@@ -140,7 +141,8 @@ private:
 	
 	/**
 	 * @brief Increment column index and local index by n.
-	 * @param n Amount of characters to skip. Negative values cause undefined behaviour.
+	 * @param n Amount of characters to skip.
+	 *          Negative values cause undefined behaviour.
 	 */
 	inline void inc(int n = 1){
 		i += n;
@@ -148,9 +150,10 @@ private:
 	}
 	
 	/**
-	 * @brief Increment row index.
-	 *        Increment local index by 1.
-	 *        Set column index to 0.
+	 * @brief Simulate newline:
+	 *          increment row index,
+	 *          increment local index,
+	 *          reset column index.
 	 */
 	inline void nl(){
 		ri++;
@@ -159,8 +162,9 @@ private:
 	}
 	
 	/**
-	 * @brief Increment column index by tabSize.
-	 *        Increment local index by 1.
+	 * @brief Simulate tab:
+	 *          increment column index to next multiple of `tabSize`,
+	 *          increment local index.
 	 */
 	inline void tab(){
 		i++;
@@ -169,9 +173,10 @@ private:
 	}
 	
 	/**
-	 * @brief  Get current character in buffer, index is not incremented.
-	 *         Buffer is automatically refilled if needed.
-	 * @return Current character or '\0' if EOF.
+	 * @brief  Get current character in buffer.
+	 *         Index is not incremented.
+	 *         Buffer is automatically filled with `buffSize` characters if needed.
+	 * @return Current character, pointed to by local index `i`, or '\0' if EOF.
 	 */
 	inline char ch(){
 		if (i >= n) [[unlikely]]
@@ -180,7 +185,7 @@ private:
 	}
 	
 	/**
-	 * @return Current carret position.
+	 * @return Current carret location using global index, row index and column index.
 	 */
 	inline csg::Location getLoc(){
 		return {gi(), ri, ci};
@@ -205,7 +210,7 @@ private:
 	 * @brief Copy string from buffer, if start and end are within range of existing buffer: str += buff[start,end).
 	 * @param start   Starting position.
 	 * @param end     End position.
-	 * @param out_str Appended result string.
+	 * @param out_str Where substring is appended.
 	 * @return True if extraction was successful.
 	 */
 	bool extractString(const Location& start, const Location& end, std::string& out_str);
@@ -224,24 +229,23 @@ private:
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 private:
 	/**
-	 * @brief Resets buffer and all indexes.
+	 * @brief Performs cleanup: resets buffer and all indexes.
 	 */
 	void reset();
 	
 	/** 
-	 * @brief Ensure buffer has at least n more characters i.e. buff[i..i+n].
-	 *        Characters before frame[0] or i are discarded.
-	 *        Index i, char count n, and buffer pointer might change.
+	 * @brief Ensure buffer has at least `count` more characters after `buff[i]`.
+	 *        Characters before `frame[0]` (using `push()`) or `buff[i]` are discarded.
+	 *        Index `i`, char count `n`, and buffer pointer might change.
 	 * @param count Min amount of characters to add to the buffer.
-	 * @param fill  Add more characters if there is space available.
+	 * @param fill  Fill buffer to the end if possible.
 	 * @return Amount of new characters in buffer.
 	 */
 	int fillBuffer(int count, bool fill = true);
 	
-	
 	/**
-	 * @brief Wrapper for fillBuffer.
-	 * @param count Amount of requested characters after i.
+	 * @brief Wrapper for `fillBuffer`.
+	 * @param count Amount of characters requested to be available after `buff[i]`.
 	 * @return True if buffer has sufficient amount of characters.
 	 */
 	bool lookAhead(int count){
