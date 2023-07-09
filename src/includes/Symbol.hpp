@@ -9,6 +9,10 @@ public:
 	SourceString name;	// The name of the symbol
 	SourceString id;	// Optional identifier
 	
+// ---------------------------------- [ Constructors ] -------------------------------------- //
+public:
+	Symbol() = default;
+	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 public:
 	inline void clear(){

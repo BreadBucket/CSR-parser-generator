@@ -83,16 +83,12 @@ public:
 public:
 	void parse(std::istream& in);
 	
-private:
-	void parseMacroSegment();
-	bool parse_continueConditionalMacroBody(std::string& out_s);
-	
-	// void parseReductionSegment(SourceString& out_s);
-	// void parseCodeSegment(SourceString& out_s);
-	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 private:
 	void parseSegment();
+	void parseSegment_header(SourceString& out_directive, SourceString& out_type);
+	void parseSegment_reductions(std::vector<Reduction>& out_reductions);
+	void parseSegment_code(std::string& out_s);
 	
 	
 	/**
@@ -102,18 +98,18 @@ private:
 	 * @throws ParserException when preprocessor directive does not start with '#'.
 	 * @throws ParserException on unterminated string literals or comments.
 	 */
-	MacroType parseMacro(std::string& s);
+	void parseMacro(std::string& s, SourceString& out_directive);
 	
-// private:
-// 	/**
-// 	 * @throws csg::ParserException on syntax error.
-// 	 */
-// 	void parseReduction(Reduction& out_reduction);
-// 	void parseReductionInlineCode(SourceString& out_code);
+private:
+	/**
+	 * @throws csg::ParserException on syntax error.
+	 */
+	void parseReduction(Reduction& out_reduction);
+	void parseReductionInlineCode(SourceString& out_code);
 	
-// 	void parseSymbol(Symbol& out_symbol);
-// 	void parseSymbolAttributes(Symbol& out_symbol);
-// 	void parseId(SourceString& out_symbol);
+	void parseSymbol(Symbol& out_symbol);
+	void parseSymbolAttributes(Symbol& out_symbol);
+	void parseId(SourceString& out_symbol);
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 private:
@@ -241,6 +237,17 @@ private:
 	 * @return Amount of new characters in buffer.
 	 */
 	int fillBuffer(int count, bool fill = true);
+	
+	
+	/**
+	 * @brief Wrapper for fillBuffer.
+	 * @param count Amount of requested characters after i.
+	 * @return True if buffer has sufficient amount of characters.
+	 */
+	bool lookAhead(int count){
+		fillBuffer(count);
+		return count <= (n - i);
+	}
 	
 // ----------------------------------- [ Operators ] ---------------------------------------- //
 public:

@@ -1,9 +1,20 @@
+
+
+
 #ifdef CSG_CODE
-
-
-void main(){
-	
-}
-	
-	
+int c;
+#ifdef MAC
+  int b;
+#else
+  int a;
 #endif
+  
+void main(){
+  printf("HELLO WORLD");
+}
+#elif CSG
+
+A[  tex] -> B [hell]
+
+#endif
+
