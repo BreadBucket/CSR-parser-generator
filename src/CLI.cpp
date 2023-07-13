@@ -22,6 +22,7 @@ using namespace CLI;
 
 
 namespace CLI {
+	const char* programName = "";
 	const char* inputFilePath = nullptr;
 	const char* outputFilePath = nullptr;
 	int tabSize = 4;
@@ -70,29 +71,52 @@ OptionID shortOptionToLong(char c){
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-void CLI::parse(int argc, char* const* argv){
+int getLength(void const* const* v){
+	int n = 0;
+	while (*v != nullptr){
+		n++;
+		v++;
+	}
+	return n;
+}
+
+
+// ----------------------------------- [ Functions ] ---------------------------------------- //
+
+
+void CLI::parse(int argc, char const* const* argv){
+	if (argv == nullptr || *argv == nullptr){
+		return;
+	}
+	
+	// Modifyable copy of args
+	const int len = getLength((void const* const*)argv);
+	const char** v = new const char*[len];
+	copy(&argv[0], &argv[len], v);
+	
+	
 	opterr = 0;
+	optind = 1;
+	programName = v[0];
 	bool inputSpecified = false;
 	
 	while (true){
 		selected_opt = OptionID::NONE;
-		char c = getopt_long(argc, (char* const*)argv, short_options, long_options, NULL);
+		char c = getopt_long(argc, (char* const*)v, short_options, long_options, NULL);
 		
-		
+		// Error
 		if (c == '?'){
 			if (optopt >= 0 && shortOptionToLong(optopt) == OptionID::NONE)
-				throw runtime_error(string("Unrecognized option '").append(argv[optind-1]).append("'."));
+				throw runtime_error(string("Unrecognized option '").append(v[optind-1]).append("'."));
 			else
-				throw runtime_error(string("Missing option argument '").append(argv[optind-1]).append("'."));
+				throw runtime_error(string("Missing option argument '").append(v[optind-1]).append("'."));
 		}
 		
-		
-		if (c > 0){
+		else if (c > 0){
 			selected_opt = shortOptionToLong(c);
-		} else {
+		} else if (c < 0){
 			break;
 		}
-		
 		
 		// Handle long options
 		switch (selected_opt){
@@ -116,19 +140,23 @@ void CLI::parse(int argc, char* const* argv){
 		
 	};
 	
+	
 	// Non-option arguments
 	while (optind < argc){
 		
 		if (!inputSpecified){
-			inputFilePath = argv[optind];
+			inputFilePath = v[optind];
 			inputSpecified = true;
 		} else {
-			throw runtime_error(string("Input file already specified, additional argument forbidden: '").append(argv[optind]).append("'."));
+			throw runtime_error(string("Input file already specified, additional argument forbidden: '").append(v[optind]).append("'."));
 		}
 		
 		optind++;
 	}
 	
+	
+	delete[] v;
+	return;
 }
 
 
@@ -136,6 +164,7 @@ void CLI::parse(int argc, char* const* argv){
 
 
 void CLI::clear(){
+	programName = "";
 	inputFilePath = nullptr;
 	outputFilePath = nullptr;
 	tabSize = 4;

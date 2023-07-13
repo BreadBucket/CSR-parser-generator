@@ -6,6 +6,7 @@
 #include <iostream>
 
 #include "util/ANSI.h"
+#include "CLI.hpp"
 #include "Parser.hpp"
 
 
@@ -16,48 +17,55 @@ using namespace csg;
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-void f(){
-	
-}
+
 
 
 // --------------------------------- [ Main Functions ] ------------------------------------- //
 
 
-int main(int argc, char** arg){
-	printf("================================\n");
-	string file_path = "test/test.csg";
+int main(int argc, char const* const* argv){
+	printf("================================\n");	// DEBUG
 	
-	// Get input
+	// Parse CLI options
+	try {
+		CLI::parse(argc, (char* const*)argv);
+		CLI::inputFilePath = "test/test.csg";
+	} catch (const exception& e) {
+		fprintf(stderr, ANSI_RED "%s" ANSI_RESET ": %s\n", argv[0], e.what());
+	}
+	
+	
+	// Get input stream
 	ifstream* inf = nullptr;
 	istream* in;
 	
 	if (!isatty(fileno(stdin))){
 		in = &cin;
 	} else {
-		in = inf = new ifstream(file_path);
+		in = inf = new ifstream(CLI::inputFilePath);
 	}
 	
 	
 	// Parse
 	{
 		Parser* parser = new Parser();
-		parser->tabSize = 4;
+		parser->tabSize = CLI::tabSize;
 		
 		try {
 			parser->parse(*in);
 		}
 		catch (const ParserException& e) {
-			fprintf(stderr, ANSI_BOLD "%s:%d:%d: " ANSI_RED "error" ANSI_RESET ": %s\n", file_path.c_str(), e.loc.row+1, e.loc.col+1, e.what());
+			fprintf(stderr, ANSI_BOLD "%s:%d:%d: " ANSI_RED "error" ANSI_RESET ": %s\n", CLI::inputFilePath, e.loc.row+1, e.loc.col+1, e.what());
 		}
 		catch (const exception& e) {
-			fprintf(stderr, ANSI_RED "error" ANSI_RESET ":");
+			fprintf(stderr, ANSI_BOLD "%s" ANSI_RESET ": " ANSI_RED "error" ANSI_RESET ": %s\n", CLI::programName, e.what());
 		}
 		
 		delete parser;
 	}
 	
-	// Close file
+	
+	// Close input file
 	if (inf != nullptr){
 		inf->close();
 		delete inf;
