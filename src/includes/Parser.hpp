@@ -14,17 +14,8 @@ namespace csg {
 }
 
 
-
-
-
-// DEBUG
-char* locStr(const csg::Location& loc);
-
-
-
-
 class csg::Parser {
-public:					// DEBUG
+public:												// DEBUG
 	void printch(const char* color = "\e[96m");		// DEBUG
 // ------------------------------------[ Properties ] --------------------------------------- //
 public:
@@ -61,6 +52,8 @@ public:
 	
 	~Parser(){
 		delete buff;
+		delete codeSegments;
+		delete reductions;
 	}
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
@@ -111,6 +104,31 @@ private:
 	int parseWhiteSpace(std::string& s, bool escapedNewline = false);
 	
 	/**
+	 * @brief Parse C-style line comment (starts with "//" and extends to EOL) or block comment.
+	 * @param s Where parsed comment is appended.
+	 * @return Amount of parsed characters.
+	 * @throws ParserException when comment does not start with "//" or ("/" + "*").
+	 * @throws ParserException when comment does not end with "//" or ("*" + "/").
+	 */
+	int parseComment(std::string& s);
+	
+	/**
+	 * @brief Skip all white-space characters.
+	 * @param s Where parsed white-space is appended.
+	 * @param escapedNewline Newline must be escaped.
+	 * @return Amount of characters parsed.
+	 */
+	int parseWhiteSpaceAndComment(std::string& s, bool escapedNewline = false);
+	
+	/**
+	 * @brief Skip all non-white-space characters excluding backslash '\'.
+	 * @param s Where parsed characters are appended.
+	 * @param includeEscaped Escaped white-space and '\' is considered as solid space.
+	 * @return Amount of characters parsed.
+	 */
+	int parseSolidSpace(std::string& s, bool includeEscaped = false);
+	
+	/**
 	 * @brief Parse C-style string literal (everything between two double quotes `"`)
 	 *        or character literal (everything between two single quotes `'`).
 	 * @param s Where parsed literal is appended.
@@ -119,15 +137,6 @@ private:
 	 * @throws ParserException when literal does not end with `"` or `'`.
 	 */
 	int parseStringLiteral(std::string& s);
-	
-	/**
-	 * @brief Parse C-style line comment (starts with "//" and extends to EOL) or block comment.
-	 * @param s Where parsed comment is appended.
-	 * @return Amount of parsed characters.
-	 * @throws ParserException when comment does not start with "//" or ("/" + "*").
-	 * @throws ParserException when comment does not end with "//" or ("*" + "/").
-	 */
-	int parseComment(std::string& s);
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 private:

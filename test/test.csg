@@ -1,6 +1,7 @@
 
 
-#ifdef CSG_CODE
+
+#ifdef /* here*/ CSG_CODE /* wel */ //aa
 int c;
 #ifdef MAC
   int b;
@@ -11,9 +12,14 @@ int c;
 void main(){
   printf("HELLO WORLD");
 }
+
 #elif CSG
 
-A[  tex] -> B [hell] {int a;}
+A[  tex] -> B /* aa */ [hell /* this is a fuck */] {int a; 
+/* a
+aa */ #define A } /*curly part of macro
+*/
+}
 
 #endif
 

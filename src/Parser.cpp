@@ -103,6 +103,15 @@ char* strstr(const string& s){
 }
 
 
+// ------------------------------------- [ Macros ] ----------------------------------------- //
+
+
+#define LOOKAHEAD_IS_COMMENT(c)	(			\
+	(c) == '/' && lookAhead(2) &&			\
+	(buff[i+1] == '/' || buff[i+1] == '*')	\
+)
+
+
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
@@ -140,12 +149,17 @@ inline bool isMacroChar(char c){
 }
 
 
+inline bool isSegmentDirective(const string& s){
+	return	s == "if"   || s == "ifdef"   || s == "ifndef"   ||
+			s == "elif" || s == "elifdef" || s == "elifndef" ||
+			s == "else";
+}
+
+
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
 void Parser::parse(istream& in){
-	buffSize = 8;
-	
 	if (in.bad() || buffSize < 1){
 		return;
 	}
@@ -155,20 +169,47 @@ void Parser::parse(istream& in){
 	reset();
 	
 	
+	bool macro = true;
+	SourceString tmp;
+	SourceString* line = &codeSegments->emplace_back();	// Temporary code line
 	
 	while (true){
-		parseWhiteSpace(trash.clear(), true);
+		parseWhiteSpaceAndComment(*line, true);
 		char c = ch();
 		
+		// EOL
 		if (c == '\n'){
+			line->clear();
+			macro = true;
 			nl();
-		} else if (isIdChar(c)){
-			printch();
-			throw runtime_error("debug");
-			inc();
-		} else if (c == '#'){
-			parseSegment();
-		} else if (c == 0){
+		}
+		
+		// Macros
+		else if (c == '#' && macro){
+			macro = false;
+			
+			push();
+			parseMacro(*line, tmp.clear());
+			
+			if (isSegmentDirective(tmp)){
+				pop(1, true);
+				parseSegment();
+			} else {
+				pop(1, false);
+				line = &codeSegments->emplace_back();
+			}
+			
+		}
+		
+		// Reductions
+		else if (isIdChar(c)){
+			macro = false;
+			Reduction& r = reductions->emplace_back();
+			parseReduction(r);
+		}
+		
+		// EOF / error
+		else if (c == 0){
 			break;
 		} else {
 			throw ParserException(getLoc(), "Unexpected character.");
@@ -177,6 +218,9 @@ void Parser::parse(istream& in){
 	}
 	
 	
+	// Delete temporary code line
+	codeSegments->pop_back();
+	return;
 }
 
 
@@ -196,9 +240,9 @@ void Parser::parseSegment(){
 	
 	// String to enum SegmentType
 	auto getType = [](string& s) -> SegmentType {
-		if (s.compare("CSG") == 0)
+		if (s == "CSG")
 			return SegmentType::CSG;
-		else if (s.compare("CSG_CODE") == 0)
+		else if (s == "CSG_CODE")
 			return SegmentType::CSG_CODE;
 		else
 			return SegmentType::NONE;
@@ -231,7 +275,7 @@ void Parser::parseSegment(){
 	{
 		parseSegment_header(dir, typeName);
 		
-		if (dir.compare("if") != 0 && dir.compare("ifdef") != 0){
+		if (dir != "if" && dir != "ifdef"){
 			throw ParserException(dir.start, "Expected 'if' or 'ifdef' segment directive.");
 		}
 		
@@ -250,19 +294,19 @@ void Parser::parseSegment(){
 			throw ParserException(start, "Unterminated segment. EOF reached.");
 		}
 		
-		parseWhiteSpace(trash.clear(), true);
+		parseWhiteSpaceAndComment(trash.clear(), true);
 		parseSegment_header(dir, typeName);
 		SegmentType seg;
 		
 		// Terminatind directive
-		if (dir.compare("endif") == 0){
+		if (dir == "endif"){
 			break;
 		} else if (endifExpected){
 			throw ParserException(dir.start, "Expected 'endif' directive.");
 		}
 		
 		// Get segment type
-		else if (dir.compare("else") == 0){
+		else if (dir == "else"){
 			seg = elseType;
 			endifExpected = true;
 			
@@ -270,7 +314,7 @@ void Parser::parseSegment(){
 				throw ParserException(dir.start, "Unexpected segment type.");
 			}
 			
-		} else if (dir.compare("elif") == 0 || dir.compare("elifdef") == 0){
+		} else if (dir == "elif" || dir == "elifdef"){
 			seg = getType(typeName);
 		}
 		
@@ -292,66 +336,27 @@ void Parser::parseSegment_header(SourceString& directive, SourceString& type){
 		throw ParserException(getLoc(), "Expected segment declaration.");
 	inc();
 	
-	
 	// Parse directive
 	directive.clear();
 	directive.start = getLoc();
-	
-	while (true){
-		char c = ch();
-		
-		if (isspace(c) || (c == '\\' && match("\\\n")) || c == 0){
-			break;
-		} else {
-			directive.push_back(c);
-			inc();
-		}
-		
-	}
-	
+	parseSolidSpace(directive);
 	directive.end = getLoc();
 	
+	printSrc(directive);
 	
 	// Parse segment type
 	type.clear();
-	if (parseWhiteSpace(trash.clear(), true) >= 1){
-		type.start = getLoc();
-		
-		while (true){
-			char c = ch();
-			
-			if (isIdChar(c)){
-				type.push_back(c);
-				inc();
-			} else {
-				break;
-			}
-			
-		}
-		
-		type.end = getLoc();
+	if (parseWhiteSpaceAndComment(trash.clear(), true) >= 1){
+		parseId(type);
 	}
-	
 	
 	// Parse remaining space and comments
-	while (true){
-		parseWhiteSpace(trash.clear(), true);
-		
-		char c = ch();
-		
-		if (c == '/'){
-			parseComment(trash.clear());
-		} else if (c == '\n'){
-			nl();
-			break;
-		} else if (c == 0){
-			break;
-		} else {
-			throw ParserException(getLoc(), "Unexpected character in segment declaration.");
-		}
-		
+	parseWhiteSpaceAndComment(trash.clear(), true);
+	if (ch() == '\n'){
+		nl();
+	} else {
+		throw ParserException(getLoc(), "Expected termination of segment declaration.");
 	}
-	
 	
 	return;
 }
@@ -377,12 +382,12 @@ void Parser::parseSegment_code(string& s){
 			parseMacro(s, dir);
 			
 			// Manage macro conditional depth
-			if (dir.compare("if") == 0 || dir.compare("ifdef") == 0 || dir.compare("ifndef") == 0){
+			if (dir == "if" || dir == "ifdef" || dir == "ifndef"){
 				lvl++;
-			} else if (dir.compare("else") == 0 || dir.compare("elif") == 0 || dir.compare("elifdef") == 0){
+			} else if (dir == "else" || dir == "elif" || dir == "elifdef" || dir == "elifndef"){
 				if (lvl == 0)
 					lvl--;
-			} else if (dir.compare("endif") == 0){
+			} else if (dir == "endif"){
 				lvl--;
 			}
 			
@@ -407,7 +412,7 @@ void Parser::parseSegment_code(string& s){
 			s.push_back('\n');
 			
 			// Quick skip whitepsace
-			parseWhiteSpace(s, true);
+			parseWhiteSpaceAndComment(s, true);
 		} else if (c == '\t'){
 			s.push_back('\t');
 			tab();
@@ -416,19 +421,16 @@ void Parser::parseSegment_code(string& s){
 			inc();
 		}
 		
-		// Check for regular characters
-		else if (c == '"' || c == '\''){
+		// Scopes
+		else if (LOOKAHEAD_IS_COMMENT(c)){
+			parseComment(s);
+		} else if (c == '"' || c == '\''){
 			macro = false;
 			parseStringLiteral(s);
-		} else if (c == '/'){
-			macro = false;
-			if (match("//") || match("/*")){
-				parseComment(s);
-			} else {
-				s.push_back(c);
-				inc();
-			}
-		} else if (c != 0){
+		}
+		
+		// Check for regular characters
+		 else if (c != 0){
 			macro = false;
 			s.push_back(c);
 			inc();
@@ -480,7 +482,6 @@ void Parser::parseSegment_reductions(vector<Reduction>& reductions){
 		else if (c != 0){
 			Reduction& r = reductions.emplace_back();
 			parseReduction(r);
-			printreduction(r);
 		}
 		
 		// EOF
@@ -499,18 +500,31 @@ void Parser::parseSegment_reductions(vector<Reduction>& reductions){
 
 
 void Parser::parseReduction(Reduction& r){
-	
-	// Parse left symbols
-	if (isIdChar(ch())){
-		while (isIdChar(ch())){
-			Symbol& sym = r.left.emplace_back();
-			parseReduction_symbol(sym);
-			parseWhiteSpace(trash.clear(), true);
-		}
-	} else {
+	if (!isIdChar(ch())){
 		throw ParserException(getLoc(), "Expected symbol name.");
 	}
 	
+	/**
+	 * @brief Parse string of symbols and attributes until unknown character is reached.
+	 * @param v Where parsed symbols are stored.
+	 */
+	auto parseSymbols = [&](vector<Symbol>& v){
+		while (true){
+			parseWhiteSpaceAndComment(trash.clear(), true);
+			
+			if (isIdChar(ch())){
+				Symbol& sym = v.emplace_back();
+				parseReduction_symbol(sym);
+			} else {
+				break;
+			}
+			
+		}
+	};
+	
+	
+	// Parse left symbols
+	parseSymbols(r.left);
 	if (r.left.size() <= 0){
 		throw ParserException(getLoc(), "Missing left side of reduction.");
 	}
@@ -524,15 +538,13 @@ void Parser::parseReduction(Reduction& r){
 			throw ParserException(getLoc(), "Expected left-right separator \"->\".");
 	}
 	
-	parseWhiteSpace(trash.clear(), true);
-	
 	
 	// Parse right symbols
-	while (isIdChar(ch())){
-		Symbol& sym = r.right.emplace_back();
-		parseReduction_symbol(sym);
-		parseWhiteSpace(trash.clear(), true);
+	parseSymbols(r.right);
+	if (r.right.size() <= 0){
+		throw ParserException(getLoc(), "Missing right side of reduction.");
 	}
+	
 	
 	// Parse inline code
 	if (ch() == '{'){
@@ -540,12 +552,11 @@ void Parser::parseReduction(Reduction& r){
 		parseWhiteSpace(trash.clear(), true);
 	}
 	
-	if (ch() != '\n' && ch() != 0){
-		throw ParserException(getLoc(), "Expected reduction termination using newline '\\n'.");
-	} else if (r.right.size() <= 0){
-		throw ParserException(getLoc(), "Missing right side of reduction.");
-	}
 	
+	// EOL
+	if (ch() != '\n' && ch() != 0){
+		throw ParserException(getLoc(), "Expected symbol name or termination using '\\n'.");
+	}
 	
 	return;
 }
@@ -563,7 +574,7 @@ void Parser::parseReduction_symbol(Symbol& sym){
 	
 	// Lookahead and parse additional attributes
 	push();
-	parseWhiteSpace(trash.clear(), true);
+	parseWhiteSpaceAndComment(trash.clear(), true);
 	
 	if (ch() == '['){
 		pop(1, false);
@@ -581,15 +592,15 @@ void Parser::parseReduction_symbol_attributes(Symbol& sym){
 	}
 	
 	inc();
-	parseWhiteSpace(trash.clear(), true);
+	parseWhiteSpaceAndComment(trash.clear(), true);
 	
 	if (isIdChar(ch())){
 		parseId(sym.id);
 	} else {
-		throw ParserException(getLoc(), "Unexpected character.");
+		throw ParserException(getLoc(), "Expected symbol ID.");
 	}
 	
-	parseWhiteSpace(trash.clear(), true);
+	parseWhiteSpaceAndComment(trash.clear(), true);
 	if (ch() != ']'){
 		throw ParserException(getLoc(), "Expected ']' at the end of symbol attributes declaration.");
 	}
@@ -638,20 +649,13 @@ void Parser::parseReduction_inlineCode(SourceString& code){
 		}
 		
 		// Other contexts
-		else if (c == '"' || c == '\''){
+		else if (LOOKAHEAD_IS_COMMENT(c)){
+			code.pop_back();
+			parseComment(code);
+		} else if (c == '"' || c == '\''){
 			macro = false;
 			code.pop_back();
 			parseStringLiteral(code);
-		} else if (c == '/'){
-			macro = false;
-			
-			if (match("//") || match("/*")){
-				code.pop_back();
-				parseComment(code);
-			} else {
-				inc();
-			}
-			
 		}
 		
 		// Macro
@@ -802,49 +806,6 @@ int Parser::parseWhiteSpace(string& s, bool escapedNewline){
 }
 
 
-int Parser::parseStringLiteral(string& s){
-	const char terminator = ch();
-	if (terminator != '\'' && terminator != '"'){
-		throw ParserException(getLoc(), "Expected string or character literal.");
-	}
-	
-	const Location start = getLoc();
-	const int size = s.size();
-	
-	s.push_back(terminator);
-	inc();
-	
-	int lvl = 1;
-	while (lvl > 0){
-		char c = ch();
-		s.push_back(c);
-		
-		if (c == '\t'){
-			tab();
-		} else if (c == '\n'){
-			nl();
-		} else if (c == '\\'){
-			fillBuffer(2);
-			inc();
-			if (ch() == terminator){
-				s.push_back(terminator);
-				inc();
-			}
-		} else if (c == terminator){
-			inc();
-			break;
-		} else if (c != 0){
-			inc();
-		} else {
-			throw ParserException(start, "Unterminated string or character literal.");
-		}
-		
-	}
-	
-	return s.size() - size;
-}
-
-
 int Parser::parseComment(string& s){
 	if (ch() != '/'){
 		throw ParserException(getLoc(), "Expected comment.");
@@ -919,6 +880,106 @@ int Parser::parseComment(string& s){
 }
 
 
+int Parser::parseWhiteSpaceAndComment(string& s, bool escapedNewline){
+	const int len = s.size();
+	
+	while (true){
+		parseWhiteSpace(s, escapedNewline);
+		if (LOOKAHEAD_IS_COMMENT(ch()))
+			parseComment(s);
+		else
+			break;
+	}
+	
+	return s.size() - len;
+}
+
+
+
+int Parser::parseSolidSpace(std::string& s, bool includeEscaped){
+	const int len = s.size();
+	
+	while (true){
+		char c = ch();
+		
+		// Escaped
+		if (c == '\\'){
+			if (includeEscaped){
+				s.push_back(c);
+				inc();
+				c = ch();
+				
+				if (c == '\n')
+					nl();
+				else if (c == '\t')
+					tab();
+				else
+					inc();
+				
+				s.push_back(c);
+			} else {
+				break;
+			}
+		}
+		
+		else if (isgraph(c)){
+			inc();
+			s.push_back(c);
+		}
+		
+		else {
+			break;
+		}
+		
+	}
+	
+	return s.size() - len;
+}
+
+
+int Parser::parseStringLiteral(string& s){
+	const char terminator = ch();
+	if (terminator != '\'' && terminator != '"'){
+		throw ParserException(getLoc(), "Expected string or character literal.");
+	}
+	
+	const Location start = getLoc();
+	const int size = s.size();
+	
+	s.push_back(terminator);
+	inc();
+	
+	int lvl = 1;
+	while (lvl > 0){
+		char c = ch();
+		s.push_back(c);
+		
+		if (c == '\t'){
+			tab();
+		} else if (c == '\n'){
+			nl();
+		} else if (c == '\\'){
+			fillBuffer(2);
+			inc();
+			if (ch() == terminator){
+				s.push_back(terminator);
+				inc();
+			}
+		} else if (c == terminator){
+			inc();
+			break;
+		} else if (c != 0){
+			inc();
+		} else {
+			throw ParserException(start, "Unterminated string or character literal.");
+		}
+		
+	}
+	
+	return s.size() - size;
+}
+
+
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
@@ -965,11 +1026,11 @@ const Location& Parser::push(){
 }
 
 
-void Parser::pop(int count, bool apply){
+void Parser::pop(int count, bool applyLocation){
 	count = (count < 0) ? frames.size() : count;
 	
 	if (0 <= count && count <= frames.size()){
-		if (apply){
+		if (applyLocation){
 			const Location loc = frames[frames.size() - count];
 			i = loc.i - bi;
 			ri = loc.row;
@@ -1109,5 +1170,6 @@ int Parser::fillBuffer(int count, bool fill){
 	eof = (count == 0);
 	return count;
 }
+
 
 // ------------------------------------------------------------------------------------------ //
