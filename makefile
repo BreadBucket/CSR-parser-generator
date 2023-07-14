@@ -26,14 +26,19 @@ obj:
 
 .PHONY: clean
 clean:
-	@rm -rf "obj/"
+	rm -rf "obj/"
+	rm ${compilerPath}
 	@echo "Project clean."
 
 
 
-
 .PHONY: compiler
-compiler: obj
+compiler:
+	rm compiler.mk
+	make compiler.mk
+
+compiler.mk:
+	@echo Generating source list: compiler.mk
 	@bash -c '															\
 		echo "# Auto-generated file. Do not touch!" >${compilerPath} ;	\
 		echo "" >>${compilerPath} ;										\
@@ -50,8 +55,8 @@ compiler: obj
 																			\
 		echo "" >>${compilerPath} ;											\
 		echo "obj/program: $${obj[*]}" >>${compilerPath} ;					\
-		echo -e "\t@g++ \$$^ \$${gcc_options} -o \$$@" >>${compilerPath} ;	\
-		echo -e "\t@echo program" >>${compilerPath}							\
+		echo -e "\t@echo program" >>${compilerPath} ;						\
+		echo -e "\t@g++ \$$^ \$${gcc_options} -o \$$@" >>${compilerPath}	\
 	'
 	
--include compiler.mk
+include compiler.mk
