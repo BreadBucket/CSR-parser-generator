@@ -1,18 +1,19 @@
 SHELL := /bin/bash
 
-src			= src/
-inc         = -I src/includes/
+src = src/
+inc = -I src/includes/
+compilerPath = obj/compiler.mk
+
 gcc_options = -std=c++2a -g
 
-compilerPath	= "compiler.mk"
-src_only		= $(shell grep -oP "\\S*\\.c(pp)?" <<<"$^")
-src_finder		= find ${src} -type f -iname "*.c" -or -iname "*.cpp"
+src_only = $(shell grep -oP "\\S*\\.c(pp)?" <<<"$^")
+src_finder = find ${src} -type f -iname "*.c" -or -iname "*.cpp"
 
 
 
 
 .PHONY: all
-all: compiler.mk obj obj/program
+all: obj ${compilerPath} obj/program
 
 
 .PHONY: run
@@ -34,29 +35,31 @@ clean:
 
 .PHONY: compiler
 compiler:
-	rm compiler.mk
-	make compiler.mk
+	rm "${compilerPath}"
+	make "${compilerPath}"
 
-compiler.mk:
-	@echo Generating source list: compiler.mk
-	@bash -c '															\
-		echo "# Auto-generated file. Do not touch!" >${compilerPath} ;	\
-		echo "" >>${compilerPath} ;										\
-																		\
-		while read line; do												\
-			test -n "$${line}" && {										\
-				line=obj/$${line} ;										\
-				echo "$${line}" >>${compilerPath} ;						\
-				echo -e "\t@basename \"\$$@\"" >>${compilerPath} ;		\
-				echo -e "\t@g++ \$${src_only} \$${inc} -c \$${gcc_options} -o \$$@" >>${compilerPath} ;	\
+${compilerPath}:
+	mkdir -p "$(shell dirname "${compilerPath}")"
+	
+	@echo "Generating source list: ${compilerPath}"
+	@bash -c '																\
+		echo "# Auto-generated file. Do not touch!" >"${compilerPath}" ;	\
+		echo "" >>"${compilerPath}" ;										\
+																			\
+		while read line; do													\
+			test -n "$${line}" && {											\
+				line=obj/$${line} ;											\
+				echo "$${line}" >>"${compilerPath}" ;						\
+				echo -e "\t@basename \"\$$@\"" >>"${compilerPath}" ;		\
+				echo -e "\t@g++ \$${src_only} \$${inc} -c \$${gcc_options} -o \$$@" >>"${compilerPath}" ;	\
 				obj+=( $$(echo "$$line" | grep -oP "^\S+\.o") ) ;			\
 			};																\
 		done <<<"$$(g++ ${inc} -MM $$(${src_finder}))" ;					\
 																			\
-		echo "" >>${compilerPath} ;											\
-		echo "obj/program: $${obj[*]}" >>${compilerPath} ;					\
-		echo -e "\t@echo program" >>${compilerPath} ;						\
-		echo -e "\t@g++ \$$^ \$${gcc_options} -o \$$@" >>${compilerPath}	\
+		echo "" >>"${compilerPath}" ;										\
+		echo "obj/program: $${obj[*]}" >>"${compilerPath}" ;				\
+		echo -e "\t@basename \"\$$@\"" >>"${compilerPath}" ;				\
+		echo -e "\t@g++ \$$^ \$${gcc_options} -o \$$@" >>"${compilerPath}"	\
 	'
 	
-include compiler.mk
+include ${compilerPath}
