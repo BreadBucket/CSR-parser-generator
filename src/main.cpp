@@ -53,8 +53,10 @@ Parser* parseInput(const char* inputPath = nullptr){
 	Parser* parser = new Parser();
 	parser->tabSize = CLI::tabSize;
 	
+	bool success = false;
 	try {
 		parser->parse(*in);
+		success = true;
 	} catch (const ParserException& e) {
 		fprintf(stderr, ANSI_BOLD "%s:%d:%d: " ANSI_RED "error" ANSI_RESET ": %s\n", inputPath, e.loc.row+1, e.loc.col+1, e.what());
 	} catch (const exception& e) {
@@ -68,7 +70,12 @@ Parser* parseInput(const char* inputPath = nullptr){
 		delete inf;
 	}
 	
-	return parser;
+	if (success)
+		return parser;
+	else {
+		delete parser;
+		return nullptr;
+	}
 }
 
 

@@ -195,8 +195,10 @@ void Parser::parse(istream& in){
 				pop(1, true);
 				parseSegment();
 			} else {
-				pop(1, false);
-				line = &codeSegments->emplace_back();
+				// pop(1, false);
+				// line = &codeSegments->emplace_back();
+				pop(1, true);
+				throw ParserException(getLoc(), "Unexpected directive.");
 			}
 			
 		}
