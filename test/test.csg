@@ -1,6 +1,11 @@
 
 
 
+A B C -> B
+
+
+
+
 #ifdef /* here*/ CSG_CODE /* wel */ //aa
 int c;
 #ifdef MAC

@@ -342,8 +342,6 @@ void Parser::parseSegment_header(SourceString& directive, SourceString& type){
 	parseSolidSpace(directive);
 	directive.end = getLoc();
 	
-	printSrc(directive);
-	
 	// Parse segment type
 	type.clear();
 	if (parseWhiteSpaceAndComment(trash.clear(), true) >= 1){
@@ -1091,7 +1089,7 @@ void Parser::reset(){
 
 
 int Parser::fillBuffer(int count, bool fill){
-	if (count <= (n - i) || count <= 0){
+	if (count <= (n - i) || count <= 0 || eof){
 		return 0;
 	}
 	

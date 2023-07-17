@@ -1,10 +1,17 @@
-#include <unistd.h>
-
 #include <cstdint>
+#include <tuple>
 #include <string>
+#include <vector>
+#include <set>
+
 #include <iostream>
 #include <fstream>
 #include <sstream>
+
+extern "C" {
+	#include <unistd.h>
+}
+
 
 #include "util/ANSI.h"
 #include "CLI.hpp"
@@ -48,11 +55,9 @@ Parser* parseInput(const char* inputPath = nullptr){
 	
 	try {
 		parser->parse(*in);
-	}
-	catch (const ParserException& e) {
+	} catch (const ParserException& e) {
 		fprintf(stderr, ANSI_BOLD "%s:%d:%d: " ANSI_RED "error" ANSI_RESET ": %s\n", inputPath, e.loc.row+1, e.loc.col+1, e.what());
-	}
-	catch (const exception& e) {
+	} catch (const exception& e) {
 		fprintf(stderr, ANSI_BOLD "%s" ANSI_RESET ": " ANSI_RED "error" ANSI_RESET ": %s\n", CLI::programName, e.what());
 	}
 	
@@ -67,6 +72,42 @@ Parser* parseInput(const char* inputPath = nullptr){
 }
 
 
+// ----------------------------------- [ Functions ] ---------------------------------------- //
+
+
+
+
+vector<tuple<string,int>> distinct(const vector<Reduction>& v){
+	auto cmp = [](const string& a, const string& b) -> bool {
+		if (a.size() < b.size())
+			return true;
+		else if (a.size() == b.size())
+			return a < b;
+		else
+			return false;
+	};
+	
+	set<string,decltype(cmp)> symbols;
+	vector<tuple<string,int>> symbolEnum;
+	
+	for (int i = 0 ; i < v.size() ; i++){
+		for (int ii = 0 ; ii < v[i].left.size() ; ii++)
+			symbols.insert(v[i].left[ii].name);
+		for (int ii = 0 ; ii < v[i].right.size() ; ii++)
+			symbols.insert(v[i].right[ii].name);
+	}
+	
+	int val = 1;
+	for (auto p = symbols.begin() ; p != symbols.end() ; p++){
+		string& sym = const_cast<string&>(*p);
+		symbolEnum.emplace_back(move(sym), val);
+		val++;
+	}
+	
+	return symbolEnum;
+}
+
+
 // --------------------------------- [ Main Functions ] ------------------------------------- //
 
 
@@ -78,20 +119,28 @@ int main(int argc, char const* const* argv){
 	if (!parseCLI(argc, argv))
 		return 1;
 	
-	Parser* p = parseInput();
+	Parser* p = parseInput(CLI::inputFilePath);
 	if (p == nullptr)
 		return 1;
 	
 	
+	// Enumerate symbol
+	vector<tuple<string,int>> symEnum = distinct(*p->reductions);
 	
-	Generator g;
-	g.reductions = p->reductions;
-	g.code = p->codeSegments;
+	printf("Symbol enum:\n");
+	for (auto& t : symEnum){
+		printf("  %s = %d\n", get<0>(t).c_str(), get<1>(t));
+	}
 	
-	g.headerFile = &cout;
-	g.cFile = &cout;
 	
-	g.generate();
+	// Generator g;
+	// g.reductions = p->reductions;
+	// g.code = p->codeSegments;
+	
+	// g.headerFile = &cout;
+	// g.cFile = &cout;
+	
+	// g.generate();
 	
 	
 	return 0;
