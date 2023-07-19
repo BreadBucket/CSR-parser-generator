@@ -6,7 +6,7 @@
 #include "util/utils.hpp"
 
 using namespace std;
-using namespace csg;
+using namespace CSR;
 
 
 // ----------------------------------- [ Functions ] ---------------------------------------- //
@@ -41,7 +41,7 @@ void printSrc(const SourceString& src){
 
 
 // DEBUG
-char* locStr(const csg::Location& loc){
+char* locStr(const Location& loc){
 	char* s = new char[100];
 	snprintf(s, 100, "[%d]: " PATH ":%d:%d", loc.i, loc.row+1, loc.col+1);
 	return s;
@@ -104,6 +104,10 @@ char* strstr(const string& s){
 
 
 // ------------------------------------- [ Macros ] ----------------------------------------- //
+
+
+#define DIR_REDUCT	"CSR"
+#define DIR_CODE	"CSR_CODE"
 
 
 #define LOOKAHEAD_IS_COMMENT(c)	(			\
@@ -234,18 +238,18 @@ void Parser::parseSegment(){
 	SourceString dir;
 	SourceString typeName;
 	
-	enum SegmentType {
+	enum class SegmentType {
 		NONE,
-		CSG,
-		CSG_CODE
+		REDUCTIONS,
+		CODE
 	} elseType;
 	
 	// String to enum SegmentType
 	auto getType = [](string& s) -> SegmentType {
-		if (s == "CSG")
-			return SegmentType::CSG;
-		else if (s == "CSG_CODE")
-			return SegmentType::CSG_CODE;
+		if (s == DIR_REDUCT)
+			return SegmentType::REDUCTIONS;
+		else if (s == DIR_CODE)
+			return SegmentType::CODE;
 		else
 			return SegmentType::NONE;
 	};
@@ -256,18 +260,18 @@ void Parser::parseSegment(){
 	 */
 	auto parseBody = [&](SegmentType type, const Location& errorLoc) -> SegmentType {
 		switch (type){
-			case SegmentType::CSG: {
+			case SegmentType::REDUCTIONS: {
 				parseSegment_reductions(*reductions);
-				return SegmentType::CSG_CODE;
+				return SegmentType::CODE;
 			}
-			case SegmentType::CSG_CODE: {
+			case SegmentType::CODE: {
 				SourceString& s = codeSegments->emplace_back(getLoc());
 				parseSegment_code(s);
 				s.end = getLoc();
-				return SegmentType::CSG;
+				return SegmentType::REDUCTIONS;
 			}
 			default: {
-				throw ParserException(errorLoc, "Expected CSG or CSG_CODE segment.");
+				throw ParserException(errorLoc, "Expected " DIR_REDUCT " or " DIR_CODE " segment.");
 			}
 		}
 	};

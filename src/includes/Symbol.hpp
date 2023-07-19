@@ -2,7 +2,7 @@
 #include "SourceString.hpp"
 
 
-namespace csg {
+namespace CSR {
 class Symbol {
 // ------------------------------------[ Properties ] --------------------------------------- //
 public:

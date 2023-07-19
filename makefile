@@ -18,7 +18,7 @@ all: obj ${compilerPath} obj/program
 
 .PHONY: run
 run: all
-	@./obj/program
+	@./obj/program -i "test/test.csr"
 
 
 obj:
@@ -37,6 +37,7 @@ clean:
 compiler:
 	rm "${compilerPath}"
 	make "${compilerPath}"
+	@echo "Done."
 
 ${compilerPath}:
 	mkdir -p "$(shell dirname "${compilerPath}")"

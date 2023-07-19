@@ -8,13 +8,13 @@
 #include "Reduction.hpp"
 
 
-namespace csg {
+namespace CSR {
 	class Parser;
 	class ParserException;
 }
 
 
-class csg::Parser {
+class CSR::Parser {
 public:												// DEBUG
 	void printch(const char* color = "\e[96m");		// DEBUG
 // ------------------------------------[ Properties ] --------------------------------------- //
@@ -196,7 +196,7 @@ private:
 	/**
 	 * @return Current carret location using global index, row index and column index.
 	 */
-	inline csg::Location getLoc(){
+	inline CSR::Location getLoc(){
 		return {gi(), ri, ci};
 	}
 	
@@ -273,7 +273,7 @@ public:
 
 
 
-class csg::ParserException : public std::runtime_error {
+class CSR::ParserException : public std::runtime_error {
 // ------------------------------------[ Properties ] --------------------------------------- //
 public:
 	Location loc;

@@ -9,13 +9,13 @@
 
 
 
-namespace csg {
+namespace CSR {
 	class Generator;
 }
 
 
 
-class csg::Generator {
+class CSR::Generator {
 // ------------------------------------[ Properties ] --------------------------------------- //
 public:
 	const std::vector<SourceString>* code;

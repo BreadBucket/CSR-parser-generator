@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <memory>
 #include <tuple>
 #include <string>
 #include <vector>
@@ -20,7 +21,7 @@ extern "C" {
 
 
 using namespace std;
-using namespace csg;
+using namespace CSR;
 
 
 // ----------------------------------- [ Functions ] ---------------------------------------- //
@@ -37,45 +38,41 @@ bool parseCLI(int argc, char const* const* argv){
 }
 
 
-Parser* parseInput(const char* inputPath = nullptr){
+unique_ptr<Parser> parseInput(const char* inputPath = nullptr){
 	// Get input stream
-	ifstream* inf = nullptr;
+	unique_ptr<ifstream> inf;
 	istream* in;
 	
+	// Open input stream
 	if (!isatty(fileno(stdin))){
 		in = &cin;
 	} else {
-		inf = new ifstream(inputPath);
-		in = inf;
+		inf = make_unique<ifstream>(inputPath);
+		
+		if (inf->fail()){
+			fprintf(stderr, ANSI_BOLD "%s" ANSI_RESET ": " ANSI_RED "error" ANSI_RESET ": Failed to open input file '%s'.\n", CLI::programName, inputPath);
+			return nullptr;
+		}
+		
+		in = inf.get();
 	}
 	
 	// Parse
-	Parser* parser = new Parser();
+	unique_ptr<Parser> parser = make_unique<Parser>();
 	parser->tabSize = CLI::tabSize;
 	
-	bool success = false;
 	try {
 		parser->parse(*in);
-		success = true;
 	} catch (const ParserException& e) {
 		fprintf(stderr, ANSI_BOLD "%s:%d:%d: " ANSI_RED "error" ANSI_RESET ": %s\n", inputPath, e.loc.row+1, e.loc.col+1, e.what());
+		return nullptr;
 	} catch (const exception& e) {
 		fprintf(stderr, ANSI_BOLD "%s" ANSI_RESET ": " ANSI_RED "error" ANSI_RESET ": %s\n", CLI::programName, e.what());
-	}
-	
-	
-	// Close input file
-	if (inf != nullptr){
-		inf->close();
-		delete inf;
-	}
-	
-	if (success)
-		return parser;
-	else {
-		delete parser;
 		return nullptr;
 	}
+	
+	
+	return parser;
 }
 
 
@@ -120,13 +117,13 @@ vector<tuple<string,int>> distinct(const vector<Reduction>& v){
 
 int main(int argc, char const* const* argv){
 	printf("================================\n");	// DEBUG
-	CLI::inputFilePath = "test/test.csg";	// DEBUG
+	// CLI::inputFilePath = "test/test.csg";	// DEBUG
 	
 	
 	if (!parseCLI(argc, argv))
 		return 1;
 	
-	Parser* p = parseInput(CLI::inputFilePath);
+	unique_ptr<Parser> p = parseInput(CLI::inputFilePath);
 	if (p == nullptr)
 		return 1;
 	
@@ -138,16 +135,6 @@ int main(int argc, char const* const* argv){
 	for (auto& t : symEnum){
 		printf("  %s = %d\n", get<0>(t).c_str(), get<1>(t));
 	}
-	
-	
-	// Generator g;
-	// g.reductions = p->reductions;
-	// g.code = p->codeSegments;
-	
-	// g.headerFile = &cout;
-	// g.cFile = &cout;
-	
-	// g.generate();
 	
 	
 	return 0;

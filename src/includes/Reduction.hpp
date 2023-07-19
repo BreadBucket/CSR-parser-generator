@@ -6,7 +6,7 @@
 #include "SourceString.hpp"
 
 
-namespace csg {
+namespace CSR {
 class Reduction {
 // ------------------------------------[ Properties ] --------------------------------------- //
 public:
