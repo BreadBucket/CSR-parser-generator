@@ -2,10 +2,11 @@
 
 
 namespace CLI {
-	extern const char* programName;
-	extern const char* inputFilePath;
-	extern const char* outputFilePath;
+	extern std::string programName;
+	extern std::string inputFilePath;
+	extern std::string outputFilePath;
 	extern int tabSize;
+	extern bool verifyReduction;
 }
 
 

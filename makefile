@@ -18,7 +18,7 @@ all: obj ${compilerPath} obj/program
 
 .PHONY: run
 run: all
-	@./obj/program -i "test/test.csr"
+	@./obj/program -i "test/test.csr" --tab=1
 
 
 obj:

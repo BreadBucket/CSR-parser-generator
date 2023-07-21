@@ -13,7 +13,7 @@ using namespace CSR;
 
 
 // DEBUG
-#define PATH 			"test/test.csg"
+#define PATH 			"test/test.csr"
 #define CSTR(color)		"{" color "%s" ANSI_RESET "}"
 #define CSTRNL(color)	CSTR(color) "\n"
 
@@ -70,8 +70,8 @@ void printreduction(const Reduction& r){
 	if (r.left.size() > 0){
 		for (int i = 0 ; i < r.left.size() ; i++){
 			printSrc(r.left[i].name);
-			if (!r.left[i].id.empty())
-				printSrc(r.left[i].id);
+			if (!r.left[i].atr.empty())
+				printSrc(r.left[i].atr);
 		}
 	} else {
 		printf("null\n");
@@ -82,8 +82,8 @@ void printreduction(const Reduction& r){
 	if (r.right.size() > 0){
 		for (int i = 0 ; i < r.right.size() ; i++){
 			printSrc(r.right[i].name);
-			if (!r.right[i].id.empty())
-				printSrc(r.right[i].id);
+			if (!r.right[i].atr.empty())
+				printSrc(r.right[i].atr);
 		}
 	} else {
 		printf("null\n");
@@ -163,19 +163,23 @@ inline bool isSegmentDirective(const string& s){
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-void Parser::parse(istream& in){
+Document* Parser::parse(istream& in){
 	if (in.bad() || buffSize < 1){
-		return;
+		return nullptr;
 	}
 	
 	// Reset
-	this->in = &in;
 	reset();
+	this->in = &in;
+	this->doc = new Document();
+	
+	doc->reductions.reserve(32);
+	doc->code.reserve(32);
 	
 	
 	bool macro = true;
 	SourceString tmp;
-	SourceString* line = &codeSegments->emplace_back();	// Temporary code line
+	SourceString* line = &doc->code.emplace_back();	// Temporary code line
 	
 	while (true){
 		parseWhiteSpaceAndComment(*line, true);
@@ -210,7 +214,7 @@ void Parser::parse(istream& in){
 		// Reductions
 		else if (isIdChar(c)){
 			macro = false;
-			Reduction& r = reductions->emplace_back();
+			Reduction& r = doc->reductions.emplace_back();
 			parseReduction(r);
 		}
 		
@@ -223,10 +227,13 @@ void Parser::parse(istream& in){
 		
 	}
 	
-	
 	// Delete temporary code line
-	codeSegments->pop_back();
-	return;
+	doc->code.pop_back();
+	
+	// Return and release document object
+	Document* _doc = doc;
+	doc = nullptr;
+	return _doc;
 }
 
 
@@ -261,11 +268,11 @@ void Parser::parseSegment(){
 	auto parseBody = [&](SegmentType type, const Location& errorLoc) -> SegmentType {
 		switch (type){
 			case SegmentType::REDUCTIONS: {
-				parseSegment_reductions(*reductions);
+				parseSegment_reductions(doc->reductions);
 				return SegmentType::CODE;
 			}
 			case SegmentType::CODE: {
-				SourceString& s = codeSegments->emplace_back(getLoc());
+				SourceString& s = doc->code.emplace_back(getLoc());
 				parseSegment_code(s);
 				s.end = getLoc();
 				return SegmentType::REDUCTIONS;
@@ -454,45 +461,52 @@ void Parser::parseSegment_code(string& s){
 
 
 void Parser::parseSegment_reductions(vector<Reduction>& reductions){
-	bool macro = true;
+	bool line = true;
 	push();
 	
 	while (true){
 		char c = ch();
 		
-		// Macro
-		if (c == '#' && macro){
-			pop(1, true);
-			break;
-		}
-		
 		// Check whitespace
-		else if (c == '\n'){
-			macro = true;
-			
+		if (c == '\n'){
+			line = true;
 			pop(1, false);
 			push();
 			nl();
-			
-			// Quick skip whitepsace
-			parseWhiteSpace(trash.clear(), true);
 		} else if (c == '\t'){
 			tab();
 		} else if (isspace(c)){
 			inc();
 		}
 		
+		// Comment
+		else if (LOOKAHEAD_IS_COMMENT(c)){
+			parseComment(trash.clear());
+		}
+		
+		// Macro
+		else if (c == '#' && line){
+			line = false;
+			pop(1, true);
+			break;
+		}
+		
 		// Reduction
-		else if (c != 0){
+		else if (c != 0 && line){
+			line = false;
 			Reduction& r = reductions.emplace_back();
 			parseReduction(r);
 		}
 		
 		// EOF
-		else {
+		else if (line){
+			pop(1, false);
 			break;
 		}
 		
+		else {
+			throw ParserException(getLoc(), "Unexpected symbol in reduction section.");
+		}
 		
 	}
 	
@@ -527,7 +541,10 @@ void Parser::parseReduction(Reduction& r){
 	};
 	
 	
+	r.loc = getLoc();
+	
 	// Parse left symbols
+	r.left.clear();
 	parseSymbols(r.left);
 	if (r.left.size() <= 0){
 		throw ParserException(getLoc(), "Missing left side of reduction.");
@@ -544,6 +561,7 @@ void Parser::parseReduction(Reduction& r){
 	
 	
 	// Parse right symbols
+	r.right.clear();
 	parseSymbols(r.right);
 	if (r.right.size() <= 0){
 		throw ParserException(getLoc(), "Missing right side of reduction.");
@@ -551,6 +569,7 @@ void Parser::parseReduction(Reduction& r){
 	
 	
 	// Parse inline code
+	r.code.clear();
 	if (ch() == '{'){
 		parseReduction_inlineCode(r.code);
 		parseWhiteSpace(trash.clear(), true);
@@ -599,7 +618,7 @@ void Parser::parseReduction_symbol_attributes(Symbol& sym){
 	parseWhiteSpaceAndComment(trash.clear(), true);
 	
 	if (isIdChar(ch())){
-		parseId(sym.id);
+		parseId(sym.atr);
 	} else {
 		throw ParserException(getLoc(), "Expected symbol ID.");
 	}
@@ -1079,18 +1098,14 @@ void Parser::reset(){
 	}
 	buff[0] = 0;
 	
-	if (codeSegments == nullptr)
-		codeSegments = new vector<SourceString>();
-	if (reductions == nullptr)
-		reductions = new vector<Reduction>();
-	
-	codeSegments->clear();
-	reductions->clear();
-	codeSegments->reserve(32);
-	reductions->reserve(32);
-	
 	trash.clear();
 	frames.clear();
+	
+	if (doc != nullptr){
+		delete doc;
+		doc = nullptr;
+	}
+	
 }
 
 

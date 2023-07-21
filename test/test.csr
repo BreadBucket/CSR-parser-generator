@@ -3,7 +3,11 @@
 
 
 
-#ifdef CSR
 
-#endif
+A B -> A A
+
+B -> C
+
+A C -> A A
+
 

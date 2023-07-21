@@ -22,10 +22,11 @@ using namespace CLI;
 
 
 namespace CLI {
-	const char* programName = "";
-	const char* inputFilePath = nullptr;
-	const char* outputFilePath = nullptr;
+	string programName = "program";
+	string inputFilePath;
+	string outputFilePath;
 	int tabSize = 4;
+	bool verifyReduction = true;
 }
 
 
@@ -36,17 +37,19 @@ enum OptionID : int {
 	NONE = INT32_MIN,
 	IN,
 	OUT,
-	TAB_SIZE
+	TAB_SIZE,
+	VERIFY_REDUCTION
 } selected_opt;
 
 
-const char* const short_options = "i:o:t:";
+const char* const short_options = "i:o:t:r";
 
 
 const struct option long_options[] = {
-	{"input",   required_argument, (int*)&selected_opt, OptionID::IN},
-	{"output",  required_argument, (int*)&selected_opt, OptionID::OUT},
-	{"tabSize", required_argument, (int*)&selected_opt, OptionID::TAB_SIZE},
+	{"input",     required_argument, (int*)&selected_opt, OptionID::IN},
+	{"output",    required_argument, (int*)&selected_opt, OptionID::OUT},
+	{"tabSize",   required_argument, (int*)&selected_opt, OptionID::TAB_SIZE},
+	{"skipCheck", required_argument, (int*)&selected_opt, OptionID::VERIFY_REDUCTION},
 	{0, 0, 0, 0}
 };
 
@@ -62,6 +65,8 @@ OptionID shortOptionToLong(char c){
 			return OptionID::OUT;
 		case 't':
 			return OptionID::TAB_SIZE;
+		case 'r':
+			return OptionID::VERIFY_REDUCTION;
 		default:
 			return OptionID::NONE;
 	}
@@ -136,6 +141,10 @@ void CLI::parse(int argc, char const* const* argv){
 					throw runtime_error("Option 'tabSize' must be a positive integer.");
 				break;
 			
+			case OptionID::VERIFY_REDUCTION:
+				verifyReduction = false;
+				break;
+			
 		}
 		
 	};
@@ -164,10 +173,11 @@ void CLI::parse(int argc, char const* const* argv){
 
 
 void CLI::clear(){
-	programName = "";
-	inputFilePath = nullptr;
-	outputFilePath = nullptr;
+	programName = "program";
+	inputFilePath.clear();
+	outputFilePath.clear();
 	tabSize = 4;
+	verifyReduction = true;
 }
 
 

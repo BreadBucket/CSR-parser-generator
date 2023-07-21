@@ -7,17 +7,13 @@ class Symbol {
 // ------------------------------------[ Properties ] --------------------------------------- //
 public:
 	SourceString name;	// The name of the symbol
-	SourceString id;	// Optional identifier
-	
-// ---------------------------------- [ Constructors ] -------------------------------------- //
-public:
-	Symbol() = default;
+	SourceString atr;	// Optional identifier
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 public:
 	inline void clear(){
 		name.clear();
-		id.clear();
+		atr.clear();
 	}
 	
 // ------------------------------------------------------------------------------------------ //

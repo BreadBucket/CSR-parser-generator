@@ -1,11 +1,12 @@
 #pragma once
-#include <cstdbool>
 #include <vector>
 #include <istream>
 #include <stdexcept>
 
+#include "Document.hpp"
 #include "Symbol.hpp"
 #include "Reduction.hpp"
+#include "CSRException.hpp"
 
 
 namespace CSR {
@@ -22,17 +23,16 @@ public:
 	int tabSize = 4;
 	std::istream* in = nullptr;
 	
-	std::vector<SourceString>* codeSegments;
-	std::vector<Reduction>* reductions;
+private:
+	SourceString trash;
+	std::vector<Location> frames;
+	Document* doc;	// Temporary object for storing results
+	
 	
 private:
 	int buffSize  = 1024;	// Preffered buffer size
 	int _buffSize = 0;		// Actual buffer size
 	char* buff    = nullptr;
-	
-private:
-	SourceString trash;
-	std::vector<Location> frames;
 	
 private:
 	int n;		// Number of characters in buffer
@@ -51,9 +51,8 @@ public:
 	Parser(Parser&&) = delete;
 	
 	~Parser(){
+		delete doc;
 		delete buff;
-		delete codeSegments;
-		delete reductions;
 	}
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
@@ -61,7 +60,7 @@ public:
 	/**
 	 * @throws ParserException for various parsing issues.
 	 */
-	void parse(std::istream& in);
+	Document* parse(std::istream& in);
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 private:
@@ -273,16 +272,16 @@ public:
 
 
 
-class CSR::ParserException : public std::runtime_error {
+class CSR::ParserException : public CSRException {
 // ------------------------------------[ Properties ] --------------------------------------- //
 public:
 	Location loc;
 	
 // ---------------------------------- [ Constructors ] -------------------------------------- //
 public:
-	ParserException(const char* msg) : runtime_error(msg), loc{-1} {}
-	ParserException(const Location& loc, const char* msg) : runtime_error(msg), loc{loc} {}
-	ParserException(Location&& loc, const char* msg) : runtime_error(msg), loc{loc} {}
+	ParserException(const char* msg) : CSRException(msg), loc{-1} {}
+	ParserException(const Location& loc, const char* msg) : CSRException(msg), loc{loc} {}
+	ParserException(Location&& loc, const char* msg) : CSRException(msg), loc{loc} {}
 	
 // ------------------------------------------------------------------------------------------ //
 };

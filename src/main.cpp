@@ -16,12 +16,40 @@ extern "C" {
 
 #include "util/ANSI.h"
 #include "CLI.hpp"
+#include "Symbol.hpp"
 #include "Parser.hpp"
+#include "Graph.hpp"
 #include "Generator.hpp"
 
 
 using namespace std;
 using namespace CSR;
+
+
+// ----------------------------------- [ Functions ] ---------------------------------------- //
+
+
+void errLoc(const char* file, const Location& loc){
+	fprintf(stderr, "%s:%d:%d", file, loc.row+1, loc.col+1);
+}
+
+
+template<typename ...T>
+void err(const char* file, const char* format, T... args){
+	fprintf(stderr, ANSI_BOLD "%s: " ANSI_RED "error" ANSI_RESET ": ", file);
+	fprintf(stderr, format, args...);
+}
+
+
+template<typename ...T>
+void err(const char* file, const Location& loc, const char* format, T... args){
+	if (loc.valid()){
+		fprintf(stderr, ANSI_BOLD "%s:%d:%d: " ANSI_RED "error" ANSI_RESET ": ", file, loc.row+1, loc.col+1);
+		fprintf(stderr, format, args...);
+	} else {
+		err(file, format, args...);
+	}
+}
 
 
 // ----------------------------------- [ Functions ] ---------------------------------------- //
@@ -38,77 +66,60 @@ bool parseCLI(int argc, char const* const* argv){
 }
 
 
-unique_ptr<Parser> parseInput(const char* inputPath = nullptr){
+Document* parseInput(const char* inputPath = nullptr){
 	// Get input stream
 	unique_ptr<ifstream> inf;
 	istream* in;
+	const char* docName = CLI::programName.c_str();
 	
-	// Open input stream
+	// Open input stream (file is auto-closed)
 	if (!isatty(fileno(stdin))){
 		in = &cin;
 	} else {
 		inf = make_unique<ifstream>(inputPath);
 		
 		if (inf->fail()){
-			fprintf(stderr, ANSI_BOLD "%s" ANSI_RESET ": " ANSI_RED "error" ANSI_RESET ": Failed to open input file '%s'.\n", CLI::programName, inputPath);
+			err(CLI::programName.c_str(), "Failed to open input file '%s'.\n", inputPath);
 			return nullptr;
 		}
 		
 		in = inf.get();
+		docName = inputPath;
 	}
 	
 	// Parse
 	unique_ptr<Parser> parser = make_unique<Parser>();
-	parser->tabSize = CLI::tabSize;
+	Document* doc = nullptr;
 	
 	try {
-		parser->parse(*in);
+		parser->tabSize = CLI::tabSize;
+		doc = parser->parse(*in);
 	} catch (const ParserException& e) {
-		fprintf(stderr, ANSI_BOLD "%s:%d:%d: " ANSI_RED "error" ANSI_RESET ": %s\n", inputPath, e.loc.row+1, e.loc.col+1, e.what());
+		err(docName, e.loc, "%s\n", e.what());
 		return nullptr;
 	} catch (const exception& e) {
-		fprintf(stderr, ANSI_BOLD "%s" ANSI_RESET ": " ANSI_RED "error" ANSI_RESET ": %s\n", CLI::programName, e.what());
+		err(CLI::programName.c_str(), "%s\n", e.what());
 		return nullptr;
 	}
 	
+	if (doc != nullptr){
+		doc->name = docName;
+	}
 	
-	return parser;
+	return doc;
 }
 
 
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-
-
-vector<tuple<string,int>> distinct(const vector<Reduction>& v){
-	auto cmp = [](const string& a, const string& b) -> bool {
-		if (a.size() < b.size())
-			return true;
-		else if (a.size() == b.size())
-			return a < b;
-		else
-			return false;
-	};
-	
-	set<string,decltype(cmp)> symbols;
-	vector<tuple<string,int>> symbolEnum;
-	
-	for (int i = 0 ; i < v.size() ; i++){
-		for (int ii = 0 ; ii < v[i].left.size() ; ii++)
-			symbols.insert(v[i].left[ii].name);
-		for (int ii = 0 ; ii < v[i].right.size() ; ii++)
-			symbols.insert(v[i].right[ii].name);
+bool validateReduction(const Document& doc){
+	int i;
+	if (CLI::verifyReduction && !Reduction::validateSize(doc.reductions, &i)){
+		err(doc.name.c_str(), doc.reductions[i].loc, "Reduction produces more symbols than it consumes.\n");
+		return false;
 	}
-	
-	int val = 1;
-	for (auto p = symbols.begin() ; p != symbols.end() ; p++){
-		string& sym = const_cast<string&>(*p);
-		symbolEnum.emplace_back(move(sym), val);
-		val++;
-	}
-	
-	return symbolEnum;
+	return true;
 }
 
 
@@ -117,26 +128,42 @@ vector<tuple<string,int>> distinct(const vector<Reduction>& v){
 
 int main(int argc, char const* const* argv){
 	printf("================================\n");	// DEBUG
-	// CLI::inputFilePath = "test/test.csg";	// DEBUG
 	
 	
 	if (!parseCLI(argc, argv))
 		return 1;
 	
-	unique_ptr<Parser> p = parseInput(CLI::inputFilePath);
-	if (p == nullptr)
+	Document* doc = parseInput(CLI::inputFilePath.c_str());
+	if (doc == nullptr)
 		return 1;
 	
-	
-	// Enumerate symbol
-	vector<tuple<string,int>> symEnum = distinct(*p->reductions);
-	
-	printf("Symbol enum:\n");
-	for (auto& t : symEnum){
-		printf("  %s = %d\n", get<0>(t).c_str(), get<1>(t));
+	if (!validateReduction(*doc)){
+		return 1;
 	}
 	
 	
+	
+	
+	Graph g;
+	try {
+		g.create(doc->reductions);
+	} catch (const DuplicateReduction& e) {
+		err(doc->name.c_str(), doc->reductions[e.i].loc, "Duplicate left side of reduction. Previously declared at " ANSI_BOLD);
+		errLoc(doc->name.c_str(), doc->reductions[e.prev_i].loc);
+		fprintf(stderr, ANSI_RESET ".\n");
+		return 0;
+	} catch (const GraphException& e) {
+		if (e.i >= 0)
+			err(doc->name.c_str(), doc->reductions[e.i].loc, "%s\n", e.what());
+		else
+			err(doc->name.c_str(), "%s\n", e.what());
+		return 0;
+	}
+	
+	
+	
+	
+	delete doc;
 	return 0;
 }
 
