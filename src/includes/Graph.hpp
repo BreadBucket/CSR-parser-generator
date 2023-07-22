@@ -34,7 +34,7 @@ namespace CSR {
 class CSR::Item {
 // ------------------------------------[ Properties ] --------------------------------------- //
 public:
-	int reductionId = -1;
+	const ReductionItem* reduction = nullptr;
 	
 public:
 	int observed = 0;	// Amount of observed symbols.
@@ -45,7 +45,7 @@ public:
 // ---------------------------------- [ Constructors ] -------------------------------------- //
 public:
 	Item() = default;
-	explicit Item(int reductionId) : reductionId{reductionId} {}
+	explicit Item(const ReductionItem* reduction) : reduction{reduction} {}
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 public:
@@ -209,10 +209,10 @@ public:
 class CSR::Connection {
 // ------------------------------------[ Properties ] --------------------------------------- //
 public:
-	SymbolID symbol = 0;
+	SymbolID symbol = SymbolID(-1);
 	const State* from = nullptr;
 	const State* to = nullptr;
-	int reductionId = -1;
+	const ReductionItem* reductionItem = nullptr;
 	
 // ---------------------------------- [ Constructors ] -------------------------------------- //
 public:
@@ -221,8 +221,8 @@ public:
 	Connection(const State* from, SymbolID symbol, const State* to) :
 		symbol{symbol}, from{from}, to{to} {}
 	
-	Connection(const State* from, SymbolID symbol, int reductionId) :
-		symbol{symbol}, from{from}, reductionId{reductionId} {}
+	Connection(const State* from, SymbolID symbol, const ReductionItem* reductionItem) :
+		symbol{symbol}, from{from}, reductionItem{reductionItem} {}
 	
 // ------------------------------------------------------------------------------------------ //
 };
@@ -239,19 +239,26 @@ private:
 private:
 	std::vector<State*> states;
 	std::vector<Connection*> connections;
+	std::vector<ReductionItem*> reductionItems;
+	std::vector<Item>* emptySet;
 	
 private:
-	std::vector<Item>* emptySet = nullptr;
 	std::unordered_set<SymbolID> emptySetEvolutionSymbols;
 	std::deque<State*> evolutionQueue;
 	
 // ---------------------------------- [ Constructors ] -------------------------------------- //
 public:
+	Graph(){
+		emptySet = new std::vector<Item>();
+	}
+	
 	~Graph(){
-		for (State* s : states)
-			delete s;
-		for (Connection* c : connections)
-			delete c;
+		for (auto p : states)
+			delete p;
+		for (auto p : connections)
+			delete p;
+		for (auto p : reductionItems)
+			delete p;
 		delete emptySet;
 	}
 	
@@ -273,7 +280,7 @@ private:
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 public:
-	static void createEmptySet(const std::vector<Reduction>& v, const Map_SymbolToId& map, std::vector<Item>& out);
+	static void createReductionItems(const std::vector<Reduction>& v, const Map_SymbolToId& map, std::vector<ReductionItem*>& out_items);
 	static void getEvolutionSymbols(const std::vector<Item>& v, std::unordered_set<SymbolID>& out_set);
 	
 // ------------------------------------------------------------------------------------------ //

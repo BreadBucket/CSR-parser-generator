@@ -24,6 +24,29 @@ string str(int id, const Map_IdToSymbol& id_to_symbol){
 }
 
 
+// DEBUG
+string str(const vector<SymbolID> v, const Map_IdToSymbol& id_to_symbol){
+	if (v.size() <= 0)
+		return "ϵ";
+	
+	string s = "(";
+	
+	for (SymbolID id : v){
+		auto p = id_to_symbol.find(id);
+		
+		if (p != id_to_symbol.end())
+			s += p->second;
+		else
+			s += to_string(id);
+		
+		s += " ";
+	}
+	
+	s.pop_back();
+	s += ')';
+	return s;
+}
+
 
 // DEBUG
 string str(const Item& item, const Map_IdToSymbol& id_to_symbol){
@@ -99,8 +122,10 @@ string str(const Connection& v, const Map_IdToSymbol& id_to_symbol){
 	
 	if (v.to != nullptr)
 		s += "S" + to_string(v.to->id);
+	else if (v.reductionItem != nullptr)
+		s += str(v.reductionItem->right, id_to_symbol);
 	else
-		s += "(r" + to_string(v.reductionId) + ")";
+		s += "(null)";
 	
 	return s;
 }
@@ -133,7 +158,16 @@ void Graph::build(const vector<Reduction>& v){
 	// Setup
 	clear();
 	createEnum(v);
-	createEmptySet(v, symbol_to_id, *emptySet);
+	createReductionItems(v, symbol_to_id, reductionItems);
+	
+	emptySet->clear();
+	for (ReductionItem* r : reductionItems){
+		Item& item = emptySet->emplace_back();
+		item.reduction = r;
+		item.symbols = r->left;
+		item.missing = r->left.size();
+	}
+	
 	getEvolutionSymbols(*emptySet, emptySetEvolutionSymbols);
 
 	
@@ -171,6 +205,10 @@ void Graph::build(const vector<Reduction>& v){
 	
 	printf("\nQUEUE: %d\n", evolutionQueue.size());
 	
+	
+	// Release unused memory
+	emptySetEvolutionSymbols.rehash(0);
+	evolutionQueue.shrink_to_fit();
 }
 
 
@@ -200,20 +238,42 @@ void Graph::createEnum(const std::vector<Reduction>& v){
 }
 
 
-void Graph::createEmptySet(const vector<Reduction>& v, const Map_SymbolToId& map, vector<Item>& out){
+void Graph::createReductionItems(const vector<Reduction>& v, const Map_SymbolToId& map, vector<ReductionItem*>& out){
 	out.clear();
 	out.reserve(v.size());
 	
 	for (int i = 0 ; i < v.size() ; i++){
-		Item& item = out.emplace_back();
-		item.set(v[i], map);
-		item.reductionId = i;
+		const Reduction& r = v[i];
+		ReductionItem& item = *out.emplace_back(new ReductionItem());
+		
+		item.id = i;
+		item.left.reserve(r.left.size());
+		item.right.reserve(r.right.size());
+		
+		// Left side
+		for (const Symbol& s : r.left){
+			auto p = map.find(s.name);
+			if (p != map.end())
+				item.left.push_back(p->second);
+			else
+				item.left.push_back(SymbolID(-1));
+		}
+		
+		// Right side
+		for (const Symbol& s : r.right){
+			auto p = map.find(s.name);
+			if (p != map.end())
+				item.right.push_back(p->second);
+			else
+				item.right.push_back(SymbolID(-1));
+		}
+		
 	}
 	
 }
 
 
-void Graph::getEvolutionSymbols(const vector<Item>& v, unordered_set<int>& out){
+void Graph::getEvolutionSymbols(const vector<Item>& v, unordered_set<SymbolID>& out){
 	for (const Item& item : v){
 		if (item.missing > 0)
 			out.emplace(item.pmissing(0));
@@ -222,22 +282,20 @@ void Graph::getEvolutionSymbols(const vector<Item>& v, unordered_set<int>& out){
 
 
 void Graph::clear(){
-	for (State* s : states)
-		delete s;
-	for (Connection* c : connections)
-		delete c;
-	
-	if (emptySet == nullptr)
-		emptySet = new vector<Item>();
-	else
-		emptySet->clear();
+	for (auto p : states)
+		delete p;
+	for (auto p : connections)
+		delete p;
+	for (auto p : reductionItems)
+		delete p;
 	
 	states.clear();
-	states.reserve(64);
 	connections.clear();
-	connections.reserve(64);
-	evolutionQueue.clear();
+	reductionItems.clear();
+	emptySet->clear();
+	
 	emptySetEvolutionSymbols.clear();
+	evolutionQueue.clear();
 	
 	symbol_to_id.clear();
 	id_to_symbol.clear();
@@ -250,7 +308,7 @@ void Graph::clear(){
 void Graph::evolve(const State& base){
 	printf("STEP " ANSI_CYAN "%s\n" ANSI_RESET, str(base, id_to_symbol).c_str());
 	
-	auto evolve = [&](State* temp, int symbol) -> State* {
+	auto evolve = [&](State* temp, SymbolID symbol) -> State* {
 		if (temp == nullptr)
 			temp = new State();
 		
@@ -283,7 +341,7 @@ void Graph::evolve(const State& base){
 		const Item* ri = temp->getReductionItem();
 		if (ri != nullptr){
 			printf(ANSI_PURPLE "%s\n" ANSI_RESET, str(*temp, id_to_symbol).c_str());
-			connections.emplace_back(new Connection(&base, symbol, ri->reductionId));
+			connections.emplace_back(new Connection(&base, symbol, ri->reduction));
 		}
 		
 		// State is completely new
@@ -307,12 +365,12 @@ void Graph::evolve(const State& base){
 	
 	
 	State* tempState = nullptr;
-	unordered_set<int> evolvedSymbols = {};
+	unordered_set<SymbolID> evolvedSymbols = {};
 	
 	// Evolve relevant items
 	for (const Item& item : base.items){
 		if (item.missing > 0){
-			int symbol = item.pmissing(0);
+			SymbolID symbol = item.pmissing(0);
 			
 			auto p = evolvedSymbols.emplace(symbol);
 			if (get<1>(p))
@@ -322,7 +380,7 @@ void Graph::evolve(const State& base){
 	}
 	
 	// Evolve empty set
-	for (int symbol : emptySetEvolutionSymbols){
+	for (SymbolID symbol : emptySetEvolutionSymbols){
 		if (!evolvedSymbols.contains(symbol))
 			tempState = evolve(tempState, symbol);
 	}
@@ -414,17 +472,17 @@ const Item* State::getReductionItem() const {
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-void State::sort(){
-	std::sort(items.begin(), items.end(), [](const Item& a, const Item& b) -> bool {
-		if (a.reductionId < b.reductionId)
-			return true;
-		else if (a.reductionId == b.reductionId){
-			if (a.observed > b.observed)
-				return true;
-		}
-		return false;
-	});
-}
+// void State::sort(){
+// 	std::sort(items.begin(), items.end(), [](const Item& a, const Item& b) -> bool {
+// 		if (a.reduction < b.reductionId)
+// 			return true;
+// 		else if (a.reductionId == b.reductionId){
+// 			if (a.observed > b.observed)
+// 				return true;
+// 		}
+// 		return false;
+// 	});
+// }
 
 
 bool State::equivalent(const State& other) const {
@@ -472,7 +530,7 @@ void Item::set(const Reduction& r, const Map_SymbolToId& map){
 
 
 bool Item::equivalent(const Item& other) const {
-	if (reductionId != other.reductionId)
+	if (reduction != other.reduction)
 		return false;
 	else if (observed != other.observed || missing != other.missing || extra != other.extra)
 		return false;
