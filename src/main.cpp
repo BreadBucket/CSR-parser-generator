@@ -145,9 +145,9 @@ int main(int argc, char const* const* argv){
 	if (doc == nullptr)
 		return 1;
 	
-	// if (!validateReduction(*doc)){
-	// 	return 1;
-	// }
+	if (!validateReduction(*doc)){
+		return 1;
+	}
 	
 	Graph g;
 	try {

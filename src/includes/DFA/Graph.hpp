@@ -88,12 +88,12 @@ public:
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 public:
-	inline int size() const {
-		return symbols.size();
-	}
-	
 	inline int reductionSize() const {
 		return observed + missing;
+	}
+	
+	inline int position() const {
+		return -observed - extra;
 	}
 	
 	inline bool empty() const {

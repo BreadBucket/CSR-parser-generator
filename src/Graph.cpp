@@ -15,6 +15,11 @@ using namespace csr;
 
 
 // DEBUG
+#define STR(obj)		str(obj, *DEBUG_map)
+#define CSTR(obj)		str(obj, *DEBUG_map).c_str()
+const Map_IdToSymbol* DEBUG_map;
+
+// DEBUG
 string str(int id, const Map_IdToSymbol& id_to_symbol){
 	auto p = id_to_symbol.find(id);
 	if (p != id_to_symbol.end())
@@ -150,6 +155,9 @@ string str(const vector<Connection*>& v, const Map_IdToSymbol& id_to_symbol){
 
 
 void Graph::build(const vector<ParsedReduction>& v){
+	// DEBUG
+	DEBUG_map = &id_to_symbol;
+	
 	// Setup
 	clear();
 	createEnum(v);
@@ -163,14 +171,16 @@ void Graph::build(const vector<ParsedReduction>& v){
 	evolutionQueue.push_back(s0);
 	
 	
-	for (int i = 0 ; i <= 7 && evolutionQueue.size() > 0 ; i++){
-		printf("\n\n");
+	// for (int i = 0 ; i <= 1 && evolutionQueue.size() > 0 ; i++){
+	while (evolutionQueue.size() > 0){
+		printf("\n\n");	// DEBUG
 		const State* s = evolutionQueue.front();
 		evolutionQueue.pop_front();
 		evolve(*s);
 	}
 	
 	
+	// DEBUG
 	printf("\n\n\n\n\n\n");
 	printf("%s\n\n", str(connections, id_to_symbol).c_str());
 	for (const State* s : states){
@@ -462,20 +472,28 @@ const Item* State::getReductionItem() const {
 	if (items.size() <= 0)
 		return nullptr;
 	
-	const Item* reductionItem = &items[0];
-	int max = reductionItem->reductionSize();
+	// Find largest leftmost item
+	const Item* ll = &items[0];
+	int ll_pos = ll->position();
+	int ll_size = ll->reductionSize();
 	
 	for (int i = 1 ; i < items.size() ; i++){
-		if (items[i].reductionSize() > max){
-			reductionItem = &items[i];
-			max = reductionItem->reductionSize();
+		int pos = items[i].position();
+		int size = items[i].reductionSize();
+		
+		if (pos < ll_pos || (pos == ll_pos && size > ll_size)){
+			ll = &items[i];
+			ll_pos = pos;
+			ll_size = size;
 		}
+		
 	}
 	
-	if (reductionItem->missing > 0)
-		return nullptr;
+	// Item must be completely observed
+	if (ll->missing == 0)
+		return ll;
 	else
-		return reductionItem;
+		return nullptr;
 }
 
 
