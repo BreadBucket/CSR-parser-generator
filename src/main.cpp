@@ -146,7 +146,7 @@ int main(int argc, char const* const* argv){
 	
 	Graph g;
 	try {
-		g.create(doc->reductions);
+		g.build(doc->reductions);
 	} catch (const DuplicateReduction& e) {
 		err(doc->name.c_str(), doc->reductions[e.i].loc, "Duplicate left side of reduction. Previously declared at " ANSI_BOLD);
 		errLoc(doc->name.c_str(), doc->reductions[e.prev_i].loc);

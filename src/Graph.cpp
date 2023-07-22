@@ -62,7 +62,7 @@ string str(const Item& item, const Map_IdToSymbol& id_to_symbol){
 
 // DEBUG
 string str(const State& state, const Map_IdToSymbol& id_to_symbol){
-	string s = state.name + ":\n";
+	string s = "S" + to_string(state.id) + ":\n";
 	
 	for (const Item& item : state.items){
 		s += "  ";
@@ -78,7 +78,45 @@ string str(const State& state, const Map_IdToSymbol& id_to_symbol){
 		}
 	}
 	
-	s.pop_back();
+	if (s.size() > 0 && s.back() == '\n')
+		s.pop_back();
+	return s;
+}
+
+
+// DEBUG
+string str(const Connection& v, const Map_IdToSymbol& id_to_symbol){
+	string s = {};
+	
+	if (v.from != nullptr)
+		s += "S" + to_string(v.from->id);
+	else
+		s += "(null)";
+	
+	s += " --[";
+	s += str(v.symbol, id_to_symbol);
+	s += "]--> ";
+	
+	if (v.to != nullptr)
+		s += "S" + to_string(v.to->id);
+	else
+		s += "(r" + to_string(v.reductionId) + ")";
+	
+	return s;
+}
+
+
+// DEBUG
+string str(const vector<Connection*>& v, const Map_IdToSymbol& id_to_symbol){
+	string s = {};
+	
+	for (const Connection* c : v){
+		s += str(*c, id_to_symbol);
+		s += '\n';
+	}
+	
+	if (s.size() > 0 && s.back() == '\n')
+		s.pop_back();
 	return s;
 }
 
@@ -86,43 +124,57 @@ string str(const State& state, const Map_IdToSymbol& id_to_symbol){
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-void Graph::create(const vector<Reduction>& v){
+void Graph::build(const vector<Reduction>& v){
 	// Validate
 	int a, b;
 	if (!Reduction::distinct(v, &a, &b))
 		throw DuplicateReduction(b, a, "Duplicate left side of reduction.");
 	
-	createMap(v);
-	createEmptySet(v, symbol_to_id, emptySet);
+	// Setup
+	clear();
+	createEnum(v);
+	createEmptySet(v, symbol_to_id, *emptySet);
+	getEvolutionSymbols(*emptySet, emptySetEvolutionSymbols);
+
 	
-	evolutionQueue.clear();
-	states.clear();
-	states.reserve(64);
-	
-	State& s0 = states.emplace_back(0);
-	s0.emptyItems = &emptySet;
-	s0.setDefaultName();
-	
-	
+	State* s0 = states.emplace_back(new State(0));
+	s0->emptyItems = emptySet;
+	evolutionQueue.push_back(s0);
 	
 	
-	evolve(0);
-	// while (evolutionQueue.size() > 0){
-	// 	printf("\n\n");
+	for (int i = 0 ; i <= 7 && evolutionQueue.size() > 0 ; i++){
+		printf("\n\n");
+		const State* s = evolutionQueue.front();
+		evolutionQueue.pop_front();
+		evolve(*s);
+	}
+	
+	
+	printf("\n\n\n\n\n\n");
+	printf("%s\n\n", str(connections, id_to_symbol).c_str());
+	for (const State* s : states){
+		bool unresolved = false;
 		
+		for (const State* e : evolutionQueue){
+			if (s->id == e->id){
+				unresolved = true;
+				break;
+			}
+		}
 		
-	// 	int x = evolutionQueue.front();
-	// 	evolutionQueue.pop_front();
-	// 	evolve(x);
-		
-	// 	break;
-	// }
+		printf(ANSI_GREEN);
+		if (unresolved)
+			printf(ANSI_YELLOW);
+		printf("%s\n", str(*s, id_to_symbol).c_str());
+		printf(ANSI_RESET);
+	}
 	
+	printf("\nQUEUE: %d\n", evolutionQueue.size());
 	
 }
 
 
-void Graph::createMap(const std::vector<Reduction>& v){
+void Graph::createEnum(const std::vector<Reduction>& v){
 	symbol_to_id.clear();
 	id_to_symbol.clear();
 	
@@ -161,78 +213,128 @@ void Graph::createEmptySet(const vector<Reduction>& v, const Map_SymbolToId& map
 }
 
 
-// ----------------------------------- [ Functions ] ---------------------------------------- //
+void Graph::getEvolutionSymbols(const vector<Item>& v, unordered_set<int>& out){
+	for (const Item& item : v){
+		if (item.missing > 0)
+			out.emplace(item.pmissing(0));
+	}
+}
 
 
-void Graph::evolve(int x){
-	if (!VALID_INDEX(x, states.size()))
-		return;
+void Graph::clear(){
+	for (State* s : states)
+		delete s;
+	for (Connection* c : connections)
+		delete c;
 	
-	printf("STEP " ANSI_CYAN "%s\n" ANSI_RESET, str(states[x], id_to_symbol).c_str());
+	if (emptySet == nullptr)
+		emptySet = new vector<Item>();
+	else
+		emptySet->clear();
 	
+	states.clear();
+	states.reserve(64);
+	connections.clear();
+	connections.reserve(64);
+	evolutionQueue.clear();
+	emptySetEvolutionSymbols.clear();
 	
-	// Get unique symbols
-	unordered_set<int> symbols = {};
-	{
-		const State& base = states[x];
-		
-		for (const Item& item : base.items){
-			if (item.missing > 0)
-				symbols.emplace(item.pmissing(0));
-		}
-		
-		if (base.emptyItems != nullptr){
-			for (const Item& item : *base.emptyItems){
-				if (item.missing > 0)
-					symbols.emplace(item.pmissing(0));
-			}
-		}
-	
-		if (symbols.size() <= 0){
-			return;
-		}
-		
-	}
-	
-	
-	
-	State* state = &states.emplace_back(states.size());
-	state->setDefaultName();
-	
-	for (int symbol : symbols){
-		state->evolve(states[x], symbol);
-		
-		// Find existing state
-		bool exists = false;
-		for (int ii = 0 ; ii < states.size()-1 ; ii++){
-			exists |= state->equivalent(states[ii]);
-			if (exists)
-				break;
-		}
-		
-		
-		printf(ANSI_YELLOW "%s " ANSI_RED, str(symbol, id_to_symbol).c_str());
-		if (!exists) printf(ANSI_GREEN);
-		printf("%s\n" ANSI_RESET, str(*state, id_to_symbol).c_str());
-		
-		// New state confirmed
-		if (!exists){
-			evolutionQueue.push_back(state->id);
-			state = &states.emplace_back(states.size());
-			state->setDefaultName();
-		}
-		
-	}
-	
-	
-	states.pop_back();
+	symbol_to_id.clear();
+	id_to_symbol.clear();
 }
 
 
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-void State::evolve(const State& base, int symbol){
+void Graph::evolve(const State& base){
+	printf("STEP " ANSI_CYAN "%s\n" ANSI_RESET, str(base, id_to_symbol).c_str());
+	
+	auto evolve = [&](State* temp, int symbol) -> State* {
+		if (temp == nullptr)
+			temp = new State();
+		
+		temp->evolve(base, symbol);
+		
+		// Find existing state
+		const State* existingState = nullptr;
+		for (int ii = 0 ; ii < states.size() ; ii++){
+			if (temp->equivalent(*states[ii])){
+				existingState = states[ii];
+				break;
+			}
+		}
+		
+		// DEBUG
+		printf(ANSI_YELLOW "%s ", str(symbol, id_to_symbol).c_str());
+		temp->id = states.size();
+		if (existingState != nullptr){
+			temp->id = existingState->id;
+			printf(ANSI_RED "%s\n" ANSI_RESET, str(*temp, id_to_symbol).c_str());
+		}
+		
+		// Connect already existing state
+		if (existingState != nullptr){
+			connections.emplace_back(new Connection(&base, symbol, existingState));
+			return temp;
+		}
+		
+		// Check for reduction item
+		const Item* ri = temp->getReductionItem();
+		if (ri != nullptr){
+			printf(ANSI_PURPLE "%s\n" ANSI_RESET, str(*temp, id_to_symbol).c_str());
+			connections.emplace_back(new Connection(&base, symbol, ri->reductionId));
+		}
+		
+		// State is completely new
+		else {
+			printf(ANSI_GREEN "%s\n" ANSI_RESET, str(*temp, id_to_symbol).c_str());
+			
+			// Register new state
+			temp->id = states.size();
+			states.push_back(temp);
+			evolutionQueue.push_back(temp);
+			
+			// Form connection
+			Connection* c = new Connection(&base, symbol, temp);
+			connections.emplace_back(c);
+			
+			return nullptr;
+		}
+		
+		return temp;
+	};
+	
+	
+	State* tempState = nullptr;
+	unordered_set<int> evolvedSymbols = {};
+	
+	// Evolve relevant items
+	for (const Item& item : base.items){
+		if (item.missing > 0){
+			int symbol = item.pmissing(0);
+			
+			auto p = evolvedSymbols.emplace(symbol);
+			if (get<1>(p))
+				tempState = evolve(tempState, symbol);
+			
+		}
+	}
+	
+	// Evolve empty set
+	for (int symbol : emptySetEvolutionSymbols){
+		if (!evolvedSymbols.contains(symbol))
+			tempState = evolve(tempState, symbol);
+	}
+	
+	delete tempState;
+}
+
+
+// ----------------------------------- [ Functions ] ---------------------------------------- //
+
+
+void State::evolve(const State& base, SymbolID symbol){
 	// Reserve space
 	items.clear();
 	if (base.emptyItems != nullptr)
@@ -247,7 +349,7 @@ void State::evolve(const State& base, int symbol){
 	/**
 	 * @brief When symbol is accepted, temporary item object is replaced.
 	 */
-	auto expandItem = [&](const Item& base, int symbol){
+	auto expandItem = [&](const Item& base, SymbolID symbol){
 		
 		// Accept missing symbol
 		if (base.missing != 0){
@@ -288,14 +390,28 @@ void State::evolve(const State& base, int symbol){
 }
 
 
-// ----------------------------------- [ Functions ] ---------------------------------------- //
-
-
-void State::setDefaultName(){
-	name.clear();
-	name.push_back('S');
-	name += to_string(id);
+const Item* State::getReductionItem() const {
+	if (items.size() <= 0)
+		return nullptr;
+	
+	const Item* reductionItem = &items[0];
+	int max = reductionItem->reductionSize();
+	
+	for (int i = 1 ; i < items.size() ; i++){
+		if (items[i].reductionSize() > max){
+			reductionItem = &items[i];
+			max = reductionItem->reductionSize();
+		}
+	}
+	
+	if (reductionItem->missing > 0)
+		return nullptr;
+	else
+		return reductionItem;
 }
+
+
+// ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
 void State::sort(){
@@ -315,14 +431,21 @@ bool State::equivalent(const State& other) const {
 	if (items.size() != other.items.size())
 		return false;
 	
-	for (int i = 0 ; i < items.size() ; i++){
-		if (items[i].reductionId != other.items[i].reductionId)
-			return false;
-		else if (!items[i].equivalent(other.items[i]))
+	for (int i = 0 ; i < other.items.size() ; i++){
+		if (!containsEquivalent(other.items[i]))
 			return false;
 	}
 	
 	return true;
+}
+
+
+bool State::containsEquivalent(const Item& item) const {
+	for (int i = 0 ; i < items.size() ; i++){
+		if (item.equivalent(items[i]))
+			return true;
+	}
+	return false;
 }
 
 
@@ -349,7 +472,9 @@ void Item::set(const Reduction& r, const Map_SymbolToId& map){
 
 
 bool Item::equivalent(const Item& other) const {
-	if (observed != other.observed || missing != other.missing || extra != other.extra)
+	if (reductionId != other.reductionId)
+		return false;
+	else if (observed != other.observed || missing != other.missing || extra != other.extra)
 		return false;
 	else
 		return symbols == other.symbols;
