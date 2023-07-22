@@ -11,11 +11,15 @@
 
 
 
-A B C -> S
-A A -> A X
-X A -> A X
-X B B -> B Y
-Y B -> B Y
-Y C C -> C
+// A B C -> S
+// A A -> A X
+// X A -> A X
+// X B B -> B Y
+// Y B -> B Y
+// Y C C -> C
+
+
+
+  A[left] A[right] -> B(2,A[3]) A[2]
 
 

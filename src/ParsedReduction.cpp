@@ -1,7 +1,7 @@
+#include "ParsedReduction.hpp"
+
 #include <vector>
 #include <set>
-
-#include "ParsedReduction.hpp"
 
 
 using namespace std;
@@ -47,12 +47,48 @@ using namespace csr;
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
+void ParsedReduction::resolveSymbolAliases(){
+	// for (int i = 0 ; i < right.size() ; i++){
+	// 	ParsedSymbol& sym = right[i];
+		
+		
+	// 	// Resolve index alias
+	// 	if (sym.name.name.empty()){
+			
+	// 		if (!sym.name.alias.has_value() || sym.name.alias->empty()){
+	// 			throw ParserException(loc, "Empty reduction symbol.");
+	// 		}
+			
+	// 		SourceString& s = *sym.name.alias;
+			
+	// 		long n = 0;
+	// 		for (int i = 0 ; i < s.size() ; i++){
+				
+	// 		}
+			
+			
+	// 		// // Is an index
+	// 		// if (isdigit(*sym.name.alias->begin())){
+				
+	// 		// }
+			
+			
+			
+	// 	}
+		
+	// }
+}
+
+
+// ----------------------------------- [ Functions ] ---------------------------------------- //
+
+
 bool equals(const vector<ParsedSymbol>& a, const vector<ParsedSymbol>& b){
 	if (a.size() != b.size())
 		return false;
 	
 	for (int i = 0 ; i < a.size() ; i++){
-		if (a[i].name != b[i].name)
+		if (a[i].name.name != b[i].name.name)
 			return false;
 	}
 	

@@ -149,18 +149,24 @@ int main(int argc, char const* const* argv){
 		return 1;
 	}
 	
-	Graph g;
-	try {
-		g.build(doc->reductions);
-	} catch (const GraphException& e) {
-		if (e.i >= 0)
-			err(doc->name.c_str(), doc->reductions[e.i].loc, "%s\n", e.what());
-		else
-			err(doc->name.c_str(), "%s\n", e.what());
-		return 0;
+	
+	
+	for (ParsedReduction& r : doc->reductions){
+		r.resolveSymbolAliases();
 	}
 	
 	
+	
+	// Graph g;
+	// try {
+	// 	g.build(doc->reductions);
+	// } catch (const GraphException& e) {
+	// 	if (e.i >= 0)
+	// 		err(doc->name.c_str(), doc->reductions[e.i].loc, "%s\n", e.what());
+	// 	else
+	// 		err(doc->name.c_str(), "%s\n", e.what());
+	// 	return 0;
+	// }
 	
 	
 	delete doc;

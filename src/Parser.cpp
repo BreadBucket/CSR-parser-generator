@@ -67,30 +67,30 @@ void Parser::printch(const char* color){
 
 // DEBUG
 void printreduction(const ParsedReduction& r){
-	if (r.left.size() > 0){
-		for (int i = 0 ; i < r.left.size() ; i++){
-			printSrc(r.left[i].name);
-			if (!r.left[i].atr.empty())
-				printSrc(r.left[i].atr);
-		}
-	} else {
-		printf("null\n");
-	}
+	// if (r.left.size() > 0){
+	// 	for (int i = 0 ; i < r.left.size() ; i++){
+	// 		printSrc(r.left[i].name);
+	// 		if (!r.left[i].alias.empty())
+	// 			printSrc(r.left[i].alias);
+	// 	}
+	// } else {
+	// 	printf("null\n");
+	// }
 	
-	printf("->\n");
+	// printf("->\n");
 	
-	if (r.right.size() > 0){
-		for (int i = 0 ; i < r.right.size() ; i++){
-			printSrc(r.right[i].name);
-			if (!r.right[i].atr.empty())
-				printSrc(r.right[i].atr);
-		}
-	} else {
-		printf("null\n");
-	}
+	// if (r.right.size() > 0){
+	// 	for (int i = 0 ; i < r.right.size() ; i++){
+	// 		printSrc(r.right[i].name);
+	// 		if (!r.right[i].alias.empty())
+	// 			printSrc(r.right[i].alias);
+	// 	}
+	// } else {
+	// 	printf("null\n");
+	// }
 	
-	if (!r.code.empty())
-		printSrc(r.code);
+	// if (!r.code.empty())
+	// 	printSrc(r.code);
 	
 }
 
@@ -120,7 +120,11 @@ char* strstr(const string& s){
 
 
 inline bool isIdFirstChar(char c){
-	return BETWEEN(c, 'A', 'Z');
+	return (
+		BETWEEN(c, 'a', 'z') ||
+		BETWEEN(c, 'A', 'Z') ||
+		(c == '_')
+	);
 }
 
 
@@ -518,34 +522,30 @@ void Parser::parseSegment_reductions(vector<ParsedReduction>& reductions){
 
 
 void Parser::parseReduction(ParsedReduction& r){
+	r.loc = getLoc();
+	
+	// Parse left side
+	r.left.clear();
+	r.left.reserve(8);
+	
 	if (!isIdChar(ch())){
 		throw ParserException(getLoc(), "Expected symbol name.");
 	}
 	
-	/**
-	 * @brief Parse string of symbols and attributes until unknown character is reached.
-	 * @param v Where parsed symbols are stored.
-	 */
-	auto parseSymbols = [&](vector<ParsedSymbol>& v){
-		while (true){
-			parseWhiteSpaceAndComment(trash.clear(), true);
-			
-			if (isIdChar(ch())){
-				ParsedSymbol& sym = v.emplace_back();
-				parseReduction_symbol(sym);
-			} else {
-				break;
-			}
-			
+	while (isIdChar(ch())){
+		ParsedSymbol& sym = r.left.emplace_back();
+		parseReduction_symbol(sym.name);
+		parseWhiteSpaceAndComment(trash.clear(), true);
+		
+		char c = ch();
+		if (c == '[' || c == ']'){
+			throw ParserException(getLoc(), "Unexpected character. Symbol can only have 1 alias.");
+		} else if (c == '(' || c == ')'){
+			throw ParserException(getLoc(), "Unexpected character. Symbols can not be constructed on the left side of a reduction.");
 		}
-	};
+		
+	}
 	
-	
-	r.loc = getLoc();
-	
-	// Parse left symbols
-	r.left.clear();
-	parseSymbols(r.left);
 	if (r.left.size() <= 0){
 		throw ParserException(getLoc(), "Missing left side of reduction.");
 	}
@@ -553,16 +553,45 @@ void Parser::parseReduction(ParsedReduction& r){
 	
 	// Arrow
 	if (!match("->", true)){
-		if (ch() == '[')
-			throw ParserException(getLoc(), "Symbol attributes missing symbol name.");
+		if (ch() == '\n')
+			throw ParserException(getLoc(), "Unexpected newline character. Newlines must be escaped within a reduction declaration.");
 		else
-			throw ParserException(getLoc(), "Expected left-right separator \"->\".");
+			throw ParserException(getLoc(), "Unexpected character. Expected left-right reduction side separator \"->\".");
 	}
 	
+	parseWhiteSpaceAndComment(trash.clear(), true);
 	
-	// Parse right symbols
+	
+	// Parse right side
 	r.right.clear();
-	parseSymbols(r.right);
+	r.right.reserve(r.left.size());
+	
+	if (!isIdChar(ch())){
+		throw ParserException(getLoc(), "Expected symbol name.");
+	}
+	
+	while (isIdChar(ch())){
+		ParsedSymbol& sym = r.right.emplace_back();
+		parseReduction_symbol(sym.name);
+		parseWhiteSpaceAndComment(trash.clear(), true);
+		
+		// Parse optional constructor
+		char c = ch();
+		if (c == '(' || c == ')'){
+			
+			if (!sym.name.alias.has_value()){
+				parseReduction_constructor(sym.constructor.emplace());
+				parseWhiteSpaceAndComment(trash.clear(), true);
+			} else {
+				throw ParserException(getLoc(), "Unexpected symbol constructor. Symbols with alias cannot have a constructor.");
+			}
+			
+		} else if (c == '[' || c == ']'){
+			throw ParserException(getLoc(), "Unexpected character. Symbol can only have 1 alias.");
+		}
+		
+	}
+	
 	if (r.right.size() <= 0){
 		throw ParserException(getLoc(), "Missing right side of reduction.");
 	}
@@ -570,7 +599,7 @@ void Parser::parseReduction(ParsedReduction& r){
 	
 	// Parse inline code
 	r.code.clear();
-	if (ch() == '{'){
+	if (ch() == '{' || ch() == '}'){
 		parseReduction_inlineCode(r.code);
 		parseWhiteSpace(trash.clear(), true);
 	}
@@ -585,47 +614,101 @@ void Parser::parseReduction(ParsedReduction& r){
 }
 
 
-void Parser::parseReduction_symbol(ParsedSymbol& sym){
-	// First letter is capital
-	if (!isIdFirstChar(ch())){
-		throw ParserException(getLoc(), "Symbols must start with a capital letter.");
+void Parser::parseReduction_symbol(SymbolName& name){
+	name.name.clear();
+	
+	// Index alias
+	if (isdigit(ch())){
+		parseInt(name.alias.emplace());
+		
+		char c = ch();
+		if (c == '[' || c == ']'){
+			throw ParserException(getLoc(), "Unexpected symbol alias. Index alias cannot have another alias.");
+		}
+		
+		return;
 	}
 	
-	// Parse symbol name
-	sym.clear();
-	parseId(sym.name);
+	else if (!isIdChar(ch())){
+		throw ParserException(getLoc(), "Unexpected character. Symbol name expected.");
+	}
 	
-	// Lookahead and parse additional attributes
+	
+	// Parse name
+	if (parseId(name.name) <= 0){
+		throw ParserException(getLoc(), "Missing symbol name.");
+	}
+	
+	
+	// Parse optional alias
 	push();
 	parseWhiteSpaceAndComment(trash.clear(), true);
 	
-	if (ch() == '['){
+	char c = ch();
+	if (c == '[' || c == ']'){
 		pop(1, false);
-		parseReduction_symbol_attributes(sym);
+		parseReduction_symbol_alias(name.alias.emplace());
 	} else {
-		pop(1, true);
+		pop();
+		name.alias.reset();
 	}
 	
+	
+	return;
 }
 
 
-void Parser::parseReduction_symbol_attributes(ParsedSymbol& sym){
+void Parser::parseReduction_symbol_alias(SourceString& alias){
 	if (ch() != '['){
-		throw ParserException(getLoc(), "Expected '[' when declaring symbol attributes.");
+		throw ParserException(getLoc(), "Unexpected character. Expected '[' when declaring symbol alias.");
 	}
 	
 	inc();
 	parseWhiteSpaceAndComment(trash.clear(), true);
 	
-	if (isIdChar(ch())){
-		parseId(sym.atr);
-	} else {
-		throw ParserException(getLoc(), "Expected symbol ID.");
+	if (parseId(alias) <= 0){
+		throw ParserException(getLoc(), "Expected symbol alias.");
 	}
 	
 	parseWhiteSpaceAndComment(trash.clear(), true);
 	if (ch() != ']'){
-		throw ParserException(getLoc(), "Expected ']' at the end of symbol attributes declaration.");
+		throw ParserException(getLoc(), "Unexpected character. Expected ']' when terminating symbol alias.");
+	}
+	
+	inc();
+}
+
+
+void Parser::parseReduction_constructor(SymbolConstructor& ctr){
+	if (ch() != '('){
+		throw ParserException(getLoc(), "Unexpecteed character. Expected '(' when declaring symbol constructor.");
+	}
+	
+	ctr.clear();
+	
+	inc();
+	parseWhiteSpaceAndComment(trash.clear(), true);
+	
+	bool next;
+	while (isIdChar(ch())){
+		next = false;
+		parseReduction_symbol(ctr.emplace_back());
+		parseWhiteSpaceAndComment(trash.clear(), true);
+		
+		if (ch() == ','){
+			next = true;
+			inc();
+			parseWhiteSpaceAndComment(trash.clear(), true);
+		}
+		
+	}
+	
+	if (next){
+		throw ParserException(getLoc(), "Missing symbol constructor argument.");
+	} else if (ch() == '\n'){
+			throw ParserException(getLoc(), "Unexpected newline character. Newlines must be escaped within a symbol constructor declaration.");
+	} else if (ch() != ')'){
+		throw ParserException(getLoc(), "Unexpected character. Expected ')' when terminating symbol constructor.");
 	}
 	
 	inc();
@@ -779,6 +862,22 @@ int Parser::parseId(SourceString& s){
 	
 	char c = ch();
 	while (isIdChar(c)){
+		s.push_back(c);
+		inc();
+		c = ch();
+	}
+	
+	s.end = getLoc();
+	return s.size();
+}
+
+
+int Parser::parseInt(SourceString& s){
+	s.clear();
+	s.start = getLoc();
+	
+	char c = ch();
+	while (isdigit(c)){
 		s.push_back(c);
 		inc();
 		c = ch();

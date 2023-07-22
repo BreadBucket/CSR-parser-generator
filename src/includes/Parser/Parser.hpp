@@ -5,12 +5,11 @@
 
 #include "ParsedReduction.hpp"
 #include "Document.hpp"
-#include "CSRException.hpp"
+#include "ParserException.hpp"
 
 
 namespace csr {
 	class Parser;
-	class ParserException;
 }
 
 
@@ -70,8 +69,9 @@ private:
 	
 private:
 	void parseReduction(ParsedReduction& out_reduction);
-	void parseReduction_symbol(ParsedSymbol& out_symbol);
-	void parseReduction_symbol_attributes(ParsedSymbol& out_symbol);
+	void parseReduction_symbol(SymbolName& out);
+	void parseReduction_symbol_alias(SourceString& out);
+	void parseReduction_constructor(SymbolConstructor& out);
 	void parseReduction_inlineCode(SourceString& out_code);
 	
 private:
@@ -90,6 +90,13 @@ private:
 	 * @returns Amount of characters parsed.
 	 */
 	int parseId(SourceString& out_id);
+	
+	/**
+	 * @brief Parse string of digits.
+	 * @param out_id Parsed integer replaces content within the string and sets its location.
+	 * @returns Amount of characters parsed.
+	 */
+	int parseInt(SourceString& out_int);
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 private:
@@ -264,23 +271,6 @@ private:
 public:
 	Parser& operator=(Parser&) = delete;
 	Parser& operator=(Parser&&) = delete;
-	
-// ------------------------------------------------------------------------------------------ //
-};
-
-
-
-
-class csr::ParserException : public CSRException {
-// ------------------------------------[ Properties ] --------------------------------------- //
-public:
-	Location loc;
-	
-// ---------------------------------- [ Constructors ] -------------------------------------- //
-public:
-	ParserException(const char* msg) : CSRException(msg), loc{-1} {}
-	ParserException(const Location& loc, const char* msg) : CSRException(msg), loc{loc} {}
-	ParserException(Location&& loc, const char* msg) : CSRException(msg), loc{loc} {}
 	
 // ------------------------------------------------------------------------------------------ //
 };
