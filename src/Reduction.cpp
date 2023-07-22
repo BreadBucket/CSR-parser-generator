@@ -1,18 +1,17 @@
 #include <vector>
 #include <set>
 
-#include "Symbol.hpp"
-#include "Reduction.hpp"
+#include "ParsedReduction.hpp"
 
 
 using namespace std;
-using namespace CSR;
+using namespace csr;
 
 
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-// vector<Symbol_> Reduction::createEnum(const vector<Reduction>& v){
+// vector<Symbol_> ParsedReduction::createEnum(const vector<ParsedReduction>& v){
 // 	auto cmp = [](const string& a, const string& b) -> bool {
 // 		if (a.size() < b.size())
 // 			return true;
@@ -48,7 +47,7 @@ using namespace CSR;
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-bool equals(const vector<Symbol>& a, const vector<Symbol>& b){
+bool equals(const vector<ParsedSymbol>& a, const vector<ParsedSymbol>& b){
 	if (a.size() != b.size())
 		return false;
 	
@@ -61,7 +60,7 @@ bool equals(const vector<Symbol>& a, const vector<Symbol>& b){
 }
 
 
-bool Reduction::distinct(const vector<Reduction>& v, int* a, int* b){
+bool ParsedReduction::distinct(const vector<ParsedReduction>& v, int* a, int* b){
 	for (int  i = 0   ;  i < v.size() ;  i++){
 	for (int ii = i+1 ; ii < v.size() ; ii++){
 		
@@ -81,7 +80,7 @@ bool Reduction::distinct(const vector<Reduction>& v, int* a, int* b){
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-bool Reduction::validateSize(const vector<Reduction>& v, int* out_i){
+bool ParsedReduction::validateSize(const vector<ParsedReduction>& v, int* out_i){
 	for (int i = 0 ; i < v.size() ; i++){
 		if (v[i].left.size() < v[i].right.size()){
 			if (out_i != nullptr)

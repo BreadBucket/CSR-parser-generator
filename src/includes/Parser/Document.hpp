@@ -2,15 +2,15 @@
 #include <vector>
 
 #include "SourceString.hpp"
-#include "Reduction.hpp"
+#include "ParsedReduction.hpp"
 
 
-namespace CSR {
+namespace csr {
 class Document {
 // ------------------------------------[ Properties ] --------------------------------------- //
 public:
 	std::string name;
-	std::vector<Reduction> reductions;
+	std::vector<ParsedReduction> reductions;
 	std::vector<SourceString> code;
 	
 // ------------------------------------------------------------------------------------------ //	

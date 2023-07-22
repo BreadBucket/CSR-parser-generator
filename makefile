@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 
 src = src/
-inc = -I src/includes/
+inc = -I src/includes/ -I src/includes/util/ -I src/includes/Parser/ -I src/includes/DFA/
 compilerPath = obj/compiler.mk
 
 gcc_options = -std=c++2a -g

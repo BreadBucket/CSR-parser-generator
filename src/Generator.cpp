@@ -1,7 +1,7 @@
 #include "Generator.hpp"
 
 using namespace std;
-using namespace CSR;
+using namespace csr;
 
 
 // ----------------------------------- [ Functions ] ---------------------------------------- //

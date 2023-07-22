@@ -6,7 +6,7 @@
 #include "util/utils.hpp"
 
 using namespace std;
-using namespace CSR;
+using namespace csr;
 
 
 // ----------------------------------- [ Functions ] ---------------------------------------- //
@@ -66,7 +66,7 @@ void Parser::printch(const char* color){
 
 
 // DEBUG
-void printreduction(const Reduction& r){
+void printreduction(const ParsedReduction& r){
 	if (r.left.size() > 0){
 		for (int i = 0 ; i < r.left.size() ; i++){
 			printSrc(r.left[i].name);
@@ -214,7 +214,7 @@ Document* Parser::parse(istream& in){
 		// Reductions
 		else if (isIdChar(c)){
 			macro = false;
-			Reduction& r = doc->reductions.emplace_back();
+			ParsedReduction& r = doc->reductions.emplace_back();
 			parseReduction(r);
 		}
 		
@@ -460,7 +460,7 @@ void Parser::parseSegment_code(string& s){
 }
 
 
-void Parser::parseSegment_reductions(vector<Reduction>& reductions){
+void Parser::parseSegment_reductions(vector<ParsedReduction>& reductions){
 	bool line = true;
 	push();
 	
@@ -494,7 +494,7 @@ void Parser::parseSegment_reductions(vector<Reduction>& reductions){
 		// Reduction
 		else if (c != 0 && line){
 			line = false;
-			Reduction& r = reductions.emplace_back();
+			ParsedReduction& r = reductions.emplace_back();
 			parseReduction(r);
 		}
 		
@@ -517,7 +517,7 @@ void Parser::parseSegment_reductions(vector<Reduction>& reductions){
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-void Parser::parseReduction(Reduction& r){
+void Parser::parseReduction(ParsedReduction& r){
 	if (!isIdChar(ch())){
 		throw ParserException(getLoc(), "Expected symbol name.");
 	}
@@ -526,12 +526,12 @@ void Parser::parseReduction(Reduction& r){
 	 * @brief Parse string of symbols and attributes until unknown character is reached.
 	 * @param v Where parsed symbols are stored.
 	 */
-	auto parseSymbols = [&](vector<Symbol>& v){
+	auto parseSymbols = [&](vector<ParsedSymbol>& v){
 		while (true){
 			parseWhiteSpaceAndComment(trash.clear(), true);
 			
 			if (isIdChar(ch())){
-				Symbol& sym = v.emplace_back();
+				ParsedSymbol& sym = v.emplace_back();
 				parseReduction_symbol(sym);
 			} else {
 				break;
@@ -585,7 +585,7 @@ void Parser::parseReduction(Reduction& r){
 }
 
 
-void Parser::parseReduction_symbol(Symbol& sym){
+void Parser::parseReduction_symbol(ParsedSymbol& sym){
 	// First letter is capital
 	if (!isIdFirstChar(ch())){
 		throw ParserException(getLoc(), "Symbols must start with a capital letter.");
@@ -609,7 +609,7 @@ void Parser::parseReduction_symbol(Symbol& sym){
 }
 
 
-void Parser::parseReduction_symbol_attributes(Symbol& sym){
+void Parser::parseReduction_symbol_attributes(ParsedSymbol& sym){
 	if (ch() != '['){
 		throw ParserException(getLoc(), "Expected '[' when declaring symbol attributes.");
 	}

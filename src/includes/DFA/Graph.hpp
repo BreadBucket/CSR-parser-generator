@@ -6,13 +6,12 @@
 #include <unordered_map>
 #include <memory>
 
-#include "Symbol.hpp"
-#include "Reduction.hpp"
+#include "ParsedReduction.hpp"
 #include "CSRException.hpp"
 
 
 
-namespace CSR {
+namespace csr {
 	typedef int SymbolID;
 	class Item;
 	class ReductionItem;
@@ -23,7 +22,7 @@ namespace CSR {
 }
 
 
-namespace CSR {
+namespace csr {
 	typedef std::unordered_map<std::string,SymbolID> Map_SymbolToId;
 	typedef std::unordered_map<SymbolID,std::string> Map_IdToSymbol;
 }
@@ -31,7 +30,7 @@ namespace CSR {
 
 
 
-class CSR::Item {
+class csr::Item {
 // ------------------------------------[ Properties ] --------------------------------------- //
 public:
 	const ReductionItem* reduction = nullptr;
@@ -118,7 +117,7 @@ public:
 	 * @param r Reduction containing the symbols on the left side.
 	 * @param symbol_to_id Enum map to convert symbol names to their ID's.
 	 */
-	void set(const Reduction& r, const Map_SymbolToId& symbol_to_id);
+	void set(const ParsedReduction& r, const Map_SymbolToId& symbol_to_id);
 	
 // ----------------------------------- [ Operators ] ---------------------------------------- //
 public:
@@ -136,7 +135,7 @@ public:
 
 
 
-class CSR::ReductionItem {
+class csr::ReductionItem {
 // ------------------------------------[ Properties ] --------------------------------------- //
 public:
 	int id = -1;
@@ -154,7 +153,7 @@ public:
 
 
 
-class CSR::State {
+class csr::State {
 // ------------------------------------[ Properties ] --------------------------------------- //
 public:
 	int id = -1;
@@ -206,7 +205,7 @@ public:
 
 
 
-class CSR::Connection {
+class csr::Connection {
 // ------------------------------------[ Properties ] --------------------------------------- //
 public:
 	SymbolID symbol = SymbolID(-1);
@@ -230,7 +229,7 @@ public:
 
 
 
-class CSR::Graph {
+class csr::Graph {
 // ------------------------------------[ Variables ] ---------------------------------------- //
 private:
 	Map_SymbolToId symbol_to_id;
@@ -264,11 +263,13 @@ public:
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 public:
-	void build(const std::vector<Reduction>& v);
+	void build(const std::vector<ParsedReduction>& v);
 	void clear();
 	
 private:
-	void createEnum(const std::vector<Reduction>& v);
+	void createEnum(const std::vector<ParsedReduction>& v);
+	void createReductionItems(const std::vector<ParsedReduction>& v);
+	void createEmptySet();
 	
 	/**
 	 * @brief Evolve state using all missing symbols from the item list.
@@ -279,8 +280,7 @@ private:
 	void evolve(const State& state);
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
-public:
-	static void createReductionItems(const std::vector<Reduction>& v, const Map_SymbolToId& map, std::vector<ReductionItem*>& out_items);
+private:
 	static void getEvolutionSymbols(const std::vector<Item>& v, std::unordered_set<SymbolID>& out_set);
 	
 // ------------------------------------------------------------------------------------------ //
@@ -289,7 +289,7 @@ public:
 
 
 
-class CSR::GraphException : public CSR::CSRException {
+class csr::GraphException : public csr::CSRException {
 // ------------------------------------[ Properties ] --------------------------------------- //
 public:
 	int i = -1;

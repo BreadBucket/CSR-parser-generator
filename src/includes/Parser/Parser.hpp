@@ -3,19 +3,18 @@
 #include <istream>
 #include <stdexcept>
 
+#include "ParsedReduction.hpp"
 #include "Document.hpp"
-#include "Symbol.hpp"
-#include "Reduction.hpp"
 #include "CSRException.hpp"
 
 
-namespace CSR {
+namespace csr {
 	class Parser;
 	class ParserException;
 }
 
 
-class CSR::Parser {
+class csr::Parser {
 public:												// DEBUG
 	void printch(const char* color = "\e[96m");		// DEBUG
 // ------------------------------------[ Properties ] --------------------------------------- //
@@ -66,13 +65,13 @@ public:
 private:
 	void parseSegment();
 	void parseSegment_header(SourceString& out_directive, SourceString& out_type);
-	void parseSegment_reductions(std::vector<Reduction>& out_reductions);
+	void parseSegment_reductions(std::vector<ParsedReduction>& out_reductions);
 	void parseSegment_code(std::string& out_s);
 	
 private:
-	void parseReduction(Reduction& out_reduction);
-	void parseReduction_symbol(Symbol& out_symbol);
-	void parseReduction_symbol_attributes(Symbol& out_symbol);
+	void parseReduction(ParsedReduction& out_reduction);
+	void parseReduction_symbol(ParsedSymbol& out_symbol);
+	void parseReduction_symbol_attributes(ParsedSymbol& out_symbol);
 	void parseReduction_inlineCode(SourceString& out_code);
 	
 private:
@@ -195,7 +194,7 @@ private:
 	/**
 	 * @return Current carret location using global index, row index and column index.
 	 */
-	inline CSR::Location getLoc(){
+	inline csr::Location getLoc(){
 		return {gi(), ri, ci};
 	}
 	
@@ -272,7 +271,7 @@ public:
 
 
 
-class CSR::ParserException : public CSRException {
+class csr::ParserException : public CSRException {
 // ------------------------------------[ Properties ] --------------------------------------- //
 public:
 	Location loc;

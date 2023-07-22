@@ -4,22 +4,22 @@
 #include <iostream>
 #include <fstream>
 
-#include "Reduction.hpp"
-#include "SourceString.hpp"
+#include "ParsedReduction.hpp"
+#include "Document.hpp"
 
 
 
-namespace CSR {
+namespace csr {
 	class Generator;
 }
 
 
 
-class CSR::Generator {
+class csr::Generator {
 // ------------------------------------[ Properties ] --------------------------------------- //
 public:
 	const std::vector<SourceString>* code;
-	const std::vector<Reduction>* reductions;
+	const std::vector<ParsedReduction>* reductions;
 	
 	std::ostream* cFile;
 	std::ostream* headerFile;

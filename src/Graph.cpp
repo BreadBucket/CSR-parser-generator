@@ -8,7 +8,7 @@
 
 
 using namespace std;
-using namespace CSR;
+using namespace csr;
 
 
 // ----------------------------------- [ Functions ] ---------------------------------------- //
@@ -149,25 +149,12 @@ string str(const vector<Connection*>& v, const Map_IdToSymbol& id_to_symbol){
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-void Graph::build(const vector<Reduction>& v){
-	// Validate
-	int a, b;
-	if (!Reduction::distinct(v, &a, &b))
-		throw DuplicateReduction(b, a, "Duplicate left side of reduction.");
-	
+void Graph::build(const vector<ParsedReduction>& v){
 	// Setup
 	clear();
 	createEnum(v);
-	createReductionItems(v, symbol_to_id, reductionItems);
-	
-	emptySet->clear();
-	for (ReductionItem* r : reductionItems){
-		Item& item = emptySet->emplace_back();
-		item.reduction = r;
-		item.symbols = r->left;
-		item.missing = r->left.size();
-	}
-	
+	createReductionItems(v);
+	createEmptySet();
 	getEvolutionSymbols(*emptySet, emptySetEvolutionSymbols);
 
 	
@@ -212,13 +199,13 @@ void Graph::build(const vector<Reduction>& v){
 }
 
 
-void Graph::createEnum(const std::vector<Reduction>& v){
+void Graph::createEnum(const std::vector<ParsedReduction>& v){
 	symbol_to_id.clear();
 	id_to_symbol.clear();
 	
 	int id = 1;
-	auto add = [&](const vector<Symbol>& v){
-		for (const Symbol& s : v){
+	auto add = [&](const vector<ParsedSymbol>& v){
+		for (const ParsedSymbol& s : v){
 			auto pair = symbol_to_id.try_emplace(s.name, id);
 			
 			// If inserted
@@ -230,7 +217,7 @@ void Graph::createEnum(const std::vector<Reduction>& v){
 		}
 	};
 	
-	for (const Reduction& r : v){
+	for (const ParsedReduction& r : v){
 		add(r.left);
 		add(r.right);
 	}
@@ -238,31 +225,30 @@ void Graph::createEnum(const std::vector<Reduction>& v){
 }
 
 
-void Graph::createReductionItems(const vector<Reduction>& v, const Map_SymbolToId& map, vector<ReductionItem*>& out){
-	out.clear();
-	out.reserve(v.size());
+void Graph::createReductionItems(const vector<ParsedReduction>& v){
+	reductionItems.reserve(reductionItems.size() + v.size());
 	
 	for (int i = 0 ; i < v.size() ; i++){
-		const Reduction& r = v[i];
-		ReductionItem& item = *out.emplace_back(new ReductionItem());
+		const ParsedReduction& r = v[i];
+		ReductionItem& item = *reductionItems.emplace_back(new ReductionItem());
 		
-		item.id = i;
+		item.id = reductionItems.size() - 1;
 		item.left.reserve(r.left.size());
 		item.right.reserve(r.right.size());
 		
 		// Left side
-		for (const Symbol& s : r.left){
-			auto p = map.find(s.name);
-			if (p != map.end())
+		for (const ParsedSymbol& s : r.left){
+			auto p = symbol_to_id.find(s.name);
+			if (p != symbol_to_id.end())
 				item.left.push_back(p->second);
 			else
 				item.left.push_back(SymbolID(-1));
 		}
 		
 		// Right side
-		for (const Symbol& s : r.right){
-			auto p = map.find(s.name);
-			if (p != map.end())
+		for (const ParsedSymbol& s : r.right){
+			auto p = symbol_to_id.find(s.name);
+			if (p != symbol_to_id.end())
 				item.right.push_back(p->second);
 			else
 				item.right.push_back(SymbolID(-1));
@@ -270,6 +256,30 @@ void Graph::createReductionItems(const vector<Reduction>& v, const Map_SymbolToI
 		
 	}
 	
+}
+
+
+void Graph::createEmptySet(){
+	emptySet->clear();
+	for (ReductionItem* r : reductionItems){
+		
+		// Distinct
+		bool exists = false;
+		for (const Item& item : *emptySet){
+			if (r->left == item.symbols){
+				exists = true;
+				break;
+			}
+		}
+		
+		if (!exists){
+			Item& item = emptySet->emplace_back();
+			item.reduction = r;
+			item.symbols = r->left;
+			item.missing = r->left.size();
+		}
+		
+	}
 }
 
 
@@ -510,7 +520,7 @@ bool State::containsEquivalent(const Item& item) const {
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-void Item::set(const Reduction& r, const Map_SymbolToId& map){
+void Item::set(const ParsedReduction& r, const Map_SymbolToId& map){
 	observed = 0;
 	missing = 0;
 	extra = 0;
@@ -518,7 +528,7 @@ void Item::set(const Reduction& r, const Map_SymbolToId& map){
 	symbols.clear();
 	symbols.reserve(r.left.size());
 	
-	for (const Symbol& s : r.left){
+	for (const ParsedSymbol& s : r.left){
 		auto p = map.find(s.name);
 		if (p != map.end()){
 			symbols.push_back(p->second);

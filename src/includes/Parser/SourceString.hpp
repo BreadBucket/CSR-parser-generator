@@ -2,14 +2,14 @@
 #include <string>
 
 
-namespace CSR {
+namespace csr {
 	struct Location;
 	class SourceString;
 }
 
 
 
-struct CSR::Location {
+struct csr::Location {
 // -------------------------------- //
 public:
 	int i;		// Index of character
@@ -49,7 +49,7 @@ public:
 
 
 
-class CSR::SourceString : public std::string {
+class csr::SourceString : public std::string {
 // ------------------------------------[ Properties ] --------------------------------------- //
 public:
 	Location start;

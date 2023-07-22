@@ -16,14 +16,13 @@ extern "C" {
 
 #include "util/ANSI.h"
 #include "CLI.hpp"
-#include "Symbol.hpp"
 #include "Parser.hpp"
 #include "Graph.hpp"
 #include "Generator.hpp"
 
 
 using namespace std;
-using namespace CSR;
+using namespace csr;
 
 
 // ----------------------------------- [ Functions ] ---------------------------------------- //
@@ -115,10 +114,19 @@ Document* parseInput(const char* inputPath = nullptr){
 
 bool validateReduction(const Document& doc){
 	int i;
-	if (CLI::verifyReduction && !Reduction::validateSize(doc.reductions, &i)){
+	if (CLI::verifyReduction && !ParsedReduction::validateSize(doc.reductions, &i)){
 		err(doc.name.c_str(), doc.reductions[i].loc, "Reduction produces more symbols than it consumes.\n");
 		return false;
 	}
+	
+	int a, b;
+	if (!ParsedReduction::distinct(doc.reductions, &a, &b)){
+		err(doc.name.c_str(), doc.reductions[b].loc, "Duplicate left side of reduction. Previously declared at " ANSI_BOLD);
+		errLoc(doc.name.c_str(), doc.reductions[a].loc);
+		fprintf(stderr, ANSI_RESET ".\n");
+		return false;
+	}
+	
 	return true;
 }
 
@@ -137,21 +145,13 @@ int main(int argc, char const* const* argv){
 	if (doc == nullptr)
 		return 1;
 	
-	if (!validateReduction(*doc)){
-		return 1;
-	}
-	
-	
-	
+	// if (!validateReduction(*doc)){
+	// 	return 1;
+	// }
 	
 	Graph g;
 	try {
 		g.build(doc->reductions);
-	} catch (const DuplicateReduction& e) {
-		err(doc->name.c_str(), doc->reductions[e.i].loc, "Duplicate left side of reduction. Previously declared at " ANSI_BOLD);
-		errLoc(doc->name.c_str(), doc->reductions[e.prev_i].loc);
-		fprintf(stderr, ANSI_RESET ".\n");
-		return 0;
 	} catch (const GraphException& e) {
 		if (e.i >= 0)
 			err(doc->name.c_str(), doc->reductions[e.i].loc, "%s\n", e.what());

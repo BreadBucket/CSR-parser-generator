@@ -2,7 +2,7 @@
 #include <stdexcept>
 
 
-namespace CSR {
+namespace csr {
 class CSRException : public std::runtime_error {
 // ---------------------------------- [ Constructors ] -------------------------------------- //
 public:
