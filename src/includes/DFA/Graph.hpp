@@ -1,30 +1,21 @@
 #pragma once
-#include <string>
 #include <vector>
 #include <deque>
-#include <unordered_set>
-#include <unordered_map>
 #include <memory>
 
-#include "ParsedReduction.hpp"
+#include "Symbol.hpp"
+#include "Reduction.hpp"
+#include "SymbolEnum.hpp"
 #include "CSRException.hpp"
 
 
 
 namespace csr {
-	typedef int SymbolID;
+	typedef int StateID;
 	class Item;
-	class ReductionItem;
 	class State;
 	class Connection;
 	class Graph;
-	class GraphException;
-}
-
-
-namespace csr {
-	typedef std::unordered_map<std::string,SymbolID> Map_SymbolToId;
-	typedef std::unordered_map<SymbolID,std::string> Map_IdToSymbol;
 }
 
 
@@ -33,18 +24,18 @@ namespace csr {
 class csr::Item {
 // ------------------------------------[ Properties ] --------------------------------------- //
 public:
-	const ReductionItem* reduction = nullptr;
+	Reduction* reduction = nullptr;
 	
 public:
 	int observed = 0;	// Amount of observed symbols.
 	int missing = 0;	// Amount of missing symbols.
 	int extra = 0;		// Amount of extra symbols.
-	std::vector<SymbolID> symbols;
+	std::vector<Symbol*> symbols;
 	
 // ---------------------------------- [ Constructors ] -------------------------------------- //
 public:
 	Item() = default;
-	explicit Item(const ReductionItem* reduction) : reduction{reduction} {}
+	explicit Item(Reduction* reduction) : reduction{reduction} {}
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 public:
@@ -60,32 +51,6 @@ public:
 		return observed + missing;
 	}
 	
-public:
-	inline SymbolID& pobserved(int i){
-		return symbols[iobserved() + i];
-	}
-	
-	inline SymbolID& pmissing(int i){
-		return symbols[imissing() + i];
-	}
-	
-	inline SymbolID& pextra(int i){
-		return symbols[iextra() + i];
-	}
-	
-public:
-	inline const SymbolID& pobserved(int i) const {
-		return symbols[iobserved() + i];
-	}
-	
-	inline const SymbolID& pmissing(int i) const {
-		return symbols[imissing() + i];
-	}
-	
-	inline const SymbolID& pextra(int i) const {
-		return symbols[iextra() + i];
-	}
-	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 public:
 	inline int reductionSize() const {
@@ -94,10 +59,6 @@ public:
 	
 	inline int position() const {
 		return -observed - extra;
-	}
-	
-	inline bool empty() const {
-		return observed == 0;
 	}
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
@@ -109,23 +70,13 @@ public:
 	 */
 	bool equivalent(const Item& other) const;
 	
-public:
-	/**
-	 * @brief Convert symbols from reduction into their respective ID's
-	 *         and insert them into the missing symbol list.
-	 *        Clear observed and extra symbol list.
-	 * @param r Reduction containing the symbols on the left side.
-	 * @param symbol_to_id Enum map to convert symbol names to their ID's.
-	 */
-	void set(const ParsedReduction& r, const Map_SymbolToId& symbol_to_id);
-	
 // ----------------------------------- [ Operators ] ---------------------------------------- //
 public:
-	inline SymbolID& operator[](int i){
+	inline Symbol*& operator[](int i){
 		return symbols[i];
 	}
 	
-	inline const SymbolID& operator[](int i) const {
+	inline Symbol* operator[](int i) const {
 		return symbols[i];
 	}
 	
@@ -135,35 +86,17 @@ public:
 
 
 
-class csr::ReductionItem {
-// ------------------------------------[ Properties ] --------------------------------------- //
-public:
-	int id = -1;
-	std::vector<SymbolID> left;
-	std::vector<SymbolID> right;
-	
-// ---------------------------------- [ Constructors ] -------------------------------------- //
-public:
-	ReductionItem() = default;
-	explicit ReductionItem(int id) : id{id} {};
-	
-// ------------------------------------------------------------------------------------------ //	
-};
-
-
-
-
 class csr::State {
 // ------------------------------------[ Properties ] --------------------------------------- //
 public:
-	int id = -1;
+	StateID id = StateID(-1);
 	std::vector<Item> items;
 	std::vector<Item> const* emptyItems = nullptr;
 	
 // ---------------------------------- [ Constructors ] -------------------------------------- //
 public:
 	State() = default;
-	explicit State(int id) : id{id} {}
+	explicit State(StateID id) : id{id} {}
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 public:
@@ -175,11 +108,23 @@ public:
 	 * @return True if state is equivalent to `other`.
 	 */
 	bool equivalent(const State& other) const;
+	
+	/**
+	 * @brief Check if the list of items already contains an equivalent item.
+	 * @param item Item to find.
+	 * @return True if the state already contains an equivalent item.
+	 */
 	bool containsEquivalent(const Item& item) const;
-	void sort();
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 public:
+	/**
+	 * @brief Check if the state contains a reduction item.
+	 *        A reduction item is the longest item that is fully observed and has no other non-fully observed rivals.
+	 * @return Item* Pointer to the reduction item within the state, otherwise null.
+	 */
+	const Item* getReductionItem() const;
+	
 	/**
 	 * @brief Clone and evolve state according to a given symbol.
 	 *        An item is cloned when the symbol is equal to the first missing symbol of the item:
@@ -190,14 +135,7 @@ public:
 	 * @param base State to clone.
 	 * @param symbol Symbol to affect item cloning.
 	 */
-	void evolve(const State& base, SymbolID symbol);
-	
-	/**
-	 * @brief Check if the state contains a reduction item.
-	 *        A reduction item is the longest item that is fully observed and has no other non-fully observed rivals.
-	 * @return Item* Pointer to the reduction item within the state, otherwise null.
-	 */
-	const Item* getReductionItem() const;
+	void evolve(const State& base, Symbol* symbol);
 	
 // ------------------------------------------------------------------------------------------ //
 };
@@ -208,19 +146,19 @@ public:
 class csr::Connection {
 // ------------------------------------[ Properties ] --------------------------------------- //
 public:
-	SymbolID symbol = SymbolID(-1);
-	const State* from = nullptr;
-	const State* to = nullptr;
-	const ReductionItem* reductionItem = nullptr;
+	Symbol* symbol = nullptr;
+	State* from = nullptr;
+	State* to = nullptr;
+	Reduction* reductionItem = nullptr;
 	
 // ---------------------------------- [ Constructors ] -------------------------------------- //
 public:
 	Connection() = default;
 	
-	Connection(const State* from, SymbolID symbol, const State* to) :
+	Connection(State* from, Symbol* symbol, State* to) :
 		symbol{symbol}, from{from}, to{to} {}
 	
-	Connection(const State* from, SymbolID symbol, const ReductionItem* reductionItem) :
+	Connection(State* from, Symbol* symbol, Reduction* reductionItem) :
 		symbol{symbol}, from{from}, reductionItem{reductionItem} {}
 	
 // ------------------------------------------------------------------------------------------ //
@@ -232,18 +170,15 @@ public:
 class csr::Graph {
 // ------------------------------------[ Variables ] ---------------------------------------- //
 private:
-	Map_SymbolToId symbol_to_id;
-	Map_IdToSymbol id_to_symbol;
+	std::vector<std::shared_ptr<Reduction>> reductions;
 	
 private:
 	std::vector<State*> states;
 	std::vector<Connection*> connections;
-	std::vector<ReductionItem*> reductionItems;
 	std::vector<Item>* emptySet;
 	
 private:
-	std::unordered_set<SymbolID> emptySetEvolutionSymbols;
-	std::deque<State*> evolutionQueue;
+	std::deque<State*> evolutionQueue;	// Unevolved state references from `states`.
 	
 // ---------------------------------- [ Constructors ] -------------------------------------- //
 public:
@@ -256,48 +191,25 @@ public:
 			delete p;
 		for (auto p : connections)
 			delete p;
-		for (auto p : reductionItems)
-			delete p;
 		delete emptySet;
 	}
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 public:
-	void build(const std::vector<ParsedReduction>& v);
-	void clear();
+	void build(const std::vector<std::shared_ptr<Reduction>>& v);
 	
-private:
-	void createEnum(const std::vector<ParsedReduction>& v);
-	void createReductionItems(const std::vector<ParsedReduction>& v);
-	void createEmptySet();
-	
+public:
 	/**
 	 * @brief Evolve state using all missing symbols from the item list.
 	 *        Only non-existing states are accepted.
 	 *        New states are appended to the `evolutionQueue`.
 	 * @param state The evolving state.
 	 */
-	void evolve(const State& state);
+	void evolve(State& state);
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 private:
-	static void getEvolutionSymbols(const std::vector<Item>& v, std::unordered_set<SymbolID>& out_set);
-	
-// ------------------------------------------------------------------------------------------ //
-};
-
-
-
-
-class csr::GraphException : public csr::CSRException {
-// ------------------------------------[ Properties ] --------------------------------------- //
-public:
-	int i = -1;
-	
-// ---------------------------------- [ Constructors ] -------------------------------------- //
-public:
-	using CSRException::CSRException;
-	GraphException(int i, const char* msg) : CSRException(msg), i{i} {}
+	void clear();
 	
 // ------------------------------------------------------------------------------------------ //
 };

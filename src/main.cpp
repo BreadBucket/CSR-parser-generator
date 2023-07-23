@@ -172,19 +172,12 @@ int main(int argc, char const* const* argv){
 	unique_ptr<SymbolEnum> symbolEnum = make_unique<SymbolEnum>(make_shared<Symbol>(-1, "null"));
 	enumerate(doc->reductions, *symbolEnum);
 	
+	
 	vector<shared_ptr<Reduction>> reductions = createReductions<shared_ptr<Reduction>>(doc->reductions, *symbolEnum);
 	
 	
-	// Graph g;
-	// try {
-	// 	g.build(doc->reductions);
-	// } catch (const GraphException& e) {
-	// 	if (e.i >= 0)
-	// 		err(doc->name.c_str(), doc->reductions[e.i].loc, "%s\n", e.what());
-	// 	else
-	// 		err(doc->name.c_str(), "%s\n", e.what());
-	// 	return 0;
-	// }
+	unique_ptr<Graph> g = make_unique<Graph>();
+	g->build(reductions);
 	
 	
 	return 0;

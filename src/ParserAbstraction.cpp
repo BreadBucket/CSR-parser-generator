@@ -33,13 +33,13 @@ Reduction* csr::createReduction(const ParsedReduction& pr, const SymbolEnum& sym
 	r->right.reserve(pr.right.size());
 	
 	for (const ParsedSymbol& s : pr.left){
-		shared_ptr<const Symbol> p = symEnum.share(s.getName());
+		shared_ptr<Symbol> p = symEnum.share(s.getName());
 		r->left.emplace_back(move(p));
 	}
 	
 	for (const ParsedSymbol& s : pr.right){
-		shared_ptr<const Symbol> p = symEnum.share(s.getName());
-		r->left.emplace_back(move(p));
+		shared_ptr<Symbol> p = symEnum.share(s.getName());
+		r->right.emplace_back(move(p));
 	}
 	
 	return r;

@@ -28,7 +28,7 @@ const Symbol* SymbolEnum::get(const std::string& name) const {
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-std::shared_ptr<const Symbol> SymbolEnum::share(SymbolID id) const {
+std::shared_ptr<Symbol> SymbolEnum::share(SymbolID id) const {
 	auto p = map_id.find(id);
 	if (p != map_id.end())
 		return p->second;
@@ -37,7 +37,7 @@ std::shared_ptr<const Symbol> SymbolEnum::share(SymbolID id) const {
 }
 
 
-std::shared_ptr<const Symbol> SymbolEnum::share(const std::string& name) const {
+std::shared_ptr<Symbol> SymbolEnum::share(const std::string& name) const {
 	auto p = map_name.find(name);
 	if (p != map_name.end())
 		return p->second;

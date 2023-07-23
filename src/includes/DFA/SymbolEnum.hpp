@@ -9,7 +9,7 @@ namespace csr {
 class SymbolEnum {
 // ------------------------------------[ Variables ] ---------------------------------------- //
 public:
-	const std::shared_ptr<const Symbol> nullSymbol = nullptr;
+	const std::shared_ptr<Symbol> nullSymbol = nullptr;
 	
 // ------------------------------------[ Variables ] ---------------------------------------- //
 private:
@@ -20,8 +20,8 @@ private:
 // ---------------------------------- [ Constructors ] -------------------------------------- //
 public:
 	SymbolEnum() = default;
-	SymbolEnum(const std::shared_ptr<const Symbol>& null) : nullSymbol{null} {};
-	SymbolEnum(std::shared_ptr<const Symbol>&& null) : nullSymbol{move(null)} {};
+	SymbolEnum(const std::shared_ptr<Symbol>& null) : nullSymbol{null} {};
+	SymbolEnum(std::shared_ptr<Symbol>&& null) : nullSymbol{move(null)} {};
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 public:
@@ -29,8 +29,8 @@ public:
 	const Symbol* get(const std::string& name) const;
 	
 public:
-	std::shared_ptr<const Symbol> share(SymbolID id) const;
-	std::shared_ptr<const Symbol> share(const std::string& name) const;
+	std::shared_ptr<Symbol> share(SymbolID id) const;
+	std::shared_ptr<Symbol> share(const std::string& name) const;
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 public:

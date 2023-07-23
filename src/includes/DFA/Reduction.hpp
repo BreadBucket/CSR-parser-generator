@@ -15,8 +15,8 @@ class csr::Reduction {
 // ------------------------------------[ Properties ] --------------------------------------- //
 public:
 	ReductionID id;
-	std::vector<std::shared_ptr<const Symbol>> left;
-	std::vector<std::shared_ptr<const Symbol>> right;
+	std::vector<std::shared_ptr<Symbol>> left;
+	std::vector<std::shared_ptr<Symbol>> right;
 	
 // ------------------------------------------------------------------------------------------ //
 };
