@@ -14,11 +14,15 @@ extern "C" {
 }
 
 
-#include "util/ANSI.h"
+#include "ANSI.h"
 #include "CLI.hpp"
 #include "Parser.hpp"
+#include "SymbolEnum.hpp"
+#include "ParserAbstraction.hpp"
 #include "Graph.hpp"
 #include "Generator.hpp"
+
+#include "ptr.hpp"
 
 
 using namespace std;
@@ -141,20 +145,34 @@ int main(int argc, char const* const* argv){
 	if (!parseCLI(argc, argv))
 		return 1;
 	
-	Document* doc = parseInput(CLI::inputFilePath.c_str());
-	if (doc == nullptr)
+	unique_ptr<Document> doc = ptr(parseInput(CLI::inputFilePath.c_str()));
+	if (doc == nullptr){
 		return 1;
+	}
 	
 	if (!validateReduction(*doc)){
 		return 1;
 	}
 	
 	
-	
-	for (ParsedReduction& r : doc->reductions){
-		r.resolveSymbolAliases();
+	// Resolve symbol aliases
+	try {
+		for (ParsedReduction& r : doc->reductions)
+			r.resolveSymbolAliases();
+	} catch (const ParserException& e){
+		err(doc->name.c_str(), e.loc, "%s\n", e.what());
+		return 1;
+	} catch (const exception& e){
+		err(doc->name.c_str(), "%s\n", e.what());
+		return 1;
 	}
 	
+	
+	// Enumerate symbols
+	unique_ptr<SymbolEnum> symbolEnum = make_unique<SymbolEnum>(make_shared<Symbol>(-1, "null"));
+	enumerate(doc->reductions, *symbolEnum);
+	
+	vector<shared_ptr<Reduction>> reductions = createReductions<shared_ptr<Reduction>>(doc->reductions, *symbolEnum);
 	
 	
 	// Graph g;
@@ -169,7 +187,6 @@ int main(int argc, char const* const* argv){
 	// }
 	
 	
-	delete doc;
 	return 0;
 }
 

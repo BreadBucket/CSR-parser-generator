@@ -579,11 +579,11 @@ void Parser::parseReduction(ParsedReduction& r){
 		char c = ch();
 		if (c == '(' || c == ')'){
 			
-			if (!sym.name.alias.has_value()){
+			if (sym.name.alias.empty()){
 				parseReduction_constructor(sym.constructor.emplace());
 				parseWhiteSpaceAndComment(trash.clear(), true);
 			} else {
-				throw ParserException(getLoc(), "Unexpected symbol constructor. Symbols with alias cannot have a constructor.");
+				throw ParserException(getLoc(), "Unexpected symbol constructor. Symbols with an alias cannot have a constructor.");
 			}
 			
 		} else if (c == '[' || c == ']'){
@@ -615,44 +615,26 @@ void Parser::parseReduction(ParsedReduction& r){
 
 
 void Parser::parseReduction_symbol(SymbolName& name){
-	name.name.clear();
-	
-	// Index alias
-	if (isdigit(ch())){
-		parseInt(name.alias.emplace());
-		
-		char c = ch();
-		if (c == '[' || c == ']'){
-			throw ParserException(getLoc(), "Unexpected symbol alias. Index alias cannot have another alias.");
-		}
-		
-		return;
-	}
-	
-	else if (!isIdChar(ch())){
+	if (!isIdChar(ch())){
 		throw ParserException(getLoc(), "Unexpected character. Symbol name expected.");
 	}
 	
-	
 	// Parse name
-	if (parseId(name.name) <= 0){
-		throw ParserException(getLoc(), "Missing symbol name.");
-	}
-	
+	name.name.clear();
+	parseId(name.name);
 	
 	// Parse optional alias
 	push();
 	parseWhiteSpaceAndComment(trash.clear(), true);
+	name.alias.clear();;
 	
 	char c = ch();
 	if (c == '[' || c == ']'){
 		pop(1, false);
-		parseReduction_symbol_alias(name.alias.emplace());
+		parseReduction_symbol_alias(name.alias);
 	} else {
-		pop();
-		name.alias.reset();
+		pop(1, true);
 	}
-	
 	
 	return;
 }

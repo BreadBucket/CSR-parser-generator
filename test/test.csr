@@ -20,6 +20,4 @@
 
 
 
-  A[left] A[right] -> B(2,A[3]) A[2]
-
-
+  A[left] A[right] -> B(2,A[3]) A[right]

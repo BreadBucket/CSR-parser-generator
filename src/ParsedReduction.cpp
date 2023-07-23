@@ -11,72 +11,63 @@ using namespace csr;
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-// vector<Symbol_> ParsedReduction::createEnum(const vector<ParsedReduction>& v){
-// 	auto cmp = [](const string& a, const string& b) -> bool {
-// 		if (a.size() < b.size())
-// 			return true;
-// 		else if (a.size() == b.size())
-// 			return a < b;
-// 		else
-// 			return false;
-// 	};
-	
-// 	set<string,decltype(cmp)> symbols;
-// 	vector<Symbol_> symbolEnum;
-	
-// 	// Insert into set
-// 	for (int i = 0 ; i < v.size() ; i++){
-// 		for (int ii = 0 ; ii < v[i].left.size() ; ii++)
-// 			symbols.insert(v[i].left[ii].name);
-// 		for (int ii = 0 ; ii < v[i].right.size() ; ii++)
-// 			symbols.insert(v[i].right[ii].name);
-// 	}
-	
-// 	// Enumerate
-// 	int id = 1;
-// 	for (auto p = symbols.begin() ; p != symbols.end() ; p++){
-// 		Symbol_& s = symbolEnum.emplace_back();
-// 		s.name = move(const_cast<string&>(*p));
-// 		s.id = id++;
-// 	}
-	
-// 	return symbolEnum;
-// }
-
-
-// ----------------------------------- [ Functions ] ---------------------------------------- //
+int ParsedReduction::findAlias(const string& alias) const {
+	for (int i = 0 ; i < left.size() ; i++){
+		if (left[i].name.alias == alias)
+			return i;
+	}
+	return -1;
+}
 
 
 void ParsedReduction::resolveSymbolAliases(){
-	// for (int i = 0 ; i < right.size() ; i++){
-	// 	ParsedSymbol& sym = right[i];
+	
+	// Create implicit aliases
+	for (int i = 0 ; i < left.size() ; i++){
+		if (left[i].name.alias.empty())
+			left[i].name.alias = to_string(i);
 		
+		// Check for duplicate
+		for (int ii = 0 ; ii < i ; ii++){
+			if (left[ii].name.alias.c_str() == left[i].name.alias.c_str())
+				throw ParserException(left[i].name.alias.start, "Duplicate alias.");
+		}
 		
-	// 	// Resolve index alias
-	// 	if (sym.name.name.empty()){
-			
-	// 		if (!sym.name.alias.has_value() || sym.name.alias->empty()){
-	// 			throw ParserException(loc, "Empty reduction symbol.");
-	// 		}
-			
-	// 		SourceString& s = *sym.name.alias;
-			
-	// 		long n = 0;
-	// 		for (int i = 0 ; i < s.size() ; i++){
-				
-	// 		}
-			
-			
-	// 		// // Is an index
-	// 		// if (isdigit(*sym.name.alias->begin())){
-				
-	// 		// }
-			
-			
-			
-	// 	}
+	}
+	
+	for (int i = 0 ; i < right.size() ; i++){
+		SymbolName& sym = right[i].name;
 		
-	// }
+		// Resolve index alias
+		if (sym.name.empty() && sym.alias.empty()){
+			throw ParserException(loc, "Empty reduction symbol.");
+		}
+		
+		// Name could be an alias
+		else if (sym.alias.empty()){
+			int p = findAlias(sym.name);
+			
+			if (p >= 0){
+				sym.alias = move(sym.name);
+				sym.name = left[p].name.name;
+			}
+			
+		}
+		
+		// Find alias
+		else {
+			int p = findAlias(sym.alias);
+			
+			if (p < 0){
+				throw ParserException(sym.alias.start, "Missing alias reference.");
+			} else if (sym.name != left[p].name.name){
+				throw ParserException(sym.name.start, "Aliased symbol name missmatch.");
+			}
+			
+		}
+		
+	}
+	
 }
 
 

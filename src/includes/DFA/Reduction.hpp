@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <memory>
 
 #include "Symbol.hpp"
 
@@ -14,8 +15,8 @@ class csr::Reduction {
 // ------------------------------------[ Properties ] --------------------------------------- //
 public:
 	ReductionID id;
-	std::vector<SymbolID> left;
-	std::vector<SymbolID> right;
+	std::vector<std::shared_ptr<const Symbol>> left;
+	std::vector<std::shared_ptr<const Symbol>> right;
 	
 // ------------------------------------------------------------------------------------------ //
 };

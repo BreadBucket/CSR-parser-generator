@@ -36,7 +36,7 @@ clean:
 .PHONY: compiler
 compiler:
 	rm "${compilerPath}"
-	make "${compilerPath}"
+	@make "${compilerPath}"
 	@echo "Done."
 
 ${compilerPath}:
