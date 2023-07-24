@@ -6,7 +6,7 @@
 
 
 namespace csr {
-class GraphWriter {
+class GraphSerializer {
 // ---------------------------------- [ Structures ] ---------------------------------------- //
 public:
 	enum class Format {
@@ -22,7 +22,8 @@ public:
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 public:
-	void write(const Graph& graph, std::ostream& stream);
+	void serialize(const Graph& graph, std::ostream& stream);
+	void serialize_txt(const Graph& graph, std::ostream& stream);
 
 public:
 	static Format getFormat(const std::string& filePath);

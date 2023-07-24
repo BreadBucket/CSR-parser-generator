@@ -20,7 +20,7 @@ extern "C" {
 #include "SymbolEnum.hpp"
 #include "ParserAbstraction.hpp"
 #include "Graph.hpp"
-#include "GraphWriter.hpp"
+#include "GraphSerializer.hpp"
 #include "Generator.hpp"
 
 #include "ptr.hpp"
@@ -33,22 +33,22 @@ using namespace csr;
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-void errLoc(const char* file, const Location& loc){
-	fprintf(stderr, "%s:%d:%d", file, loc.row+1, loc.col+1);
+void errLoc(const string& file, const Location& loc){
+	fprintf(stderr, "%s:%d:%d", file.c_str(), loc.row+1, loc.col+1);
 }
 
 
 template<typename ...T>
-void err(const char* file, const char* format, T... args){
-	fprintf(stderr, ANSI_BOLD "%s: " ANSI_RED "error" ANSI_RESET ": ", file);
+void err(const string& file, const char* format, T... args){
+	fprintf(stderr, ANSI_BOLD "%s: " ANSI_RED "error" ANSI_RESET ": ", file.c_str());
 	fprintf(stderr, format, args...);
 }
 
 
 template<typename ...T>
-void err(const char* file, const Location& loc, const char* format, T... args){
+void err(const string& file, const Location& loc, const char* format, T... args){
 	if (loc.valid()){
-		fprintf(stderr, ANSI_BOLD "%s:%d:%d: " ANSI_RED "error" ANSI_RESET ": ", file, loc.row+1, loc.col+1);
+		fprintf(stderr, ANSI_BOLD "%s:%d:%d: " ANSI_RED "error" ANSI_RESET ": ", file.c_str(), loc.row+1, loc.col+1);
 		fprintf(stderr, format, args...);
 	} else {
 		err(file, format, args...);
@@ -64,7 +64,7 @@ bool parseCLI(int argc, char const* const* argv){
 		CLI::parse(argc, (char* const*)argv);
 		return true;
 	} catch (const exception& e) {
-		fprintf(stderr, ANSI_RED "%s" ANSI_RESET ": %s\n", argv[0], e.what());
+		err(argv[0], e.what());
 		return false;
 	}
 }
@@ -74,7 +74,7 @@ Document* parseInput(const string& inputPath){
 	// Get input stream
 	unique_ptr<ifstream> inf;
 	istream* in;
-	string docName = CLI::programName.c_str();
+	const string* docName = &CLI::programName;
 	
 	
 	// Open stdin
@@ -82,7 +82,7 @@ Document* parseInput(const string& inputPath){
 		if (!isatty(fileno(stdin))){
 			in = &cin;
 		} else {
-			err(CLI::programName.c_str(), "No input file or pipe specified.\n");
+			err(CLI::programName, "No input file or pipe specified.\n");
 			return nullptr;
 		}
 	}
@@ -92,12 +92,12 @@ Document* parseInput(const string& inputPath){
 		inf = make_unique<ifstream>(inputPath);
 		
 		if (inf->fail()){
-			err(CLI::programName.c_str(), "Failed to open input file '%s'.\n", inputPath);
+			err(CLI::programName, "Failed to open input file '%s'.\n", inputPath);
 			return nullptr;
 		}
 		
 		in = inf.get();
-		docName = inputPath;
+		docName = &inputPath;
 	}
 	
 	// Parse
@@ -108,15 +108,15 @@ Document* parseInput(const string& inputPath){
 		parser->tabSize = CLI::tabSize;
 		doc = parser->parse(*in);
 	} catch (const ParserException& e) {
-		err(docName.c_str(), e.loc, "%s\n", e.what());
+		err(*docName, e.loc, "%s\n", e.what());
 		return nullptr;
 	} catch (const exception& e) {
-		err(CLI::programName.c_str(), "%s\n", e.what());
+		err(CLI::programName, "%s\n", e.what());
 		return nullptr;
 	}
 	
 	if (doc != nullptr){
-		doc->name = docName;
+		doc->name = *docName;
 	}
 	
 	return doc;
@@ -126,77 +126,71 @@ Document* parseInput(const string& inputPath){
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-bool handleGraphOption(const Graph& graph){
+bool handleGraphSerializationOption(const Graph& graph){
 	const string& path = CLI::graph_outputFilePath;
 	const string& format = CLI::graph_outputFormat;
 	
 	int std = -1;
-	GraphWriter gw = {};
-	gw.unicode = CLI::unicode;
-	gw.ansi = CLI::ansi;
+	GraphSerializer gs = {};
+	gs.unicode = CLI::unicode;
+	gs.ansi = CLI::ansi;
+	
+	ostream* stream = nullptr;
+	ofstream fileStream;
+	
 	
 	// Check for std stream
-	if (path.empty())
+	if (path.empty()){
 		return true;
-	else if (path == "0")
-		std = 0;
-	else if (path == "1")
+	} else if (path == "0"){
+		err(CLI::programName, "Invalid stream specifier: '%d'.\n", std);
+		return false;
+	} else if (path == "1"){
 		std = 1;
-	else if (path == "2")
+		stream = &cout;
+	} else if (path == "2"){
 		std = 2;
+		stream = &cerr;
+	}
 	
 	
 	// Get graph format
 	if (!CLI::graph_outputFormat.empty()){
 		if (CLI::graph_outputFormat.starts_with('.'))
-			gw.format = GraphWriter::getFormat(CLI::graph_outputFormat);
+			gs.format = GraphSerializer::getFormat(CLI::graph_outputFormat);
 		else
-			gw.format = GraphWriter::getFormat("." + CLI::graph_outputFormat);
+			gs.format = GraphSerializer::getFormat("." + CLI::graph_outputFormat);
 	} else {
-		if (std < 0)
-			gw.format = GraphWriter::getFormat(CLI::graph_outputFilePath);
+		if (stream == nullptr)
+			gs.format = GraphSerializer::getFormat(CLI::graph_outputFilePath);
 		else
-			gw.format = GraphWriter::Format::TXT;
+			gs.format = GraphSerializer::Format::TXT;
 	}
 	
 	// Verify format
-	if (gw.format == GraphWriter::Format::UNKNOWN){
+	if (gs.format == GraphSerializer::Format::UNKNOWN){
 		if (CLI::graph_outputFormat.empty())
-			err(CLI::programName.c_str(), "Unknown graph format.\n");
+			err(CLI::programName, "Unknown graph format.\n");
 		else
-			err(CLI::programName.c_str(), "Unknown graph format: \"%s\".", CLI::graph_outputFormat.c_str());
+			err(CLI::programName, "Unknown graph format: \"%s\".", CLI::graph_outputFormat.c_str());
 		return false;
 	}
 	
 	
-	ostream* stream;
-	ofstream file;
-	
-	// Std stream
-	if (std >= 0){
-		if (std == 1)
-			stream = &cout;
-		else if (std == 2)
-			stream = &cerr;
-		else {
-			err(CLI::programName.c_str(), "Invalid stream specifier: '%d'.\n", std);
-		}
-	}
-	
 	// Open file (auto-closed)
-	else {
-		file.open(CLI::graph_outputFilePath);
-		stream = &file;
+	if (stream == nullptr){
+		fileStream.open(CLI::graph_outputFilePath);
+		stream = &fileStream;
 		
-		if (file.fail()){
-			err(CLI::programName.c_str(), "Failed to create graph output file '%s'.\n", CLI::graph_outputFilePath.c_str());
+		if (fileStream.fail()){
+			err(CLI::programName, "Failed to create graph output file '%s'.\n", CLI::graph_outputFilePath.c_str());
 			return false;
 		}
 		
 	}
 	
 	
-	gw.write(graph, *stream);
+	gs.serialize(graph, *stream);
 	return true;
 }
 
@@ -207,14 +201,14 @@ bool handleGraphOption(const Graph& graph){
 bool validateReduction(const Document& doc){
 	int i;
 	if (CLI::verifyReduction && !ParsedReduction::validateSize(doc.reductions, &i)){
-		err(doc.name.c_str(), doc.reductions[i].loc, "Reduction produces more symbols than it consumes.\n");
+		err(doc.name, doc.reductions[i].loc, "Reduction produces more symbols than it consumes.\n");
 		return false;
 	}
 	
 	int a, b;
 	if (!ParsedReduction::distinct(doc.reductions, &a, &b)){
-		err(doc.name.c_str(), doc.reductions[b].loc, "Duplicate left side of reduction. Previously declared at " ANSI_BOLD);
-		errLoc(doc.name.c_str(), doc.reductions[a].loc);
+		err(doc.name, doc.reductions[b].loc, "Duplicate left side of reduction. Previously declared at " ANSI_BOLD);
+		errLoc(doc.name, doc.reductions[a].loc);
 		fprintf(stderr, ANSI_RESET ".\n");
 		return false;
 	}
@@ -248,10 +242,10 @@ int main(int argc, char const* const* argv){
 		for (ParsedReduction& r : doc->reductions)
 			r.resolveSymbolAliases();
 	} catch (const ParserException& e){
-		err(doc->name.c_str(), e.loc, "%s\n", e.what());
+		err(doc->name, e.loc, "%s\n", e.what());
 		return 1;
 	} catch (const exception& e){
-		err(doc->name.c_str(), "%s\n", e.what());
+		err(doc->name, "%s\n", e.what());
 		return 1;
 	}
 	
@@ -260,17 +254,17 @@ int main(int argc, char const* const* argv){
 	unique_ptr<SymbolEnum> symbolEnum = make_unique<SymbolEnum>(make_shared<Symbol>(-1, "null"));
 	enumerate(doc->reductions, *symbolEnum);
 	
+	// Create reduction objects
 	vector<shared_ptr<Reduction>> reductions = createReductions<shared_ptr<Reduction>>(doc->reductions, *symbolEnum);
 	
-	unique_ptr<Graph> g = make_unique<Graph>();
-	g->build(reductions);
+	// Build graph
+	unique_ptr<Graph> graph = make_unique<Graph>();
+	graph->build(reductions);
 	
-	if (!handleGraphOption(*g)){
+	// Serialize graph
+	if (!handleGraphSerializationOption(*graph)){
 		return 1;
 	}
-	
-	
-	
 	
 	
 	return 0;
