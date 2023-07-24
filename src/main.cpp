@@ -20,6 +20,7 @@ extern "C" {
 #include "SymbolEnum.hpp"
 #include "ParserAbstraction.hpp"
 #include "Graph.hpp"
+#include "GraphWriter.hpp"
 #include "Generator.hpp"
 
 #include "ptr.hpp"
@@ -69,16 +70,25 @@ bool parseCLI(int argc, char const* const* argv){
 }
 
 
-Document* parseInput(const char* inputPath = nullptr){
+Document* parseInput(const string& inputPath){
 	// Get input stream
 	unique_ptr<ifstream> inf;
 	istream* in;
-	const char* docName = CLI::programName.c_str();
+	string docName = CLI::programName.c_str();
 	
-	// Open input stream (file is auto-closed)
-	if (!isatty(fileno(stdin))){
-		in = &cin;
-	} else {
+	
+	// Open stdin
+	if (inputPath.size() == 0){
+		if (!isatty(fileno(stdin))){
+			in = &cin;
+		} else {
+			err(CLI::programName.c_str(), "No input file or pipe specified.\n");
+			return nullptr;
+		}
+	}
+	
+	// Open file (file is auto-closed)
+	else {
 		inf = make_unique<ifstream>(inputPath);
 		
 		if (inf->fail()){
@@ -98,7 +108,7 @@ Document* parseInput(const char* inputPath = nullptr){
 		parser->tabSize = CLI::tabSize;
 		doc = parser->parse(*in);
 	} catch (const ParserException& e) {
-		err(docName, e.loc, "%s\n", e.what());
+		err(docName.c_str(), e.loc, "%s\n", e.what());
 		return nullptr;
 	} catch (const exception& e) {
 		err(CLI::programName.c_str(), "%s\n", e.what());
@@ -110,6 +120,84 @@ Document* parseInput(const char* inputPath = nullptr){
 	}
 	
 	return doc;
+}
+
+
+// ----------------------------------- [ Functions ] ---------------------------------------- //
+
+
+bool handleGraphOption(const Graph& graph){
+	const string& path = CLI::graph_outputFilePath;
+	const string& format = CLI::graph_outputFormat;
+	
+	int std = -1;
+	GraphWriter gw = {};
+	gw.unicode = CLI::unicode;
+	gw.ansi = CLI::ansi;
+	
+	// Check for std stream
+	if (path.empty())
+		return true;
+	else if (path == "0")
+		std = 0;
+	else if (path == "1")
+		std = 1;
+	else if (path == "2")
+		std = 2;
+	
+	
+	// Get graph format
+	if (!CLI::graph_outputFormat.empty()){
+		if (CLI::graph_outputFormat.starts_with('.'))
+			gw.format = GraphWriter::getFormat(CLI::graph_outputFormat);
+		else
+			gw.format = GraphWriter::getFormat("." + CLI::graph_outputFormat);
+	} else {
+		if (std < 0)
+			gw.format = GraphWriter::getFormat(CLI::graph_outputFilePath);
+		else
+			gw.format = GraphWriter::Format::TXT;
+	}
+	
+	// Verify format
+	if (gw.format == GraphWriter::Format::UNKNOWN){
+		if (CLI::graph_outputFormat.empty())
+			err(CLI::programName.c_str(), "Unknown graph format.\n");
+		else
+			err(CLI::programName.c_str(), "Unknown graph format: \"%s\".", CLI::graph_outputFormat.c_str());
+		return false;
+	}
+	
+	
+	ostream* stream;
+	ofstream file;
+	
+	// Std stream
+	if (std >= 0){
+		if (std == 1)
+			stream = &cout;
+		else if (std == 2)
+			stream = &cerr;
+		else {
+			err(CLI::programName.c_str(), "Invalid stream specifier: '%d'.\n", std);
+		}
+	}
+	
+	// Open file (auto-closed)
+	else {
+		file.open(CLI::graph_outputFilePath);
+		stream = &file;
+		
+		if (file.fail()){
+			err(CLI::programName.c_str(), "Failed to create graph output file '%s'.\n", CLI::graph_outputFilePath.c_str());
+			return false;
+		}
+		
+	}
+	
+	
+	gw.write(graph, *stream);
+	return true;
 }
 
 
@@ -145,7 +233,7 @@ int main(int argc, char const* const* argv){
 	if (!parseCLI(argc, argv))
 		return 1;
 	
-	unique_ptr<Document> doc = ptr(parseInput(CLI::inputFilePath.c_str()));
+	unique_ptr<Document> doc = ptr(parseInput(CLI::inputFilePath));
 	if (doc == nullptr){
 		return 1;
 	}
@@ -172,12 +260,17 @@ int main(int argc, char const* const* argv){
 	unique_ptr<SymbolEnum> symbolEnum = make_unique<SymbolEnum>(make_shared<Symbol>(-1, "null"));
 	enumerate(doc->reductions, *symbolEnum);
 	
-	
 	vector<shared_ptr<Reduction>> reductions = createReductions<shared_ptr<Reduction>>(doc->reductions, *symbolEnum);
-	
 	
 	unique_ptr<Graph> g = make_unique<Graph>();
 	g->build(reductions);
+	
+	if (!handleGraphOption(*g)){
+		return 1;
+	}
+	
+	
+	
 	
 	
 	return 0;

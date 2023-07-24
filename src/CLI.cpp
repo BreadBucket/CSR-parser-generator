@@ -5,12 +5,9 @@ extern "C" {
 }
 
 #include <cstdint>
-#include <cstring>
 #include <string>
 #include <stdexcept>
 #include <iostream>
-
-#include "util/utils.hpp"
 
 
 using namespace std;
@@ -25,6 +22,12 @@ namespace CLI {
 	string programName = "program";
 	string inputFilePath;
 	string outputFilePath;
+	
+	string graph_outputFilePath;
+	string graph_outputFormat;
+	
+	bool unicode = true;
+	bool ansi = true;
 	int tabSize = 4;
 	bool verifyReduction = true;
 }
@@ -37,19 +40,27 @@ enum OptionID : int {
 	NONE = INT32_MIN,
 	IN,
 	OUT,
+	GRAPH_OUTPATH,
+	GRAPH_FORMAT,
+	UNICODE,
+	ASCII,
+	ANSI,
 	TAB_SIZE,
 	VERIFY_REDUCTION
 } selected_opt;
 
 
-const char* const short_options = "i:o:t:r";
+const char* const short_options = "i:o:t:ra";
 
 
 const struct option long_options[] = {
-	{"input",     required_argument, (int*)&selected_opt, OptionID::IN},
-	{"output",    required_argument, (int*)&selected_opt, OptionID::OUT},
-	{"tabSize",   required_argument, (int*)&selected_opt, OptionID::TAB_SIZE},
-	{"skipCheck", required_argument, (int*)&selected_opt, OptionID::VERIFY_REDUCTION},
+	{"input",       required_argument, (int*)&selected_opt, OptionID::IN               },
+	{"output",      required_argument, (int*)&selected_opt, OptionID::OUT              },
+	{"graph",       required_argument, (int*)&selected_opt, OptionID::GRAPH_OUTPATH    },
+	{"graphFormat", required_argument, (int*)&selected_opt, OptionID::GRAPH_FORMAT     },
+	{"ascii",       required_argument, (int*)&selected_opt, OptionID::ASCII            },
+	{"tabSize",     required_argument, (int*)&selected_opt, OptionID::TAB_SIZE         },
+	{"skipCheck",   required_argument, (int*)&selected_opt, OptionID::VERIFY_REDUCTION },
 	{0, 0, 0, 0}
 };
 
@@ -67,6 +78,8 @@ OptionID shortOptionToLong(char c){
 			return OptionID::TAB_SIZE;
 		case 'r':
 			return OptionID::VERIFY_REDUCTION;
+		case 'a':
+			return OptionID::ASCII;
 		default:
 			return OptionID::NONE;
 	}
@@ -103,7 +116,6 @@ void CLI::parse(int argc, char const* const* argv){
 	opterr = 0;
 	optind = 1;
 	programName = v[0];
-	bool inputSpecified = false;
 	
 	while (true){
 		selected_opt = OptionID::NONE;
@@ -127,18 +139,45 @@ void CLI::parse(int argc, char const* const* argv){
 		switch (selected_opt){
 			
 			case OptionID::IN:
-				inputSpecified = true;
-				inputFilePath = optarg;
+				if (inputFilePath.empty())
+					inputFilePath = optarg;
+				else
+					throw runtime_error(string("Input file already specified, additional argument forbidden: '").append(v[optind-1]).append("'."));
 				break;
 			
 			case OptionID::OUT:
-				outputFilePath = optarg;
+				if (outputFilePath.empty())
+					outputFilePath = optarg;
+				else
+					throw runtime_error(string("Output file already specified, additional argument forbidden: '").append(v[optind-1]).append("'."));
+				break;
+			
+			case OptionID::GRAPH_OUTPATH:
+				if (graph_outputFilePath.empty())
+					graph_outputFilePath = optarg;
+				else
+					throw runtime_error(string("Graph output file already specified, additional argument forbidden: '").append(v[optind-1]).append("'."));
+				break;
+			
+			case OptionID::GRAPH_FORMAT:
+				if (graph_outputFormat.empty())
+					graph_outputFormat = optarg;
+				else
+					throw runtime_error(string("Graph output format file already specified, additional argument forbidden: '").append(v[optind-1]).append("'."));
 				break;
 			
 			case OptionID::TAB_SIZE:
 				tabSize = atoi(optarg);
 				if (tabSize < 0)
 					throw runtime_error("Option 'tabSize' must be a positive integer.");
+				break;
+			
+			case OptionID::ASCII:
+				unicode = false;
+				break;
+			
+			case OptionID::UNICODE:
+				unicode = true;
 				break;
 			
 			case OptionID::VERIFY_REDUCTION:
@@ -153,9 +192,8 @@ void CLI::parse(int argc, char const* const* argv){
 	// Non-option arguments
 	while (optind < argc){
 		
-		if (!inputSpecified){
+		if (inputFilePath.empty()){
 			inputFilePath = v[optind];
-			inputSpecified = true;
 		} else {
 			throw runtime_error(string("Input file already specified, additional argument forbidden: '").append(v[optind]).append("'."));
 		}
@@ -176,6 +214,9 @@ void CLI::clear(){
 	programName = "program";
 	inputFilePath.clear();
 	outputFilePath.clear();
+	graph_outputFilePath.clear();
+	graph_outputFormat.clear();
+	unicode = true;
 	tabSize = 4;
 	verifyReduction = true;
 }

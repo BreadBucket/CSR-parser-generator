@@ -92,6 +92,7 @@ public:
 	StateID id = StateID(-1);
 	std::vector<Item> items;
 	std::vector<Item> const* emptyItems = nullptr;
+	std::vector<Connection*> connections;
 	
 // ---------------------------------- [ Constructors ] -------------------------------------- //
 public:
@@ -155,6 +156,9 @@ public:
 public:
 	Connection() = default;
 	
+	Connection(State* from, Symbol* symbol) :
+		symbol{symbol}, from{from} {}
+	
 	Connection(State* from, Symbol* symbol, State* to) :
 		symbol{symbol}, from{from}, to{to} {}
 	
@@ -169,16 +173,14 @@ public:
 
 class csr::Graph {
 // ------------------------------------[ Variables ] ---------------------------------------- //
-private:
-	std::vector<std::shared_ptr<Reduction>> reductions;
-	
-private:
+public:
 	std::vector<State*> states;
 	std::vector<Connection*> connections;
 	std::vector<Item>* emptySet;
 	
 private:
-	std::deque<State*> evolutionQueue;	// Unevolved state references from `states`.
+	std::vector<std::shared_ptr<Reduction>> reductions;	// Cache of reductions to keep pointers alive.
+	std::deque<State*> evolutionQueue;					// Unevolved state references from `states`.
 	
 // ---------------------------------- [ Constructors ] -------------------------------------- //
 public:
@@ -192,6 +194,20 @@ public:
 		for (auto p : connections)
 			delete p;
 		delete emptySet;
+	}
+	
+// ----------------------------------- [ Functions ] ---------------------------------------- //
+public:
+	inline int reductionCount() const {
+		return reductions.size();
+	}
+	
+	inline const Reduction* getReduction(int i) const {
+		return reductions[i].get();
+	}
+	
+	inline std::shared_ptr<Reduction> shareReduction(int i) const {
+		return reductions[i];
 	}
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //

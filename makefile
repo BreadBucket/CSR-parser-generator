@@ -1,7 +1,7 @@
 SHELL := /bin/bash
 
 src = src/
-inc = -I src/includes/ -I src/includes/util/ -I src/includes/Parser/ -I src/includes/DFA/
+inc = -I src/includes/ -I src/includes/util/ -I src/includes/Parser/ -I src/includes/DFA/ -I src/includes/Generator/
 compilerPath = obj/compiler.mk
 
 gcc_options = -std=c++2a -g
@@ -18,7 +18,7 @@ all: obj ${compilerPath} obj/program
 
 .PHONY: run
 run: all
-	@./obj/program -i "test/test.csr" --tab=1
+	@./obj/program -i "test/test.csr" --graph="obj/graph.txt" --tab=1
 
 
 obj:

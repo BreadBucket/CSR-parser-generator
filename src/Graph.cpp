@@ -12,9 +12,10 @@ using namespace csr;
 
 // DEBUG
 #include "ANSI.h"
-#define STR(obj)	str(obj)
-#define CSTR(obj)	str(obj).c_str()
-#define PRINTF(...) printf(__VA_ARGS__)
+// #define STR(obj)	str(obj)
+// #define CSTR(obj)	str(obj).c_str()
+// #define PRINTF(...) printf(__VA_ARGS__)
+#define PRINTF(...)
 
 
 // DEBUG
@@ -332,9 +333,15 @@ void Graph::evolve(State& base){
 			PRINTF(ANSI_RED "%s\n" ANSI_RESET, CSTR(*tempState));
 		}
 		
+		
+		// Create connection
+		Connection* c = new Connection(&base, symbol, existingState);
+		connections.push_back(c);
+		base.connections.push_back(c);
+		
 		// Connect already existing state
 		if (existingState != nullptr){
-			connections.emplace_back(new Connection(&base, symbol, existingState));
+			c->to = existingState;
 			continue;
 		}
 		
@@ -342,7 +349,7 @@ void Graph::evolve(State& base){
 		const Item* ri = tempState->getReductionItem();
 		if (ri != nullptr){
 			PRINTF(ANSI_PURPLE "%s\n" ANSI_RESET, CSTR(*tempState));
-			connections.emplace_back(new Connection(&base, symbol, ri->reduction));
+			c->reductionItem = ri->reduction;
 			continue;
 		}
 		
@@ -355,9 +362,8 @@ void Graph::evolve(State& base){
 			states.push_back(tempState);
 			evolutionQueue.push_back(tempState);
 			
-			// Form connection
-			Connection* c = new Connection(&base, symbol, tempState);
-			connections.emplace_back(c);
+			// Finalize connection
+			c->to = tempState;
 			
 			tempState = nullptr;
 		}
