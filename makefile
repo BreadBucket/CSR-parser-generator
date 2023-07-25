@@ -24,7 +24,7 @@ run: all
 
 .PHONY: runGen
 runGen:
-	@make -C test/generated run
+	@make -C test/progTest run
 
 
 

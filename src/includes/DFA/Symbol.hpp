@@ -13,6 +13,7 @@ class csr::Symbol {
 public:
 	SymbolID id;
 	std::string name;
+	std::string cname;	// Source code friendly name.
 	
 // ---------------------------------- [ Constructors ] -------------------------------------- //
 public:

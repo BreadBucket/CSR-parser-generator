@@ -13,7 +13,6 @@ extern "C" {
 	#include <unistd.h>
 }
 
-
 #include "ANSI.h"
 #include "CLI.hpp"
 #include "Parser.hpp"
@@ -255,6 +254,7 @@ int main(int argc, char const* const* argv){
 	enumerate(doc->reductions, *symbolEnum);
 	
 	// Create reduction objects
+	vector<shared_ptr<Symbol>> symbols = symbolEnum->getSymbols();
 	vector<shared_ptr<Reduction>> reductions = createReductions<shared_ptr<Reduction>>(doc->reductions, *symbolEnum);
 	
 	// Build graph
@@ -265,6 +265,19 @@ int main(int argc, char const* const* argv){
 	if (!handleGraphSerializationOption(*graph)){
 		return 1;
 	}
+	
+	
+	
+	
+	
+	
+	// Generate source code
+	unique_ptr<Generator> generator = make_unique<Generator>();
+	generator->generate(*graph, symbols);
+	// generator->generateTokenEnum(symbols);
+	// generator->generateSwitch(*graph);
+	
+	
 	
 	
 	return 0;

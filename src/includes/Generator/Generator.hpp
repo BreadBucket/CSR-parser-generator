@@ -2,9 +2,11 @@
 
 #include <vector>
 #include <iostream>
-#include <fstream>
+#include <ostream>
+#include <memory>
 
-#include "ParsedReduction.hpp"
+#include "Symbol.hpp"
+#include "Graph.hpp"
 #include "Document.hpp"
 
 
@@ -17,20 +19,18 @@ namespace csr {
 
 class csr::Generator {
 // ------------------------------------[ Properties ] --------------------------------------- //
-public:
-	const std::vector<SourceString>* code;
-	const std::vector<ParsedReduction>* reductions;
-	
-	std::ostream* cFile;
-	std::ostream* headerFile;
-	
-// ------------------------------------[ Variables ] ---------------------------------------- //
 private:
-	std::ofstream nullStream;
+	// const Graph* graph;
+	// const std::vector<std::shared_ptr<Symbol>>* symbols;
+	// std::ostream* out;
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 public:
-	void generate();
+	void generate(const Graph& graph, const std::vector<std::shared_ptr<Symbol>>& symbols);
+	
+// ----------------------------------- [ Functions ] ---------------------------------------- //
+public:
+	static void generateEnumName(const std::string& src, std::string& out);
 	
 // ------------------------------------------------------------------------------------------ //
 };

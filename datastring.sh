@@ -22,9 +22,10 @@ printf "" >"$2"
 printf "#define DATA_${name}\n" >>"$2"
 printf "extern const char ${name}[] =\n" >>"$2"
 
-cat "$1" |
+s="$(cat "$1" |
 	sed -e 's/"/\\"/g'	|			# Escape quotes
-	sed -e 's/^/"/g'	|			# Add quotes to start of line
-	sed -e 's/$/\\n"/g'	>>"$2"		# Add quotes and \n to end of line
-	
-printf ";\n" >>"$2"
+	sed -e 's/^/"/g'	|			# Add quotes
+	sed -e 's/$/\\n"/g' )"			# Add quotes and \n to end of line
+
+cat >>"$2" <<<"${s%\\n\"}\""		# Remove last newline
+echo ";" >>"$2"
