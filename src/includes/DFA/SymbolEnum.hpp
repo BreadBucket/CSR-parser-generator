@@ -1,4 +1,5 @@
 #pragma once
+#include <vector>
 #include <unordered_map>
 #include <memory>
 
@@ -9,7 +10,7 @@ namespace csr {
 class SymbolEnum {
 // ------------------------------------[ Variables ] ---------------------------------------- //
 public:
-	const std::shared_ptr<Symbol> nullSymbol = nullptr;
+	const std::shared_ptr<Symbol> nullSymbol = nullptr;	// Symbol returned by failed operations.
 	
 // ------------------------------------[ Variables ] ---------------------------------------- //
 private:
@@ -25,6 +26,12 @@ public:
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 public:
+	inline int size() const {
+		return map_id.size();
+	}
+	
+// ----------------------------------- [ Functions ] ---------------------------------------- //
+public:
 	const Symbol* get(SymbolID id) const;
 	const Symbol* get(const std::string& name) const;
 	
@@ -32,9 +39,16 @@ public:
 	std::shared_ptr<Symbol> share(SymbolID id) const;
 	std::shared_ptr<Symbol> share(const std::string& name) const;
 	
+public:
+	Symbol* put(const std::string& name);
+	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 public:
-	SymbolID put(const std::string& name);
+	/**
+	 * @brief Convert hashmap into a list of symbols ordered by their ID.
+	 * @return Vector of shared symbol pointers.
+	 */
+	std::vector<std::shared_ptr<Symbol>> getSymbols();
 	
 // ------------------------------------------------------------------------------------------ //
 };

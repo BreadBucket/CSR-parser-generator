@@ -1,4 +1,5 @@
 #include "SymbolEnum.hpp"
+#include <algorithm>
 
 using namespace std;
 using namespace csr;
@@ -49,7 +50,7 @@ std::shared_ptr<Symbol> SymbolEnum::share(const std::string& name) const {
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-SymbolID SymbolEnum::put(const string& name){
+Symbol* SymbolEnum::put(const string& name){
 	auto p = map_name.try_emplace(name);
 	shared_ptr<Symbol>& sym = std::get<0>(p)->second;
 	
@@ -60,7 +61,26 @@ SymbolID SymbolEnum::put(const string& name){
 		map_id[sym->id] = sym;
 	}
 	
-	return sym->id;
+	return sym.get();
+}
+
+
+// ----------------------------------- [ Functions ] ---------------------------------------- //
+
+
+vector<shared_ptr<Symbol>> SymbolEnum::getSymbols(){
+	vector<shared_ptr<Symbol>> v = {};
+	v.reserve(size());
+	
+	for (auto& p : map_id){
+		v.emplace_back(p.second);
+	}
+	
+	sort(v.begin(), v.end(), [](const shared_ptr<Symbol>& a, const shared_ptr<Symbol>& b){
+		return a->id < b->id;
+	});
+	
+	return v;
 }
 
 

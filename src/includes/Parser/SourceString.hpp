@@ -74,7 +74,7 @@ public:
 		return *this;
 	}
 	
-	inline bool sourceable(){
+	inline bool valid(){
 		return start.i >= 0;
 	}
 	
