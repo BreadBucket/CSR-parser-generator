@@ -175,7 +175,7 @@ Document* Parser::parse(istream& in){
 	// Reset
 	reset();
 	this->in = &in;
-	this->doc = new Document();
+	this->doc = make_unique<Document>();
 	
 	doc->reductions.reserve(32);
 	doc->code.reserve(32);
@@ -235,9 +235,7 @@ Document* Parser::parse(istream& in){
 	doc->code.pop_back();
 	
 	// Return and release document object
-	Document* _doc = doc;
-	doc = nullptr;
-	return _doc;
+	return doc.release();
 }
 
 
@@ -1181,12 +1179,7 @@ void Parser::reset(){
 	
 	trash.clear();
 	frames.clear();
-	
-	if (doc != nullptr){
-		delete doc;
-		doc = nullptr;
-	}
-	
+	doc.reset();
 }
 
 

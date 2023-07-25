@@ -1,5 +1,6 @@
 #pragma once
 #include <vector>
+#include <memory>
 #include <istream>
 #include <stdexcept>
 
@@ -24,7 +25,7 @@ public:
 private:
 	SourceString trash;
 	std::vector<Location> frames;
-	Document* doc;	// Temporary object for storing results
+	std::unique_ptr<Document> doc;	// Temporary object for storing results
 	
 	
 private:
@@ -49,7 +50,6 @@ public:
 	Parser(Parser&&) = delete;
 	
 	~Parser(){
-		delete doc;
 		delete buff;
 	}
 	
