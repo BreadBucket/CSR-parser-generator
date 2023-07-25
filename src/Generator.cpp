@@ -110,31 +110,22 @@ void writeStateSwitch(ostream& out, const Tab& tab, const vector<State*> states)
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-// void Generator::generateTokenEnum(const vector<shared_ptr<Symbol>>& symbols){
-// 	shared_ptr<ofstream> enumFile = make_unique<ofstream>("test/generated/TokenEnum.h");
-// 	ostream& out = *enumFile;
+void writeTokenEnum(ostream& out, const Tab& tab, const vector<shared_ptr<Symbol>>& symbols){
+	Tab tab1 = tab + 1;
+	out << tab << "typedef enum {\n";
 	
-// 	out << "#pragma once\n";
-// 	out << "\n";
-// 	out << "\n";
-// 	out << "typedef enum {\n";
+	for (int i = 0 ; i < symbols.size() ; i++){
+		if (symbols[i]->cname.empty())
+			Generator::generateEnumName(symbols[i]->name, symbols[i]->cname);
+		
+		out << tab1 << symbols[i]->cname;
+		if (i+1 < symbols.size())
+			out << ",";
+		out << "\n";
+	}
 	
-// 	for (int i = 0 ; i < symbols.size() ; i++){
-// 		out << "\t";
-		
-// 		// Create and write name
-// 		if (symbols[i]->cname.empty())
-// 			generateEnumName(symbols[i]->name, symbols[i]->cname);
-		
-// 		out << symbols[i]->cname;
-		
-// 		if (i+1 < symbols.size())
-// 			out << ",";
-// 		out << "\n";
-// 	}
-	
-// 	out << "} TokenID;\n";
-// }
+	out << tab << "} TokenID;\n";
+}
 
 
 // ----------------------------------- [ Functions ] ---------------------------------------- //
@@ -190,12 +181,15 @@ void Generator::generate(const Graph& graph, const std::vector<std::shared_ptr<S
 	Tab tab;
 	
 	
-	writeStateSwitch(cout, {' ', 2}, graph.states);
+	// writeStateSwitch(cout, {' ', 2}, graph.states);
+	writeTokenEnum(cout, {' ', 2}, symbols);
 	
 	
 	// while (pipeUntilMacro(p, out, macro, &tab)){
-	// 	if (macro == "switch")
-	// 		writeStateSwitch(out, tab, graph.states);
+		// if (macro == "switch")
+		// 	writeStateSwitch(out, tab, graph.states);
+		// if (macro == "enum")
+		// 	writeTokenEnum(out, tab, symbols);
 	// }
 	
 	
