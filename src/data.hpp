@@ -2,6 +2,6 @@
 
 
 namespace data {
-	extern const char f1[];
-	extern const char f2[];
+	extern const char template_DFA[];
+	extern const char template_TokenEnum[];
 }

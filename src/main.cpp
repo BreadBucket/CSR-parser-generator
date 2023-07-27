@@ -17,12 +17,13 @@ extern "C" {
 #include "CLI.hpp"
 #include "Parser.hpp"
 #include "SymbolEnum.hpp"
-#include "ParserAbstraction.hpp"
+#include "AliasResolver.hpp"
 #include "Graph.hpp"
 #include "GraphSerializer.hpp"
 #include "Generator.hpp"
 
 #include "ptr.hpp"
+#include <functional>
 
 
 using namespace std;
@@ -125,7 +126,7 @@ Document* parseInput(const string& inputPath){
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-bool handleGraphSerializationOption(const Graph& graph){
+bool handleGraphSerializationOption(const Graph& graph, const SymbolEnum& symEnum){
 	const string& path = CLI::graph_outputFilePath;
 	const string& format = CLI::graph_outputFormat;
 	
@@ -189,7 +190,7 @@ bool handleGraphSerializationOption(const Graph& graph){
 	}
 	
 	
-	gs.serialize(graph, *stream);
+	gs.serialize(*stream, graph, symEnum);
 	return true;
 }
 
@@ -236,10 +237,12 @@ int main(int argc, char const* const* argv){
 	}
 	
 	
-	// Resolve symbol aliases
+	// Enumerate symbols and create reductions
+	vector<shared_ptr<Reduction>> reductions;
+	shared_ptr<SymbolEnum> symEnum = make_shared<SymbolEnum>();
+	
 	try {
-		for (ParsedReduction& r : doc->reductions)
-			r.resolveSymbolAliases();
+		convertReductions(doc->reductions, reductions, *symEnum);
 	} catch (const ParserException& e){
 		err(doc->name, e.loc, "%s\n", e.what());
 		return 1;
@@ -249,20 +252,12 @@ int main(int argc, char const* const* argv){
 	}
 	
 	
-	// Enumerate symbols
-	unique_ptr<SymbolEnum> symbolEnum = make_unique<SymbolEnum>(make_shared<Symbol>(-1, "null"));
-	enumerate(doc->reductions, *symbolEnum);
-	
-	// Create reduction objects
-	vector<shared_ptr<Symbol>> symbols = symbolEnum->getSymbols();
-	vector<shared_ptr<Reduction>> reductions = createReductions<shared_ptr<Reduction>>(doc->reductions, *symbolEnum);
-	
 	// Build graph
 	unique_ptr<Graph> graph = make_unique<Graph>();
 	graph->build(reductions);
 	
 	// Serialize graph
-	if (!handleGraphSerializationOption(*graph)){
+	if (!handleGraphSerializationOption(*graph, *symEnum)){
 		return 1;
 	}
 	
@@ -272,8 +267,8 @@ int main(int argc, char const* const* argv){
 	
 	
 	// Generate source code
-	unique_ptr<Generator> generator = make_unique<Generator>();
-	generator->generate(*graph, symbols);
+	// unique_ptr<Generator> generator = make_unique<Generator>();
+	// generator->generate(*graph, symbols);
 	// generator->generateTokenEnum(symbols);
 	// generator->generateSwitch(*graph);
 	

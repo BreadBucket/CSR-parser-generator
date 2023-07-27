@@ -18,10 +18,10 @@ GraphSerializer::Format GraphSerializer::getFormat(const string& path){
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-void GraphSerializer::serialize(const Graph& graph, ostream& stream){
+void GraphSerializer::serialize(ostream& stream, const Graph& graph, const SymbolEnum& symEnum){
 	switch (format){
 		case Format::TXT:
-			serialize_txt(graph, stream);
+			serialize_txt(stream, graph, symEnum);
 			break;
 	}
 }

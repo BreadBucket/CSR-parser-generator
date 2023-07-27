@@ -5,7 +5,6 @@
 
 #include "Symbol.hpp"
 #include "Reduction.hpp"
-#include "SymbolEnum.hpp"
 #include "CSRException.hpp"
 
 
@@ -179,7 +178,9 @@ public:
 	std::vector<Item>* emptySet;
 	
 private:
-	std::vector<std::shared_ptr<Reduction>> reductions;	// Cache of reductions to keep pointers alive.
+	std::vector<std::shared_ptr<Reduction>> reductions;	// Cache of reductions to keep alive.
+	
+private:
 	std::deque<State*> evolutionQueue;					// Unevolved state references from `states`.
 	
 // ---------------------------------- [ Constructors ] -------------------------------------- //
@@ -198,21 +199,13 @@ public:
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 public:
-	inline int reductionCount() const {
-		return reductions.size();
-	}
-	
-	inline const Reduction* getReduction(int i) const {
-		return reductions[i].get();
-	}
-	
-	inline std::shared_ptr<Reduction> shareReduction(int i) const {
-		return reductions[i];
+	inline const std::vector<std::shared_ptr<Reduction>>& getReductions() const {
+		return reductions;
 	}
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 public:
-	void build(const std::vector<std::shared_ptr<Reduction>>& v);
+	void build(const std::vector<std::shared_ptr<Reduction>>& reductions);
 	
 public:
 	/**

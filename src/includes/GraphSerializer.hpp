@@ -2,6 +2,7 @@
 #include <string>
 #include <ostream>
 
+#include "SymbolEnum.hpp"
 #include "Graph.hpp"
 
 
@@ -22,8 +23,8 @@ public:
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 public:
-	void serialize(const Graph& graph, std::ostream& stream);
-	void serialize_txt(const Graph& graph, std::ostream& stream);
+	void serialize(std::ostream& stream, const Graph& graph, const SymbolEnum& symEnum);
+	void serialize_txt(std::ostream& stream, const Graph& graph, const SymbolEnum& symEnum);
 
 public:
 	static Format getFormat(const std::string& filePath);

@@ -71,7 +71,7 @@ private:
 	void parseReduction(ParsedReduction& out_reduction);
 	void parseReduction_symbol(SymbolName& out);
 	void parseReduction_symbol_alias(SourceString& out);
-	void parseReduction_constructor(SymbolConstructor& out);
+	void parseReduction_constructor(ParsedSymbol::Constructor& out);
 	void parseReduction_inlineCode(SourceString& out_code);
 	
 private:

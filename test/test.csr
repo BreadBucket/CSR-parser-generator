@@ -2,10 +2,10 @@
 
 
 
-A B C -> S
-A S Q -> S
-B B C C -> B Q C
-Q C -> C Q
+// A B C -> S
+// A S Q -> S
+// B B C C -> B Q C
+// Q C -> C Q
 
 
 
@@ -20,4 +20,5 @@ Q C -> C Q
 
 
 
-//   A[left] A[right] -> B(2,A[3]) A[right]
+  A[left] A[right] -> A[right] B(left,A,B())
+

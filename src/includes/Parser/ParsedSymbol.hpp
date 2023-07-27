@@ -8,7 +8,6 @@
 namespace csr {
 	struct SymbolName;
 	class ParsedSymbol;
-	typedef std::vector<SymbolName> SymbolConstructor;
 }
 
 
@@ -19,15 +18,23 @@ struct csr::SymbolName {
 
 
 class csr::ParsedSymbol {
+// ---------------------------------- [ Structures ] ---------------------------------------- //
+public:
+	typedef std::vector<ParsedSymbol> Constructor;
+	
 // ------------------------------------[ Properties ] --------------------------------------- //
 public:
 	SymbolName name;
-	std::optional<SymbolConstructor> constructor;
+	std::optional<Constructor> constructor;
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 public:
 	const SourceString& getName() const {
 		return name.name;
+	}
+	
+	const SourceString& getAlias() const {
+		return name.alias;
 	}
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //

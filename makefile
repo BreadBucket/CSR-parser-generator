@@ -5,8 +5,6 @@ inc = -I src/includes/ -I src/includes/util/ -I src/includes/Parser/ -I src/incl
 compilerPath = obj/compiler.mk
 
 gcc_options = -std=c++2a -g
-
-src_only = $(shell grep -oP "\\S*\\.c(pp)?" <<<"$^")
 src_finder = find ${src} -type f -iname "*.c" -or -iname "*.cpp"
 
 
@@ -39,11 +37,17 @@ clean:
 
 
 # Bake data files into data.o, included in compiler.mk
-.PHONY: bake
-bake:
+.PHONY: rebake
+rebake:
 	rm -f obj/data.o
 	rm -f obj/*.inc
-	make obj/data.o
+	./bake.sh
+	@touch obj/data.o
+
+.PHONY: bake
+bake:
+	./bake.sh
+	@touch obj/data.o
 
 obj/data.o: $(shell find "data/" -type f)
 	./bake.sh
@@ -69,7 +73,7 @@ ${compilerPath}:
 				line=obj/$${line} ;												\
 				echo "$${line}" >>"${compilerPath}" ;							\
 				echo -e "\t@basename \"\$$@\"" >>"${compilerPath}" ;			\
-				echo -e "\t@g++ \$${src_only} \$${inc} -c \$${gcc_options} -o \$$@" >>"${compilerPath}" ;	\
+				echo -e "\t@g++ \$$(filter %.c %.cpp %.inc, \$$^) \$${inc} -c \$${gcc_options} -o \$$@" >>"${compilerPath}" ;	\
 				obj+=( $$(echo "$$line" | grep -oP "^\S+\.o") ) ;			\
 			};																\
 		done <<<"$$(g++ ${inc} -MM $$(${src_finder}))" ;					\
@@ -80,6 +84,6 @@ ${compilerPath}:
 		echo -e "\t@g++ \$$^ \$${gcc_options} -o \$$@" >>"${compilerPath}"	\
 	'
 
-ifneq (clean,$(filter clean,$(MAKECMDGOALS)))
+ifeq (,$(filter clean bake obj/data.o compiler,$(MAKECMDGOALS)))
 include ${compilerPath}
 endif

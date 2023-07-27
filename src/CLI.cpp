@@ -58,9 +58,9 @@ const struct option long_options[] = {
 	{"output",      required_argument, (int*)&selected_opt, OptionID::OUT              },
 	{"graph",       required_argument, (int*)&selected_opt, OptionID::GRAPH_OUTPATH    },
 	{"graphFormat", required_argument, (int*)&selected_opt, OptionID::GRAPH_FORMAT     },
-	{"ascii",       required_argument, (int*)&selected_opt, OptionID::ASCII            },
+	{"ascii",       no_argument,       (int*)&selected_opt, OptionID::ASCII            },
 	{"tabSize",     required_argument, (int*)&selected_opt, OptionID::TAB_SIZE         },
-	{"skipCheck",   required_argument, (int*)&selected_opt, OptionID::VERIFY_REDUCTION },
+	{"skipCheck",   no_argument,       (int*)&selected_opt, OptionID::VERIFY_REDUCTION },
 	{0, 0, 0, 0}
 };
 

@@ -346,6 +346,7 @@ void Parser::parseSegment(){
 }
 
 
+// "#ifdef CSR"
 void Parser::parseSegment_header(SourceString& directive, SourceString& type){
 	if (ch() != '#')
 		throw ParserException(getLoc(), "Expected segment declaration.");
@@ -375,6 +376,7 @@ void Parser::parseSegment_header(SourceString& directive, SourceString& type){
 }
 
 
+// Everything between "#ifdef CSR_CODE" and corresponding "#endif"
 void Parser::parseSegment_code(string& s){
 	SourceString dir;
 	
@@ -462,6 +464,7 @@ void Parser::parseSegment_code(string& s){
 }
 
 
+// Reduction declarations between "#ifdef CSR" and corresponding "#endif"
 void Parser::parseSegment_reductions(vector<ParsedReduction>& reductions){
 	bool line = true;
 	push();
@@ -519,6 +522,7 @@ void Parser::parseSegment_reductions(vector<ParsedReduction>& reductions){
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
+// "A -> B", "A[name] B C -> name 2 D(A[name],B()) { printf(); }", ...
 void Parser::parseReduction(ParsedReduction& r){
 	r.loc = getLoc();
 	
@@ -581,7 +585,7 @@ void Parser::parseReduction(ParsedReduction& r){
 				parseReduction_constructor(sym.constructor.emplace());
 				parseWhiteSpaceAndComment(trash.clear(), true);
 			} else {
-				throw ParserException(getLoc(), "Unexpected symbol constructor. Symbols with an alias cannot have a constructor.");
+				throw ParserException(getLoc(), "Unexpected symbol constructor. Symbol copies cannot have a constructor.");
 			}
 			
 		} else if (c == '[' || c == ']'){
@@ -612,6 +616,7 @@ void Parser::parseReduction(ParsedReduction& r){
 }
 
 
+// "S", "S[alias]"
 void Parser::parseReduction_symbol(SymbolName& name){
 	if (!isIdChar(ch())){
 		throw ParserException(getLoc(), "Unexpected character. Symbol name expected.");
@@ -624,7 +629,7 @@ void Parser::parseReduction_symbol(SymbolName& name){
 	// Parse optional alias
 	push();
 	parseWhiteSpaceAndComment(trash.clear(), true);
-	name.alias.clear();;
+	name.alias.clear();
 	
 	char c = ch();
 	if (c == '[' || c == ']'){
@@ -638,6 +643,7 @@ void Parser::parseReduction_symbol(SymbolName& name){
 }
 
 
+// "[alias]"
 void Parser::parseReduction_symbol_alias(SourceString& alias){
 	if (ch() != '['){
 		throw ParserException(getLoc(), "Unexpected character. Expected '[' when declaring symbol alias.");
@@ -659,7 +665,8 @@ void Parser::parseReduction_symbol_alias(SourceString& alias){
 }
 
 
-void Parser::parseReduction_constructor(SymbolConstructor& ctr){
+// "()", "(1, 2, 3)", "( A, B(1, 2) )", ...
+void Parser::parseReduction_constructor(ParsedSymbol::Constructor& ctr){
 	if (ch() != '('){
 		throw ParserException(getLoc(), "Unexpecteed character. Expected '(' when declaring symbol constructor.");
 	}
@@ -672,8 +679,20 @@ void Parser::parseReduction_constructor(SymbolConstructor& ctr){
 	bool next;
 	while (isIdChar(ch())){
 		next = false;
-		parseReduction_symbol(ctr.emplace_back());
+		ParsedSymbol& sym = ctr.emplace_back();
+		
+		parseReduction_symbol(sym.name);
 		parseWhiteSpaceAndComment(trash.clear(), true);
+		
+		// Nested constructor
+		if (ch() == '('){
+			if (sym.name.alias.empty()){
+				parseReduction_constructor(sym.constructor.emplace());
+				parseWhiteSpaceAndComment(trash.clear(), true);
+			} else {
+				throw ParserException(getLoc(), "Unexpected symbol constructor. Symbol copies cannot have a constructor.");
+			}
+		}
 		
 		if (ch() == ','){
 			next = true;
@@ -695,6 +714,7 @@ void Parser::parseReduction_constructor(SymbolConstructor& ctr){
 }
 
 
+// "{ ... }"
 void Parser::parseReduction_inlineCode(SourceString& code){
 	if (ch() != '{'){
 		throw ParserException(getLoc(), "Expected '{' at reduction inline code segment.");
@@ -770,6 +790,7 @@ void Parser::parseReduction_inlineCode(SourceString& code){
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
+// "#define ..."
 void Parser::parseMacro(string& s, SourceString& directive){
 	if (ch() != '#'){
 		throw ParserException(getLoc(), "Preprocessor directive declaration expected.");

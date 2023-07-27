@@ -145,7 +145,7 @@ bool equals(const vector<shared_ptr<Symbol>>& lhs, const vector<Symbol*>& rhs){
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-void buildEmptySet(const vector<shared_ptr<Reduction>>& reductions, vector<Item>& emptySet){
+static void buildEmptySet(const vector<shared_ptr<Reduction>>& reductions, vector<Item>& emptySet){
 	emptySet.clear();
 	
 	for (const shared_ptr<Reduction>& r : reductions){
@@ -196,7 +196,6 @@ void Graph::build(const vector<shared_ptr<Reduction>>& v){
 			reductions.emplace_back(p);
 	}
 	
-	
 	buildEmptySet(reductions, *emptySet);
 	
 	
@@ -206,34 +205,34 @@ void Graph::build(const vector<shared_ptr<Reduction>>& v){
 	
 	
 	while (evolutionQueue.size() > 0){
-		PRINTF("\n\n");	// DEBUG
+		// PRINTF("\n\n");	// DEBUG
 		State* s = evolutionQueue.front();
 		evolutionQueue.pop_front();
 		evolve(*s);
 	}
 	
 	
-	// DEBUG
-	PRINTF("\n\n\n\n\n\n");
-	// PRINTF("%s\n\n", str(connections, id_to_symbol).c_str());
-	for (const State* s : states){
-		bool unresolved = false;
+	// // DEBUG
+	// PRINTF("\n\n\n\n\n\n");
+	// // PRINTF("%s\n\n", str(connections, id_to_symbol).c_str());
+	// for (const State* s : states){
+	// 	bool unresolved = false;
 		
-		for (const State* e : evolutionQueue){
-			if (s->id == e->id){
-				unresolved = true;
-				break;
-			}
-		}
+	// 	for (const State* e : evolutionQueue){
+	// 		if (s->id == e->id){
+	// 			unresolved = true;
+	// 			break;
+	// 		}
+	// 	}
 		
-		PRINTF(ANSI_GREEN);
-		if (unresolved)
-			PRINTF(ANSI_YELLOW);
-		PRINTF("%s\n", CSTR(*s));
-		PRINTF(ANSI_RESET);
-	}
+	// 	PRINTF(ANSI_GREEN);
+	// 	if (unresolved)
+	// 		PRINTF(ANSI_YELLOW);
+	// 	PRINTF("%s\n", CSTR(*s));
+	// 	PRINTF(ANSI_RESET);
+	// }
 	
-	PRINTF("\nQUEUE: %d\n", evolutionQueue.size());
+	// PRINTF("\nQUEUE: %d\n", evolutionQueue.size());
 	
 	
 	// Release unused memory
@@ -309,7 +308,6 @@ unordered_set<Symbol*> getMissingSymbols(const State& state){
 
 
 // ----------------------------------- [ Functions ] ---------------------------------------- //
-
 
 
 void Graph::evolve(State& base){
