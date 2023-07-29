@@ -21,16 +21,17 @@ using namespace CLI;
 
 namespace CLI {
 	string programName = "program";
-	string inputFilePath;
-	string outputFilePath;
+	string inputFilePath = "";
+	string outputFilePath = "0";
 	
-	string graph_outputFilePath;
-	string graph_outputFormat;
+	string graph_outputFilePath = "";
+	string graph_outputFormat = "";
+	
+	bool verifyReduction = true;
 	
 	bool unicode = true;
 	bool ansi = true;
 	int tabSize = 4;
-	bool verifyReduction = true;
 	
 	bool help = false;
 }
@@ -54,7 +55,7 @@ enum OptionID : int {
 } selected_opt;
 
 
-const char* const short_options = "i:o:t:ra";
+const char* const short_options = "i:o:g:t:pa";
 
 
 const struct option long_options[] = {
@@ -65,7 +66,7 @@ const struct option long_options[] = {
 	{"graphFormat", required_argument, (int*)&selected_opt, OptionID::GRAPH_FORMAT     },
 	{"ascii",       no_argument,       (int*)&selected_opt, OptionID::ASCII            },
 	{"tabSize",     required_argument, (int*)&selected_opt, OptionID::TAB_SIZE         },
-	{"skipCheck",   no_argument,       (int*)&selected_opt, OptionID::VERIFY_REDUCTION },
+	{"productions", no_argument,       (int*)&selected_opt, OptionID::VERIFY_REDUCTION },
 	{0, 0, 0, 0}
 };
 
@@ -79,9 +80,11 @@ OptionID shortOptionToLong(char c){
 			return OptionID::IN;
 		case 'o':
 			return OptionID::OUT;
+		case 'g':
+			return OptionID::GRAPH_OUTPATH;
 		case 't':
 			return OptionID::TAB_SIZE;
-		case 'r':
+		case 'p':
 			return OptionID::VERIFY_REDUCTION;
 		case 'a':
 			return OptionID::ASCII;
@@ -234,12 +237,13 @@ void CLI::parse(int argc, char const* const* argv){
 void CLI::clear(){
 	programName = "program";
 	inputFilePath.clear();
-	outputFilePath.clear();
+	outputFilePath = "1";
 	graph_outputFilePath.clear();
 	graph_outputFormat.clear();
-	unicode = true;
-	tabSize = 4;
 	verifyReduction = true;
+	unicode = true;
+	ansi = true;
+	tabSize = 4;
 	help = false;
 }
 

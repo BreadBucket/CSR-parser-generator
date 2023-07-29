@@ -67,9 +67,6 @@ void help(){
 }
 
 
-// ----------------------------------- [ Functions ] ---------------------------------------- //
-
-
 bool parseCLI(int argc, char const* const* argv){
 	try {
 		CLI::parse(argc, (char* const*)argv);
@@ -81,6 +78,9 @@ bool parseCLI(int argc, char const* const* argv){
 }
 
 
+// ----------------------------------- [ Functions ] ---------------------------------------- //
+
+
 Document* parseInput(const string& inputPath){
 	// Get input stream
 	unique_ptr<ifstream> inf;
@@ -88,14 +88,22 @@ Document* parseInput(const string& inputPath){
 	const string* docName = &CLI::programName;
 	
 	
-	// Open stdin
-	if (inputPath.size() == 0){
+	// Pipe
+	if (inputPath.empty()){
 		if (!isatty(fileno(stdin))){
 			in = &cin;
 		} else {
 			err(CLI::programName, "No input file or pipe specified.\n");
 			return nullptr;
 		}
+	}
+	
+	// Stream specifiers
+	else if (inputPath == "0"){
+		in = &cin;
+	} else if (inputPath == "1" || inputPath == "2"){
+		err(CLI::programName, "Invalid stream specifier: '%s'.\n", inputPath.c_str());
+		return nullptr;
 	}
 	
 	// Open file (file is auto-closed)
@@ -110,6 +118,7 @@ Document* parseInput(const string& inputPath){
 		in = inf.get();
 		docName = &inputPath;
 	}
+	
 	
 	// Parse
 	unique_ptr<Parser> parser = make_unique<Parser>();
