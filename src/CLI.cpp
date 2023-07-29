@@ -5,6 +5,7 @@ extern "C" {
 }
 
 #include <cstdint>
+#include <cstring>
 #include <string>
 #include <stdexcept>
 #include <iostream>
@@ -30,6 +31,8 @@ namespace CLI {
 	bool ansi = true;
 	int tabSize = 4;
 	bool verifyReduction = true;
+	
+	bool help = false;
 }
 
 
@@ -38,6 +41,7 @@ namespace CLI {
 
 enum OptionID : int {
 	NONE = INT32_MIN,
+	HELP,
 	IN,
 	OUT,
 	GRAPH_OUTPATH,
@@ -46,7 +50,7 @@ enum OptionID : int {
 	ASCII,
 	ANSI,
 	TAB_SIZE,
-	VERIFY_REDUCTION
+	VERIFY_REDUCTION,
 } selected_opt;
 
 
@@ -54,6 +58,7 @@ const char* const short_options = "i:o:t:ra";
 
 
 const struct option long_options[] = {
+	{"help",        no_argument,       (int*)&selected_opt, OptionID::HELP             },
 	{"input",       required_argument, (int*)&selected_opt, OptionID::IN               },
 	{"output",      required_argument, (int*)&selected_opt, OptionID::OUT              },
 	{"graph",       required_argument, (int*)&selected_opt, OptionID::GRAPH_OUTPATH    },
@@ -107,6 +112,14 @@ void CLI::parse(int argc, char const* const* argv){
 		return;
 	}
 	
+	// Special case for 'help'
+	if (argc == 2 && argv[1] != nullptr){
+		if (strcmp(argv[1], "help") == 0){
+			help = true;
+			return;
+		}
+	}
+	
 	// Modifyable copy of args
 	const int len = getLength((void const* const*)argv);
 	const char** v = new const char*[len];
@@ -116,17 +129,20 @@ void CLI::parse(int argc, char const* const* argv){
 	opterr = 0;
 	optind = 1;
 	programName = v[0];
+	int prevOpt = optind;
 	
 	while (true){
 		selected_opt = OptionID::NONE;
-		char c = getopt_long(argc, (char* const*)v, short_options, long_options, NULL);
+		const int c = getopt_long(argc, (char* const*)v, short_options, long_options, NULL);
 		
 		// Error
 		if (c == '?'){
-			if (optopt >= 0 && shortOptionToLong(optopt) == OptionID::NONE)
-				throw runtime_error(string("Unrecognized option '").append(v[optind-1]).append("'."));
-			else
+			if (optopt >= 0 && (shortOptionToLong(optopt) == OptionID::NONE)){
+				int i = (optind > prevOpt) ? optind - 1 : optind;
+				throw runtime_error(string("Unrecognized option '").append(v[i]).append("'."));
+			} else {
 				throw runtime_error(string("Missing option argument '").append(v[optind-1]).append("'."));
+			}
 		}
 		
 		else if (c > 0){
@@ -137,6 +153,10 @@ void CLI::parse(int argc, char const* const* argv){
 		
 		// Handle long options
 		switch (selected_opt){
+			
+			case OptionID::HELP:
+				help = true;
+				break;
 			
 			case OptionID::IN:
 				if (inputFilePath.empty())
@@ -186,6 +206,7 @@ void CLI::parse(int argc, char const* const* argv){
 			
 		}
 		
+		prevOpt = optind;
 	};
 	
 	
@@ -219,6 +240,7 @@ void CLI::clear(){
 	unicode = true;
 	tabSize = 4;
 	verifyReduction = true;
+	help = false;
 }
 
 

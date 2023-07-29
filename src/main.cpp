@@ -21,6 +21,7 @@ extern "C" {
 #include "Graph.hpp"
 #include "GraphSerializer.hpp"
 #include "Generator.hpp"
+#include "data.hpp"
 
 #include "ptr.hpp"
 #include <functional>
@@ -59,12 +60,22 @@ void err(const string& file, const Location& loc, const char* format, T... args)
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
+void help(){
+	const char* name = CLI::programName.c_str();
+	printf(data::help, name);
+	printf("\n");
+}
+
+
+// ----------------------------------- [ Functions ] ---------------------------------------- //
+
+
 bool parseCLI(int argc, char const* const* argv){
 	try {
 		CLI::parse(argc, (char* const*)argv);
 		return true;
 	} catch (const exception& e) {
-		err(argv[0], e.what());
+		err(argv[0], "%s\n", e.what());
 		return false;
 	}
 }
@@ -92,7 +103,7 @@ Document* parseInput(const string& inputPath){
 		inf = make_unique<ifstream>(inputPath);
 		
 		if (inf->fail()){
-			err(CLI::programName, "Failed to open input file '%s'.\n", inputPath);
+			err(CLI::programName, "Failed to open input file '%s'.\n", inputPath.c_str());
 			return nullptr;
 		}
 		
@@ -224,8 +235,12 @@ int main(int argc, char const* const* argv){
 	printf("================================\n");	// DEBUG
 	
 	
-	if (!parseCLI(argc, argv))
+	if (!parseCLI(argc, argv)){
 		return 1;
+	} else if (CLI::help){
+		help();
+		return 0;
+	}
 	
 	unique_ptr<Document> doc = ptr(parseInput(CLI::inputFilePath));
 	if (doc == nullptr){

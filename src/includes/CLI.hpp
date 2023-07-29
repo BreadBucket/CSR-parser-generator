@@ -13,6 +13,8 @@ namespace CLI {
 	extern bool ansi;
 	extern int tabSize;
 	extern bool verifyReduction;
+	
+	extern bool help;
 }
 
 
