@@ -15,7 +15,7 @@ test -f "$1" -a "$2" != "" || {
 }
 
 
-name="$(basename "${1%.*}")"
+name="$(basename "$1" | tr ". " "__")"
 
 
 printf "" >"$2"
@@ -23,9 +23,11 @@ printf "#define DATA_${name}\n" >>"$2"
 printf "extern const char ${name}[] =" >>"$2"
 
 s="$(cat "$1" |
-	sed -e 's/"/\\"/g'	|			# Escape quotes
-	sed -e 's/^/"/g'	|			# Add quotes
-	sed -e 's/$/\\n"/g' )"			# Add quotes and \n to end of line
+	sed -e "s/[\\]/\\\\\\\\/g"	|		# Escape backslash
+	sed -e 's/"/\\"/g'			|		# Escape quotes
+	sed -e 's/^/"/g'			|		# Add quotes
+	sed -e 's/$/\\n"/g'					# Add quotes and \n to end of line
+)"
 
 
 if [ ${#s} -eq 0 ]; then

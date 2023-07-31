@@ -31,5 +31,19 @@ public:
 	std::vector<std::shared_ptr<Symbol>> left;
 	std::vector<RightSymbol> right;
 	
+// ----------------------------------- [ Functions ] ---------------------------------------- //
+public:
+	inline const std::shared_ptr<Symbol> getEffectiveRightSymbol(const RightSymbol& rsym) const {
+		if (holds_alternative<SymbolCopy>(rsym)){
+			const int i = (int)get<SymbolCopy>(rsym);
+			if (0 <= i && i <= left.size())
+				return left[i];
+			else
+				return nullptr;
+		} else {
+			return get<SymbolConstructor>(rsym).symbol;
+		}
+	}
+	
 // ------------------------------------------------------------------------------------------ //
 };

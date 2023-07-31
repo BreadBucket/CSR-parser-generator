@@ -62,7 +62,7 @@ void err(const string& file, const Location& loc, const char* format, T... args)
 
 void help(){
 	const char* name = CLI::programName.c_str();
-	printf(data::help, name);
+	printf(data::help_txt, name);
 	printf("\n");
 }
 
@@ -291,8 +291,8 @@ int main(int argc, char const* const* argv){
 	
 	
 	// Generate source code
-	// unique_ptr<Generator> generator = make_unique<Generator>();
-	// generator->generate(*graph, symbols);
+	unique_ptr<Generator> generator = make_unique<Generator>();
+	generator->generate(*graph, *symEnum);
 	// generator->generateTokenEnum(symbols);
 	// generator->generateSwitch(*graph);
 	

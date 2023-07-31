@@ -60,7 +60,7 @@ public:
 }
 
 
-std::ostream& operator <<(std::ostream& stream, const csr::Tab& tab){
+inline std::ostream& operator <<(std::ostream& stream, const csr::Tab& tab){
 	for (int i = tab.n * tab.w ; i > 0 ; i--)
 		stream << tab.c;
 	return stream;

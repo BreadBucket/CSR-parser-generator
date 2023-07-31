@@ -15,6 +15,14 @@ using namespace csr;
 #include "ANSI.h"
 
 
+// ------------------------------------[ Properties ] --------------------------------------- //
+
+
+void writeStateSwitch(ostream& out, const Tab& tab, const vector<State*> states);
+void writeReduction(ostream& out, const Tab& tab, const Reduction& r);
+void writeTokenEnum(ostream& out, const Tab& tab, const vector<shared_ptr<Symbol>>& symbols);
+
+
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
@@ -38,93 +46,17 @@ void Generator::generateEnumName(const string& src, string& out){
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-void writeTransitionCase(ostream& out, const Tab& tab, const Connection& c){
-	Tab tab1 = tab + 1;
-	
-	// Generate token name
-	if (c.symbol->cname.empty()){
-		Generator::generateEnumName(c.symbol->name, c.symbol->cname);
-	}
-	
-	out << tab << "case " << c.symbol->cname << ":\n";
-	
-	if (c.to != nullptr){
-		out << tab1 << "nextState = " << c.to->id << ";\n";
-	} else if (c.reductionItem != nullptr){
-		out << tab1 << ANSI_RED "REDUCTION\n" ANSI_RESET;
-	}
-	
-	out << tab1 << "break;\n";
-}
-
-
-void writeTransitionSwitch(ostream& out, const Tab& tab, const vector<Connection*>& transitions){
-	Tab tab1 = tab + 1;
-	Tab tab2 = tab + 2;
-	
-	out << tab << "switch (currentToken){\n";
-	
-	for (const Connection* c : transitions){
-		if (c != nullptr && c->symbol != nullptr)
-			writeTransitionCase(out, tab1, *c);
-	}
-	
-	out << tab1 << "default:\n";
-	out << tab2 << "nextState = 0;\n";
-	out << tab2 << "break;\n";
-	out << tab1 << "}\n";
-}
-
-
-
-void writeStateCase(ostream& out, const Tab& tab, const State& state){
-	Tab tab1 = tab + 1;
-	Tab tab2 = tab + 2;
-	
-	out << tab << "case " << state.id << ":\n";
-	
-	writeTransitionSwitch(out, tab1, state.connections);
-	
-	out << tab1 << "break;\n";
-	out << tab1 << "\n";
-}
-
-
-void writeStateSwitch(ostream& out, const Tab& tab, const vector<State*> states){
-	Tab tab1 = tab + 1;
-	Tab tab2 = tab + 2;
-	
-	out << tab << "switch (currentState){\n";
-	
-	for (const State* state : states){
-		if (state != nullptr)
-			writeStateCase(out, tab1, *state);
-	}
-	
-	out << tab1 << "default:\n";
-	out << tab2 << "break;\n";
-	out << tab << "}\n";
-}
-
-
-// ----------------------------------- [ Functions ] ---------------------------------------- //
-
-
 void writeTokenEnum(ostream& out, const Tab& tab, const vector<shared_ptr<Symbol>>& symbols){
-	Tab tab1 = tab + 1;
-	out << tab << "typedef enum {\n";
-	
 	for (int i = 0 ; i < symbols.size() ; i++){
 		if (symbols[i]->cname.empty())
 			Generator::generateEnumName(symbols[i]->name, symbols[i]->cname);
 		
-		out << tab1 << symbols[i]->cname;
+		out << tab << symbols[i]->cname;
 		if (i+1 < symbols.size())
 			out << ",";
+			
 		out << "\n";
 	}
-	
-	out << tab << "} TokenID;\n";
 }
 
 
@@ -173,24 +105,28 @@ bool pipeUntilMacro(const char*& p, ostream& stream, string& out_macro, Tab* tab
 }
 
 
-void Generator::generate(const Graph& graph, const std::vector<std::shared_ptr<Symbol>>& symbols){
-	ostream& out = cout;
+void Generator::generate(const Graph& graph, const SymbolEnum& symEnum){
+	ofstream file = ofstream("obj/switch.c");
+	// ostream& out = cout;
+	ostream& out = file;
 	
-	const char* p = data::template_DFA;
+	const char* p = data::template_DFA_c;
 	string macro;
 	Tab tab;
 	
 	
+	
 	// writeStateSwitch(cout, {' ', 2}, graph.states);
-	writeTokenEnum(cout, {' ', 2}, symbols);
+	// writeTokenEnum(cout, {' ', 2}, symEnum.getSymbols());
+	// writeReduction(cout, {' ', 2}, *graph.getReductions()[0]);
 	
 	
-	// while (pipeUntilMacro(p, out, macro, &tab)){
-		// if (macro == "switch")
-		// 	writeStateSwitch(out, tab, graph.states);
-		// if (macro == "enum")
-		// 	writeTokenEnum(out, tab, symbols);
-	// }
+	while (pipeUntilMacro(p, out, macro, &tab)){
+		if (macro == "switch")
+			writeStateSwitch(out, tab, graph.states);
+		else if (macro == "enum")
+			writeTokenEnum(out, tab, symEnum.getSymbols());
+	}
 	
 	
 }

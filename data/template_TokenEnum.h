@@ -1,4 +1,6 @@
 #pragma once
 
 
-// $MACRO$ enum //
+typedef enum {
+	// $MACRO$ enum //
+} TokenID;

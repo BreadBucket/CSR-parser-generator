@@ -14,8 +14,9 @@ mkdir -p "$(dirname "$objFile")"
 
 
 # Convert files
-for f in $(find "data/" -type f); do
-	p="obj/$(basename "${f%.*}").inc"
+for f in $(find "data/" -type f | sort); do
+	name="$(basename "$f" | tr ". " "__")"
+	p="obj/$(basename "$name").inc"
 	files+=("$p")
 	
 	if [ "$f" -nt "$p" ]; then
@@ -48,8 +49,8 @@ printf "// ======================== [ GENERATED FILE ] ======================== 
 printf "\n\n" >>"$datahpp"
 printf "namespace data {\n" >>"$datahpp"
 for f in ${files[@]}; do
-	name="$(basename "$f")"
-	printf "\textern const char %s[];\n" "${name%.*}" >>"$datahpp"
+	name="$(basename "${f%.*}")"
+	printf "\textern const char %s[];\n" "$name" >>"$datahpp"
 done;
 printf "}\n" >>"$datahpp"
 
