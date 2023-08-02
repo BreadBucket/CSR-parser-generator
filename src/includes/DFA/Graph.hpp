@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 #include <vector>
 #include <deque>
 #include <memory>
@@ -92,6 +93,7 @@ public:
 	std::vector<Item> items;
 	std::vector<Item> const* emptyItems = nullptr;
 	std::vector<Connection*> connections;
+	std::string cname;
 	
 // ---------------------------------- [ Constructors ] -------------------------------------- //
 public:

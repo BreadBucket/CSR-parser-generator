@@ -292,10 +292,16 @@ int main(int argc, char const* const* argv){
 	
 	// Generate source code
 	unique_ptr<Generator> generator = make_unique<Generator>();
-	generator->generate(*graph, *symEnum);
-	// generator->generateTokenEnum(symbols);
-	// generator->generateSwitch(*graph);
 	
+	try {
+		generator->generate(*graph, *symEnum);
+	} catch (const CSRException& e){
+		err(doc->name, "%s\n", e.what());
+		return 1;
+	} catch (const exception& e){
+		err(doc->name, "%s\n", e.what());
+		return 1;
+	}
 	
 	
 	

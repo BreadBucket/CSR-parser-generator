@@ -27,24 +27,24 @@ DFA dfa;
 
 
 Token* token_a(){
-	return createToken(TOKEN_A, 0);
+	return createToken(&dfa, TOKEN_A, 0);
 }
 
 Token* token_b(){
-	return createToken(TOKEN_B, 0);
+	return createToken(&dfa, TOKEN_B, 0);
 }
 
 Token* token_c(){
-	return createToken(TOKEN_C, 0);
+	return createToken(&dfa, TOKEN_C, 0);
 }
 
 
-Token* getNextToken(){
+Token* _generateToken(){
 	static int i = 0;
 	Token* t = NULL;
 	
 	if (i < tokenInput_size){
-		t = createToken(tokenInput[i++], 0);
+		t = createToken(&dfa, tokenInput[i++], 0);
 	}
 	
 	return t;
@@ -54,7 +54,7 @@ Token* getNextToken(){
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-Token* onTokenCreate(Token* t){
+Token* _onTokenCreate(DFA* dfa, Token* t){
 	switch (t->id){
 		case TOKEN_A:	t->data = "A"; break;
 		case TOKEN_B:	t->data = "B"; break;
@@ -110,11 +110,13 @@ void f(){
 int main(int argc, char const* const* argv){
 	printf("================================\n");
 	DFA_init(&dfa);
+	dfa.getNextToken = _generateToken;
+	dfa.onTokenCreate = _onTokenCreate;
 	
 	
 	for (int i = 0 ; i < 20 ; i++){
 		f();
-		if (!step(&dfa)){
+		if (!DFA_step(&dfa)){
 			printf("HALT\n");
 			break;
 		}

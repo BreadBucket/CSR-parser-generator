@@ -1,4 +1,5 @@
 #pragma once
+#include <string>
 #include <vector>
 #include <variant>
 #include <memory>
@@ -30,6 +31,7 @@ public:
 	ReductionID id;
 	std::vector<std::shared_ptr<Symbol>> left;
 	std::vector<RightSymbol> right;
+	std::string cname;
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 public:

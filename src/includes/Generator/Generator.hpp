@@ -1,7 +1,6 @@
 #pragma once
 
 #include <vector>
-#include <iostream>
 #include <ostream>
 #include <memory>
 
@@ -31,7 +30,10 @@ public:
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 public:
-	static void generateEnumName(const std::string& src, std::string& out);
+	static void convertBadChars(std::string& s);
+	static void generateSymbolNames(const std::vector<std::shared_ptr<Symbol>>& symbols);
+	static void generateReductionNames(const std::vector<std::shared_ptr<Reduction>>& reductions);
+	static void generateStateNames(const std::vector<State*>& states);
 	
 // ------------------------------------------------------------------------------------------ //
 };
