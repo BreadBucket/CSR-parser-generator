@@ -1,41 +1,90 @@
+#pragma once
 #include <string>
 #include <iostream>
 #include <fstream>
 
 
-template <typename T>
+// ----------------------------------- [ Structures ] --------------------------------------- //
+
+
+template<typename T>
+struct io_to_fio {
+	using type = std::fstream;
+	static constexpr bool valid = false;
+};
+
+template<>
+struct io_to_fio<std::ostream> {
+	using type = std::ofstream;
+	static constexpr bool valid = true;
+};
+
+template<>
+struct io_to_fio<std::istream> {
+	using type = std::ifstream;
+	static constexpr bool valid = true;
+};
+
+template<>
+struct io_to_fio<std::iostream> {
+	using type = std::fstream;
+	static constexpr bool valid = true;
+};
+
+
+// ------------------------------------------------------------------------------------------ //
+
+
+
+
+template <typename T> requires ( io_to_fio<T>::valid )
 class NamedStream {
+// ------------------------------------------------------------------------------------------ //
+public:
+	using fio = io_to_fio<T>::type;
+	
 // ------------------------------------[ Properties ] --------------------------------------- //
 public:
-	std::string path = {};
-	T* stream = nullptr;
-	bool managed = false;
+	std::string path;
+	
+private:
+	T* stream;	// Not null
+	fio fileStream;
 	
 // ---------------------------------- [ Constructors ] -------------------------------------- //
 public:
-	NamedStream() = default;
+	NamedStream() : fileStream(), stream{&fileStream} {}
 	
-	NamedStream(std::string&& path){
+	NamedStream(std::string&& path) : NamedStream() {
 		open(move(path));
-	};
-	
-public:
-	~NamedStream(){
-		if (managed)
-			delete stream;
 	}
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 public:
+	inline bool isFile(){
+		return ((void*)stream == (void*)&fileStream);
+	}
+	
+	inline void close(){
+		fileStream.close();
+		stream = &fileStream;
+	}
+	
+public:
 	void open(std::string&& path);
+	
+	inline void open(const std::string& path){
+		open(std::string(path));
+	}
 	
 // ----------------------------------- [ Operators ] ---------------------------------------- //
 public:
-	template <typename X> requires (
-		std::is_base_of<std::ios,X>::value
-	)
-	inline operator X&(){
+	inline operator T&(){
 		return *stream;
+	}
+	
+	inline operator fio&(){
+		return fileStream;
 	}
 	
 public:
@@ -64,89 +113,3 @@ public:
 	
 // ------------------------------------------------------------------------------------------ //
 };
-
-
-
-
-// ----------------------------------- [ Functions ] ---------------------------------------- //
-
-
-template <>
-void NamedStream<std::ostream>::open(std::string&& path){
-	if (path == "0"){
-		throw std::ios_base::failure("Invalid stream specifier: '" + path + "'.");
-	} else if (path == "1"){
-		stream = &std::cout;
-		managed = false;
-	} else if (path == "2"){
-		stream = &std::cerr;
-		managed = false;
-	}
-	
-	// File
-	else {
-		stream = new std::ofstream(path);
-		managed = true;
-		
-		if (stream->fail()){
-			managed = false;
-			delete stream;
-			throw std::ios_base::failure("Failed to create output file '" + path + "'.");
-		}
-		
-	}
-	
-	this->path = move(path);
-}
-
-
-template <>
-void NamedStream<std::istream>::open(std::string&& path){
-	if (path == "0"){
-		stream = &std::cin;
-		managed = false;
-	} else if (path == "1" || path == "2"){
-		throw std::ios_base::failure("Invalid stream specifier: '" + path + "'.");
-	}
-	
-	// File
-	else {
-		stream = new std::ifstream(path);
-		managed = true;
-		
-		if (stream->fail()){
-			managed = false;
-			delete stream;
-			throw std::ios_base::failure("Failed to create input file '" + path + "'.");
-		}
-		
-	}
-	
-	this->path = move(path);
-}
-
-
-template <>
-void NamedStream<std::iostream>::open(std::string&& path){
-	if (path == "0" || path == "1" || path == "2"){
-		throw std::ios_base::failure("Invalid stream specifier: '" + path + "'.");
-	}
-	
-	// File
-	else {
-		stream = new std::fstream(path);
-		managed = true;
-		
-		if (stream->fail()){
-			managed = false;
-			delete stream;
-			throw std::ios_base::failure("Failed to create file '" + path + "'.");
-		}
-		
-	}
-	
-	this->path = move(path);
-}
-
-
-// ------------------------------------------------------------------------------------------ //
