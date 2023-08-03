@@ -7,7 +7,7 @@
 // ------------------------------------[ Variables ] ---------------------------------------- //
 
 
-TokenID tokenInput[] = {
+CSRTokenID tokenInput[] = {
 	TOKEN_A,
 	TOKEN_A,
 	TOKEN_B,
@@ -26,22 +26,22 @@ DFA dfa;
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-Token* token_a(){
+CSRToken* token_a(){
 	return createToken(&dfa, TOKEN_A, 0);
 }
 
-Token* token_b(){
+CSRToken* token_b(){
 	return createToken(&dfa, TOKEN_B, 0);
 }
 
-Token* token_c(){
+CSRToken* token_c(){
 	return createToken(&dfa, TOKEN_C, 0);
 }
 
 
-Token* _generateToken(){
+CSRToken* _generateToken(){
 	static int i = 0;
-	Token* t = NULL;
+	CSRToken* t = NULL;
 	
 	if (i < tokenInput_size){
 		t = createToken(&dfa, tokenInput[i++], 0);
@@ -54,7 +54,7 @@ Token* _generateToken(){
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-Token* _onTokenCreate(DFA* dfa, Token* t){
+CSRToken* _onTokenCreate(DFA* dfa, CSRToken* t){
 	switch (t->id){
 		case TOKEN_A:	t->data = "A"; break;
 		case TOKEN_B:	t->data = "B"; break;
@@ -77,19 +77,19 @@ Token* _onTokenCreate(DFA* dfa, Token* t){
 void printStack(){
 	
 	for (int i = 0 ; i < dfa.tokenStack.count ; i++){
-		if (((Token*)dfa.tokenStack.v[i])->data == NULL)
-			printf("%d ", ((Token*)dfa.tokenStack.v[i])->id);
+		if (((CSRToken*)dfa.tokenStack.v[i])->data == NULL)
+			printf("%d ", ((CSRToken*)dfa.tokenStack.v[i])->id);
 		else
-			printf("%s ", ((Token*)dfa.tokenStack.v[i])->data);
+			printf("%s ", ((CSRToken*)dfa.tokenStack.v[i])->data);
 	}
 	
 	printf("| ");
 	
 	for (int i = dfa.tokenBuffer.count - 1 ; i >= 0 ; i--){
-		if (((Token*)dfa.tokenBuffer.v[i])->data == NULL)
-			printf("%d ", ((Token*)dfa.tokenBuffer.v[i])->id);
+		if (((CSRToken*)dfa.tokenBuffer.v[i])->data == NULL)
+			printf("%d ", ((CSRToken*)dfa.tokenBuffer.v[i])->id);
 		else
-			printf("%s ", ((Token*)dfa.tokenBuffer.v[i])->data);
+			printf("%s ", ((CSRToken*)dfa.tokenBuffer.v[i])->data);
 	}
 	
 }

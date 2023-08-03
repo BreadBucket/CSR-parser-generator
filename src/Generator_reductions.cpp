@@ -51,9 +51,9 @@ static void writeReductionComment(ostream& out, const Reduction& r){
 
 static void getToken(ostream& out, int i){
 	if (i < 0)
-		out << "(Token*)tokenStack.v[tokenStack.count - " << (-i) << + "]";
+		out << "(CSRToken*)tokenStack.v[tokenStack.count - " << (-i) << + "]";
 	else
-		out << "(Token*)tokenStack.v[" << i << + "]";
+		out << "(CSRToken*)tokenStack.v[" << i << + "]";
 }
 
 

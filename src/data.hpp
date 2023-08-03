@@ -6,6 +6,6 @@ namespace data {
 	extern const char template_DFA_c[];
 	extern const char template_DFA_h[];
 	extern const char template_DFA_inline_h[];
-	extern const char template_TokenEnum_h[];
-	extern const char test_c[];
+	extern const char template_TokenHeader_h[];
+	extern const char template_tokenHeader_inline_h[];
 }

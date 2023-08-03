@@ -1,17 +1,27 @@
 #pragma once
+#include "template_TokenHeader.h"	// $MACRO delete
+// $MACRO include_tokenHeader
 
 
 // ----------------------------------- [ Prototypes ] --------------------------------------- //
 
 
 struct _Stack;
-enum _TokenID;
 typedef int StateID;
-struct _Token;
+struct _CSRToken;
 struct _DFA;
 
 
-// ------------------------------------------------------------------------------------------ //
+// $BEGIN _inline_tokenHeader
+// ----------------------------------- [ Structures ] --------------------------------------- //
+
+
+
+// $MACRO inline_tokenHeader
+
+
+// $END
+// ----------------------------------- [ Structures ] --------------------------------------- //
 
 
 typedef struct _Stack {
@@ -19,6 +29,27 @@ typedef struct _Stack {
 	int size;
 	void** v;
 } Stack;
+
+
+
+typedef CSRToken* (*onTokenCreate_f)(struct _DFA*, CSRToken*);
+typedef bool (*onTokenDelete_f)(struct _DFA*, CSRToken*);
+typedef CSRToken* (*getNextToken_f)(struct _DFA*);
+
+
+typedef struct _DFA {
+	Stack tokenStack;
+	Stack tokenBuffer;
+	Stack stateStack;
+	StateID currentStateId;
+	
+	onTokenCreate_f onTokenCreate;
+	onTokenDelete_f onTokenDelete;
+	getNextToken_f getNextToken;
+} DFA;
+
+
+// ----------------------------------- [ Structures ] --------------------------------------- //
 
 
 /**
@@ -44,19 +75,10 @@ void* Stack_pop(Stack* stack);
 void* Stack_peek(Stack* stack);
 
 
-// ------------------------------------------------------------------------------------------ //
+// ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-typedef struct _Token {
-	TokenID id;
-	int childCount;				// Size of the children array (excluding null terminator).
-	struct _Token** children;	// Null-terminated array of child pointers.
-	void* data;					// Additional user data.
-	int refCount;				// Amount of pointer refrences in the AST.
-} Token;
-
-
-Token* createToken(struct _DFA* dfa, TokenID id, int childCount, ...);
+CSRToken* createToken(struct _DFA* dfa, CSRTokenID id, int childCount, ...);
 
 
 // ----------------------------------- [ Functions ] ---------------------------------------- //
@@ -79,31 +101,11 @@ void DFA_init(struct _DFA* dfa);
 void DFA_delete(struct _DFA* dfa);
 
 
-void DFA_destroyToken(struct _DFA* dfa, struct _Token* token);
+void DFA_destroyToken(struct _DFA* dfa, struct _CSRToken* token);
 void DFA_popTokens(struct _DFA* dfa, int i);
 StateID DFA_popStates(struct _DFA* dfa, int i);
-bool DFA_consume(struct _DFA* dfa, struct _Token* const currentToken);
+bool DFA_consume(struct _DFA* dfa, struct _CSRToken* const currentToken);
 bool DFA_step(struct _DFA* dfa);
-
-
-// ---------------------------------- [ Structures ] ---------------------------------------- //
-
-
-typedef Token* (*onTokenCreate_f)(struct _DFA*, Token*);
-typedef bool (*onTokenDelete_f)(struct _DFA*, Token*);
-typedef Token* (*getNextToken_f)(struct _DFA*);
-
-
-typedef struct _DFA {
-	Stack tokenStack;
-	Stack tokenBuffer;
-	Stack stateStack;
-	StateID currentStateId;
-	
-	onTokenCreate_f onTokenCreate;
-	onTokenDelete_f onTokenDelete;
-	getNextToken_f getNextToken;
-} DFA;
 
 
 // ------------------------------------------------------------------------------------------ //

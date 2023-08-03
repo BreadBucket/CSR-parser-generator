@@ -65,6 +65,10 @@ public:
 		return ((void*)stream == (void*)&fileStream);
 	}
 	
+	inline bool isVoid(){
+		return (isFile() & !fileStream.good());
+	}
+	
 	inline void close(){
 		fileStream.close();
 		stream = &fileStream;

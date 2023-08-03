@@ -76,16 +76,21 @@ void Generator::generateStateNames(const vector<State*>& states){
 
 
 void GeneratorTemplate::generateTokenEnum(ostream& out, const Tab& tab, const vector<shared_ptr<Symbol>>& symbols){
+	const Tab tab1 = tab + 1;
+	out << tab << "typedef enum {";
+	
 	for (int i = 0 ; i < symbols.size() ; i++){
 		if (i > 0)
-			out << ",\n";
+			out << ",";
 		
 		if (symbols[i]->cname.empty()){
 			throw CSRException("Internal error: Empty symbol c-name.");
 		}
 		
-		out << tab << symbols[i]->cname;
+		out << '\n' << tab1 << symbols[i]->cname;
 	}
+	
+	out << '\n' << tab << "} CSRTokenID;";
 }
 
 
@@ -121,7 +126,7 @@ public:
 Tab TemplateParser::getTab(const char* a, const char* b){
 	Tab tab = {};
 	
-	if (*a == 0){
+	if (!isspace(*a)){
 		return tab;
 	}
 	
@@ -129,8 +134,9 @@ Tab TemplateParser::getTab(const char* a, const char* b){
 	tab.n = 0;
 	
 	while (a != b){
-		if (*a == tab.c)
-			tab.n++;
+		if (*a != tab.c)
+			break;
+		tab.n++;
 		a++;
 	}
 	
@@ -156,11 +162,11 @@ bool TemplateParser::next(){
 	static const regex r = regex(
 		"^(?:"
 			"("
-				"([^\\S\n]*)//[^\\S\n]*[$]START[^\\S\n]+(\\S+)[^\\S\n]*[$].*?\n"
+				"([^\\S\n]*)//[^\\S\n]*[$]BEGIN[^\\S\n]+(\\S+)[^\\S\n]*.*?\n"
 				"([\\S\\s]*?)\n?"
-				"[^\\S\n]*//[^\\S\n]*?[$]END[^\\S\n]*[$].*?"
+				"[^\\S\n]*//[^\\S\n]*?[$]END[^\\S\n]*.*?"
 			")|("
-				"([^\\S\n]*)//[^\\S\n]*[$]MACRO[^\\S\n]+(\\S+)[^\\S\n]*[$].*?"
+				"(.*?)([^\\S\n]*)//[^\\S\n]*[$]MACRO[^\\S\n]+(\\S+)[^\\S\n]*.*?"
 			")|("
 				".*?"
 			")"
@@ -174,7 +180,8 @@ bool TemplateParser::next(){
 	const int i_region_arg = i_region_tab + 1;
 	const int i_region_body = i_region_arg + 1;
 	const int i_macro = i_region_body + 1;
-	const int i_macro_tab = i_macro + 1;
+	const int i_macro_body = i_macro + 1;
+	const int i_macro_tab = i_macro_body + 1;
 	const int i_macro_arg = i_macro_tab + 1;
 	const int i_text = i_macro_arg + 1;
 	
@@ -209,7 +216,7 @@ bool TemplateParser::next(){
 		// Macro
 		else if (m[i_macro].matched){
 			macro = m[i_macro_arg].str();
-			body.clear();
+			body = m[i_macro_body].str();
 			tab = getTab(m[i_macro_tab].first, m[i_macro_tab].second);
 			return true;
 		}
@@ -224,40 +231,86 @@ bool TemplateParser::next(){
 		continue;
 	}
 	
+	
 	return false;
 }
 
 
+// ----------------------------------- [ Functions ] ---------------------------------------- //
+
+void Generator::processTemplate(ostream& out, const char* data){
+	TemplateParser t = { out, data };
+	while (t.next()){
+		
+		// Regular content macros
+		if (t.macro == "enum"){
+			out << '\n';
+			GeneratorTemplate::generateTokenEnum(out, t.tab, symbols->getSymbols());
+		} else if (t.macro == "state_switch"){
+			out << '\n';
+			GeneratorTemplate::generateStateSwitch(out, t.tab, graph->states);
+		} else if (t.macro == "transition_switch"){
+			out << '\n';
+			GeneratorTemplate::generateTransitionSwitch(out, t.tab, graph->states);
+		} else if (t.macro == "reductions"){
+			out << '\n';
+			GeneratorTemplate::generateReductions(out, t.tab, graph->getReductions());
+		}
+		
+		// Main header macros
+		else if (t.macro == "include_header"){
+			if (!out_header.path.empty()){
+				out << '\n';
+				out << t.tab << "#include \"" << out_header.path << "\"";
+			}
+		} else if (t.macro == "_inline_header"){
+			if (out_tokenHeader.path.empty()){
+				out << '\n';
+				processTemplate(out, t.body.c_str());
+			}
+		} else if (t.macro == "inline_header"){
+			out << '\n';
+			processTemplate(out, data::template_DFA_inline_h);
+		}
+		
+		// Token header macros
+		else if (t.macro == "include_tokenHeader"){
+			if (!out_tokenHeader.path.empty()){
+				out << '\n';
+				out << t.tab << "#include \"" << out_tokenHeader.path << "\"";
+			}
+		} else if (t.macro == "include_tokenHeader-noMainHeader"){
+			if (!out_tokenHeader.path.empty() && out_header.path.empty()){
+				out << '\n';
+				out << t.tab << "#include \"" << out_tokenHeader.path << "\"";
+			}
+		} else if (t.macro == "_inline_tokenHeader"){
+			if (out_tokenHeader.path.empty()){
+				out << '\n';
+				processTemplate(out, t.body.c_str());
+			}
+		} else if (t.macro == "inline_tokenHeader"){
+			processTemplate(out, data::template_tokenHeader_inline_h);
+		}
+		
+	}
+};
+
+
 void Generator::generate(const Graph& graph, const SymbolEnum& symEnum){
-	// ofstream file = ofstream("obj/switch.c");
-	// ostream& out = file;
-	ostream& out = cout;
-	
-	
-	TemplateParser t = { out, data::template_DFA_c };
-	
+	this->graph = &graph;
+	this->symbols = &symEnum;
 	
 	generateSymbolNames(symEnum.getSymbols());
 	generateReductionNames(graph.getReductions());
 	generateStateNames(graph.states);
 	
-	
-	// writeTokenEnum(cout, {' ', 2}, symEnum.getSymbols());
-	// GeneratorTemplate::generateStateSwitch(cout, {' ', 2}, graph.states);
-	// GeneratorTemplate::generateReductions(cout, {' ', 2}, graph.getReductions());
-	
-	while (t.next()){
-		cout << '\n';
-		if (t.macro == "enum")
-			GeneratorTemplate::generateTokenEnum(out, t.tab, symEnum.getSymbols());
-		else if (t.macro == "state_switch")
-			GeneratorTemplate::generateStateSwitch(out, t.tab, graph.states);
-		else if (t.macro == "transition_switch")
-			GeneratorTemplate::generateTransitionSwitch(out, t.tab, graph.states);
-		else if (t.macro == "reductions")
-			GeneratorTemplate::generateReductions(out, t.tab, graph.getReductions());
-	}
-	
+	if (!out.isVoid())
+		processTemplate(out, data::template_DFA_c);
+	if (!out_header.isVoid())
+		processTemplate(out_header, data::template_DFA_h);
+	if (!out_tokenHeader.isVoid())
+		processTemplate(out_tokenHeader, data::template_TokenHeader_h);
 	
 }
 

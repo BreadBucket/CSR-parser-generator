@@ -3,6 +3,9 @@
 #include <stdarg.h>
 #include <stdlib.h>
 
+#include "template_DFA.h"		// $MACRO delete
+// $MACRO include_header
+// $MACRO include_tokenHeader-noMainHeader
 
 // ---------------------------------- [ Definitions ] --------------------------------------- //
 
@@ -12,21 +15,14 @@
 #endif
 
 
-// ----------------------------------- [ Structures ] --------------------------------------- //
-
-
-typedef enum _TokenID {
-	TOKEN_UNKNOWN,
-	// $MACRO enum $ //
-} TokenID;
-
-
+// $BEGIN _inline_header
 // ------------------------------------------------------------------------------------------ //
 
 
-#include "template_DFA.h"
+// $MACRO inline_header
 
 
+// $END
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
@@ -111,11 +107,11 @@ void DFA_init(DFA* dfa){
 // }
 
 
-void DFA_destroyToken(DFA* dfa, Token* token){
+void DFA_destroyToken(DFA* dfa, CSRToken* token){
 	if (dfa->onTokenDelete != NULL && !dfa->onTokenDelete(dfa, token)){
 		return;
 	} else {
-		Token** children = token->children;
+		CSRToken** children = token->children;
 		
 		for (int i = 0 ; i < token->childCount ; i++){
 			if (--(children[i]->refCount) <= 0)
@@ -132,7 +128,7 @@ void DFA_popTokens(DFA* dfa, int i){
 	Stack* const tokenStack = &dfa->tokenStack;
 	
 	for ( ; i > 0 ; i--){
-		Token* t = (Token*)Stack_pop(tokenStack);
+		CSRToken* t = (CSRToken*)Stack_pop(tokenStack);
 		if (--(t->refCount) <= 0)
 			DFA_destroyToken(dfa, t);
 	}
@@ -150,8 +146,8 @@ StateID DFA_popStates(DFA* dfa, int i){
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-Token* createToken(DFA* dfa, TokenID id, int childCount, ...){
-	Token* t = malloc(sizeof(Token));
+CSRToken* createToken(DFA* dfa, CSRTokenID id, int childCount, ...){
+	CSRToken* t = malloc(sizeof(CSRToken));
 	if (t == NULL)
 		return NULL;
 	
@@ -170,7 +166,7 @@ Token* createToken(DFA* dfa, TokenID id, int childCount, ...){
 		t->children[childCount] = NULL;
 		
 		for (int i = 0 ; i < childCount ; i++){
-			Token* child = va_arg(argp, Token*);
+			CSRToken* child = va_arg(argp, CSRToken*);
 			child->refCount++;
 			t->children[i] = child;
 		}
@@ -189,7 +185,7 @@ Token* createToken(DFA* dfa, TokenID id, int childCount, ...){
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-bool DFA_consume(DFA* dfa, Token* const currentToken){
+bool DFA_consume(DFA* dfa, CSRToken* const currentToken){
 	if (currentToken == NULL){
 		return false;
 	}
@@ -198,7 +194,7 @@ bool DFA_consume(DFA* dfa, Token* const currentToken){
 	Stack*  const tokenBuffer    = &dfa->tokenBuffer;
 	Stack*  const stateStack     = &dfa->stateStack;
 	StateID const currentStateId = dfa->currentStateId;
-	TokenID const currentTokenId = currentToken->id;
+	CSRTokenID const currentTokenId = currentToken->id;
 	
 	StateID nextStateId = 0;
 	bool halt = false;
@@ -208,13 +204,13 @@ bool DFA_consume(DFA* dfa, Token* const currentToken){
 	Stack_push(tokenStack, currentToken);
 	
 	
-	// $MACRO state_switch$ //
+	// $MACRO state_switch //
 	return false; // Unknown state: Halt
 	
 	
 	// Select `nextStateId` or a reduction
 	goto __STATE_END;
-	// $MACRO transition_switch$ //
+	// $MACRO transition_switch //
 	__STATE_END:
 	
 	
@@ -227,7 +223,7 @@ bool DFA_consume(DFA* dfa, Token* const currentToken){
 	// Reduction selections
 	goto __REDUCTIONS_END;
 	{
-		// $MACRO reductions$ //
+		// $MACRO reductions //
 	}
 	__REDUCTIONS_EPILOGUE:
 	__REDUCTIONS_END:
@@ -238,7 +234,7 @@ bool DFA_consume(DFA* dfa, Token* const currentToken){
 
 
 bool DFA_step(DFA* dfa){
-	Token* t;
+	CSRToken* t;
 	
 	if (dfa->tokenBuffer.count > 0)
 		t = Stack_pop(&dfa->tokenBuffer);
