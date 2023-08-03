@@ -58,30 +58,34 @@ obj/data.o: $(shell find "data/" -type f)
 .PHONY: compiler
 compiler:
 	rm -f "${compilerPath}"
-	@make "${compilerPath}"
+	@make "${compilerPath}" --no-print-directory
 	@echo "Done."
 
 ${compilerPath}:
-	mkdir -p "$(shell dirname "${compilerPath}")"
+	@mkdir -p "$(shell dirname "${compilerPath}")"
 	
 	@echo "Generating source list: ${compilerPath}"
-	@bash -c '																	\
-		printf "# Auto-generated file. Do not touch!\n\n" >"${compilerPath}" ;	\
-																				\
-		while read line; do														\
-			test -n "$${line}" && {												\
-				line=obj/$${line} ;												\
-				echo "$${line}" >>"${compilerPath}" ;							\
-				echo -e "\t@basename \"\$$@\"" >>"${compilerPath}" ;			\
-				echo -e "\t@g++ \$$(filter %.c %.cpp %.inc, \$$^) \$${inc} -c \$${gcc_options} -o \$$@" >>"${compilerPath}" ;	\
-				obj+=( $$(echo "$$line" | grep -oP "^\S+\.o") ) ;			\
-			};																\
-		done <<<"$$(g++ ${inc} -MM $$(${src_finder}))" ;					\
+	@bash -c '																\
+		temp="$$(mktemp)" ;													\
+		printf "# Auto-generated file. Do not touch!\n\n" >"$${temp}" ;		\
 																			\
-		echo "" >>"${compilerPath}" ;										\
-		echo "obj/program: obj/data.o $${obj[*]}" >>"${compilerPath}" ;		\
-		echo -e "\t@basename \"\$$@\"" >>"${compilerPath}" ;				\
-		echo -e "\t@g++ \$$^ \$${gcc_options} -o \$$@" >>"${compilerPath}"	\
+		while read line; do													\
+			test -n "$${line}" && {											\
+				line=obj/$${line} ;											\
+				echo "$${line}" >>"$${temp}" ;								\
+				echo -e "\t@basename \"\$$@\"" >>"$${temp}" ;				\
+				echo -e "\t@g++ \$$(filter %.c %.cpp %.inc, \$$^) \$${inc} -c \$${gcc_options} -o \$$@" >>"$${temp}" ;	\
+				obj+=( $$(echo "$$line" | grep -oP "^\S+\.o") ) ;		\
+			};															\
+		done <<<"$$(g++ ${inc} -MM $$(${src_finder}))" ;				\
+																		\
+		echo "" >>"$${temp}" ;											\
+		echo "obj/program: obj/data.o $${obj[*]}" >>"$${temp}" ;		\
+		echo -e "\t@basename \"\$$@\"" >>"$${temp}" ;					\
+		echo -e "\t@g++ \$$^ \$${gcc_options} -o \$$@" >>"$${temp}" ;	\
+																		\
+		cat "$${temp}" >"${compilerPath}" ;								\
+		rm "$${temp}"													\
 	'
 
 ifeq (,$(filter clean bake obj/data.o compiler,$(MAKECMDGOALS)))
