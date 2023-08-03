@@ -1,4 +1,5 @@
 #include "NamedStream.hpp"
+#include "stdexcept"
 
 using namespace std;
 
@@ -7,18 +8,18 @@ using namespace std;
 
 
 template <>
-void NamedStream<std::ostream>::open(std::string&& path){
+void NamedStream<ostream>::open(string&& path){
 	this->path.clear();
 	close();
 	
 	if (path.empty()){
-		throw std::ios_base::failure("Missing file path.");
+		throw runtime_error("Missing file path.");
 	} else if (path == "0"){
-		throw std::ios_base::failure("Invalid stream specifier: '" + path + "'.");
+		throw runtime_error("Invalid stream specifier: '" + path + "'.");
 	} else if (path == "1"){
-		stream = &std::cout;
+		stream = &cout;
 	} else if (path == "2"){
-		stream = &std::cerr;
+		stream = &cerr;
 	}
 	
 	// File
@@ -26,7 +27,7 @@ void NamedStream<std::ostream>::open(std::string&& path){
 		fileStream.open(path);
 		
 		if (fileStream.fail()){
-			throw std::ios_base::failure("Failed to create output file '" + path + "'.");
+			throw runtime_error("Failed to create output file '" + path + "'.");
 		}
 		
 		stream = &fileStream;
@@ -40,16 +41,16 @@ void NamedStream<std::ostream>::open(std::string&& path){
 
 
 template <>
-void NamedStream<std::istream>::open(std::string&& path){
+void NamedStream<istream>::open(string&& path){
 	this->path.clear();
 	close();
 	
 	if (path.empty()){
-		throw std::ios_base::failure("Missing file path.");
+		throw runtime_error("Missing file path.");
 	} else if (path == "0"){
-		stream = &std::cin;
+		stream = &cin;
 	} else if (path == "1" || path == "2"){
-		throw std::ios_base::failure("Invalid stream specifier: '" + path + "'.");
+		throw runtime_error("Invalid stream specifier: '" + path + "'.");
 	}
 	
 	// File
@@ -57,7 +58,7 @@ void NamedStream<std::istream>::open(std::string&& path){
 		fileStream.open(path);
 		
 		if (fileStream.fail()){
-			throw std::ios_base::failure("Failed to create input file '" + path + "'.");
+			throw runtime_error("Failed to create input file '" + path + "'.");
 		}
 		
 		stream = &fileStream;
@@ -71,14 +72,14 @@ void NamedStream<std::istream>::open(std::string&& path){
 
 
 template <>
-void NamedStream<std::iostream>::open(std::string&& path){
+void NamedStream<iostream>::open(string&& path){
 	this->path.clear();
 	close();
 	
 	if (path.empty()){
-		throw std::ios_base::failure("Missing file path.");
+		throw runtime_error("Missing file path.");
 	} else if (path == "0" || path == "1" || path == "2"){
-		throw std::ios_base::failure("Invalid stream specifier: '" + path + "'.");
+		throw runtime_error("Invalid stream specifier: '" + path + "'.");
 	}
 	
 	// File
@@ -86,7 +87,7 @@ void NamedStream<std::iostream>::open(std::string&& path){
 		fileStream.open(path);
 		
 		if (fileStream.fail()){
-			throw std::ios_base::failure("Failed to create file '" + path + "'.");
+			throw runtime_error("Failed to create file '" + path + "'.");
 		}
 		
 		stream = &fileStream;

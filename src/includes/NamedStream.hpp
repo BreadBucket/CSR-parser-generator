@@ -71,8 +71,16 @@ public:
 	}
 	
 public:
+	/**
+	 * @brief 
+	 * @throws runtime_error when opening IO stream fails.
+	 */
 	void open(std::string&& path);
 	
+	/**
+	 * @brief 
+	 * @throws runtime_error when opening IO stream fails.
+	 */
 	inline void open(const std::string& path){
 		open(std::string(path));
 	}

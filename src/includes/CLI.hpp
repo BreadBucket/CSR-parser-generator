@@ -4,7 +4,10 @@
 namespace CLI {
 	extern std::string programName;
 	extern std::string inputFilePath;
+	
 	extern std::string outputFilePath;
+	extern std::string outputHeaderFilePath;
+	extern std::string outputHeaderFilePath_token;
 	
 	extern std::string graph_outputFilePath;
 	extern std::string graph_outputFormat;

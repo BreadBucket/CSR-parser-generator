@@ -7,6 +7,7 @@ extern "C" {
 #include <cstdint>
 #include <cstring>
 #include <string>
+#include <unordered_set>
 #include <stdexcept>
 #include <iostream>
 
@@ -21,8 +22,11 @@ using namespace CLI;
 
 namespace CLI {
 	string programName = "program";
-	string inputFilePath = "";
-	string outputFilePath = "0";
+	string inputFilePath = "";	// Empty opens '0' if not tty.
+	
+	string outputFilePath = "1";
+	string outputHeaderFilePath = "";
+	string outputHeaderFilePath_token = "";
 	
 	string graph_outputFilePath = "";
 	string graph_outputFormat = "";
@@ -45,6 +49,8 @@ enum OptionID : int {
 	HELP,
 	IN,
 	OUT,
+	OUT_HEADER,
+	OUT_HEADER_TOKEN,
 	GRAPH_OUTPATH,
 	GRAPH_FORMAT,
 	UNICODE,
@@ -55,14 +61,16 @@ enum OptionID : int {
 } selected_opt;
 
 
-const char* const short_options = "i:o:g:t:pa";
+const char* const short_options = "i:o:h:g::t:pa";
 
 
 const struct option long_options[] = {
 	{"help",        no_argument,       (int*)&selected_opt, OptionID::HELP             },
 	{"input",       required_argument, (int*)&selected_opt, OptionID::IN               },
 	{"output",      required_argument, (int*)&selected_opt, OptionID::OUT              },
-	{"graph",       required_argument, (int*)&selected_opt, OptionID::GRAPH_OUTPATH    },
+	{"header",      required_argument, (int*)&selected_opt, OptionID::OUT_HEADER       },
+	{"tokenHeader", required_argument, (int*)&selected_opt, OptionID::OUT_HEADER_TOKEN },
+	{"graph",       optional_argument, (int*)&selected_opt, OptionID::GRAPH_OUTPATH    },
 	{"graphFormat", required_argument, (int*)&selected_opt, OptionID::GRAPH_FORMAT     },
 	{"ascii",       no_argument,       (int*)&selected_opt, OptionID::ASCII            },
 	{"tabSize",     required_argument, (int*)&selected_opt, OptionID::TAB_SIZE         },
@@ -80,6 +88,8 @@ OptionID shortOptionToLong(char c){
 			return OptionID::IN;
 		case 'o':
 			return OptionID::OUT;
+		case 'h':
+			return OptionID::OUT_HEADER;
 		case 'g':
 			return OptionID::GRAPH_OUTPATH;
 		case 't':
@@ -134,6 +144,16 @@ void CLI::parse(int argc, char const* const* argv){
 	programName = v[0];
 	int prevOpt = optind;
 	
+	
+	// Mark already processed options
+	unordered_set<OptionID> marked = {};
+	auto mark = [&](OptionID id){
+		auto p = marked.emplace(id);
+		if (!get<1>(p))
+			throw runtime_error(string("Duplicate argument forbidden: '").append(v[prevOpt]).append("'."));
+	};
+	
+	
 	while (true){
 		selected_opt = OptionID::NONE;
 		const int c = getopt_long(argc, (char* const*)v, short_options, long_options, NULL);
@@ -154,6 +174,7 @@ void CLI::parse(int argc, char const* const* argv){
 			break;
 		}
 		
+		
 		// Handle long options
 		switch (selected_opt){
 			
@@ -162,31 +183,37 @@ void CLI::parse(int argc, char const* const* argv){
 				break;
 			
 			case OptionID::IN:
-				if (inputFilePath.empty())
-					inputFilePath = optarg;
-				else
-					throw runtime_error(string("Input file already specified, additional argument forbidden: '").append(v[optind-1]).append("'."));
+				mark(selected_opt);
+				inputFilePath = optarg;
 				break;
 			
 			case OptionID::OUT:
-				if (outputFilePath.empty())
-					outputFilePath = optarg;
-				else
-					throw runtime_error(string("Output file already specified, additional argument forbidden: '").append(v[optind-1]).append("'."));
+				mark(selected_opt);
+				outputFilePath = optarg;
+				break;
+			
+			case OptionID::OUT_HEADER:
+				mark(selected_opt);
+				outputHeaderFilePath = optarg;
+				break;
+			
+			case OptionID::OUT_HEADER_TOKEN:
+				mark(selected_opt);
+				outputHeaderFilePath_token = optarg;
 				break;
 			
 			case OptionID::GRAPH_OUTPATH:
-				if (graph_outputFilePath.empty())
+				if (optarg != nullptr){
+					mark(selected_opt);
 					graph_outputFilePath = optarg;
-				else
-					throw runtime_error(string("Graph output file already specified, additional argument forbidden: '").append(v[optind-1]).append("'."));
+				} else {
+					graph_outputFilePath = "1";
+				}
 				break;
 			
 			case OptionID::GRAPH_FORMAT:
-				if (graph_outputFormat.empty())
-					graph_outputFormat = optarg;
-				else
-					throw runtime_error(string("Graph output format file already specified, additional argument forbidden: '").append(v[optind-1]).append("'."));
+				mark(selected_opt);
+				graph_outputFormat = optarg;
 				break;
 			
 			case OptionID::TAB_SIZE:
@@ -215,13 +242,9 @@ void CLI::parse(int argc, char const* const* argv){
 	
 	// Non-option arguments
 	while (optind < argc){
-		
-		if (inputFilePath.empty()){
-			inputFilePath = v[optind];
-		} else {
-			throw runtime_error(string("Input file already specified, additional argument forbidden: '").append(v[optind]).append("'."));
-		}
-		
+		prevOpt = optind;	// optind moved to first non-opt argument
+		mark(OptionID::IN);
+		inputFilePath = v[optind];
 		optind++;
 	}
 	
@@ -238,6 +261,8 @@ void CLI::clear(){
 	programName = "program";
 	inputFilePath.clear();
 	outputFilePath = "1";
+	outputHeaderFilePath.clear();
+	outputHeaderFilePath_token.clear();
 	graph_outputFilePath.clear();
 	graph_outputFormat.clear();
 	verifyReduction = true;
