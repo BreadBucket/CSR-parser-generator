@@ -1,8 +1,8 @@
-#include "Generator.hpp"
-#include <fstream>
+#include <vector>
+#include <ostream>
 
-#include "ANSI.h"
 #include "Tab.hpp"
+#include "Graph.hpp"
 #include "CSRException.hpp"
 
 

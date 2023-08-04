@@ -1,19 +1,12 @@
 #include "Generator.hpp"
-#include <iostream>
-#include <fstream>
 #include <regex>
 
 #include "Tab.hpp"
 #include "data.hpp"
-#include "Warning.hpp"
 
 
 using namespace std;
 using namespace csr;
-
-
-// DEBUG
-#include "ANSI.h"
 
 
 // ----------------------------------- [ Prototypes ] --------------------------------------- //
@@ -72,29 +65,7 @@ void Generator::generateStateNames(const vector<State*>& states){
 }
 
 
-// ----------------------------------- [ Functions ] ---------------------------------------- //
-
-
-void GeneratorTemplate::generateTokenEnum(ostream& out, const Tab& tab, const vector<shared_ptr<Symbol>>& symbols){
-	const Tab tab1 = tab + 1;
-	out << tab << "typedef enum {";
-	
-	for (int i = 0 ; i < symbols.size() ; i++){
-		if (i > 0)
-			out << ",";
-		
-		if (symbols[i]->cname.empty()){
-			throw CSRException("Internal error: Empty symbol c-name.");
-		}
-		
-		out << '\n' << tab1 << symbols[i]->cname;
-	}
-	
-	out << '\n' << tab << "} CSRTokenID;";
-}
-
-
-// ----------------------------------- [ Structures ] --------------------------------------- //
+// ------------------------------------------------------------------------------------------ //
 
 
 struct TemplateParser {
@@ -118,9 +89,6 @@ public:
 	
 // ---------------------------------------------------------------- //
 };
-
-
-// ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
 Tab TemplateParser::getTab(const char* a, const char* b){

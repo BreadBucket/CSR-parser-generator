@@ -1,8 +1,10 @@
-#include "Generator.hpp"
-#include <fstream>
+#include <vector>
+#include <ostream>
 
 #include "Tab.hpp"
-#include "ANSI.h"
+#include "Reduction.hpp"
+#include "CSRException.hpp"
+
 
 using namespace std;
 using namespace csr;
