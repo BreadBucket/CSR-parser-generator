@@ -82,21 +82,24 @@ bool parseCLI(int argc, char const* const* argv){
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-Document* parseInput(const string& inputPath){
+Document* parseInput(const optional<string>& inputPath){
 	NamedStream<istream> in = {};
 	in.path = CLI::programName;
 	
 	// Pipe
-	if (inputPath.empty()){
+	if (!inputPath.has_value()){
 		if (!isatty(fileno(stdin))){
 			in.open("0");
 		} else {
 			err(CLI::programName, "No input file or pipe specified.\n");
 			return nullptr;
 		}
-	} else {
+	}
+	
+	// Path or std
+	else {
 		try {
-			in.open(inputPath);
+			in.open(*inputPath);
 			if (in.path.empty())
 				in.path = CLI::programName;
 		} catch (const exception& e){
@@ -133,16 +136,14 @@ Document* parseInput(const string& inputPath){
 
 
 bool handleGraphSerializationOption(const Graph& graph, const SymbolEnum& symEnum){
-	if (CLI::graph_outputFilePath.empty()){
+	if (!CLI::graph_outputFilePath.has_value()){
 		return true;
 	}
 	
-	const string& path = CLI::graph_outputFilePath;
-	const string& format = CLI::graph_outputFormat;
 	NamedStream<ostream> out;
 	
 	try {
-		out.open(CLI::graph_outputFilePath);
+		out.open(*CLI::graph_outputFilePath);
 	} catch (const exception& e){
 		err(CLI::programName, "Failed to open graph output file. %s\n", e.what());
 		return false;
@@ -155,24 +156,24 @@ bool handleGraphSerializationOption(const Graph& graph, const SymbolEnum& symEnu
 	
 	
 	// Get graph format
-	if (!CLI::graph_outputFormat.empty()){
-		if (CLI::graph_outputFormat.starts_with('.'))
-			gs.format = GraphSerializer::getFormat(CLI::graph_outputFormat);
+	if (CLI::graph_outputFormat.has_value()){
+		if (CLI::graph_outputFormat->starts_with('.'))
+			gs.format = GraphSerializer::getFormat(*CLI::graph_outputFormat);
 		else
-			gs.format = GraphSerializer::getFormat("." + CLI::graph_outputFormat);
+			gs.format = GraphSerializer::getFormat("." + *CLI::graph_outputFormat);
 	} else {
-		if (!out.path.empty())
-			gs.format = GraphSerializer::getFormat(CLI::graph_outputFilePath);
+		if (out.isFile())
+			gs.format = GraphSerializer::getFormat(*CLI::graph_outputFilePath);
 		else
 			gs.format = GraphSerializer::Format::TXT;
 	}
 	
 	// Verify format
 	if (gs.format == GraphSerializer::Format::UNKNOWN){
-		if (CLI::graph_outputFormat.empty())
-			err(CLI::programName, "Unknown graph format.\n");
+		if (CLI::graph_outputFormat.has_value())
+			err(CLI::programName, "Unknown graph format: \"%s\".", CLI::graph_outputFormat->c_str());
 		else
-			err(CLI::programName, "Unknown graph format: \"%s\".", CLI::graph_outputFormat.c_str());
+			err(CLI::programName, "Unknown graph format.\n");
 		return false;
 	}
 	
@@ -182,31 +183,52 @@ bool handleGraphSerializationOption(const Graph& graph, const SymbolEnum& symEnu
 }
 
 
+// ----------------------------------- [ Functions ] ---------------------------------------- //
+
+
 bool handleCodeGeneration(const Document& doc, const Graph& graph, const SymbolEnum& symEnum){
 	unique_ptr<Generator> generator = make_unique<Generator>();
 	
+	// Open default
+	if (!CLI::outputFilePath.has_value() &
+		!CLI::outputHeaderFilePath.has_value() &
+		!CLI::outputHeaderFilePath_token.has_value() &
+		!CLI::graph_outputFilePath.has_value()
+	){
+		try {
+			generator->out.open("1");
+		} catch (const exception& e){
+			err(CLI::programName, "Failed to open stdout for output. %s\n", e.what());
+			return false;
+		}
+	}
+	
+	
 	// Open output streams
 	try {
-		if (!CLI::outputFilePath.empty())
-			generator->out.open(CLI::outputFilePath);
+		if (CLI::outputFilePath.has_value())
+			generator->out.open(*CLI::outputFilePath);
 	} catch (const exception& e){
 		err(CLI::programName, "Failed to open output file. %s\n", e.what());
 		return false;
 	}
+	
 	try {
-		if (!CLI::outputHeaderFilePath.empty())
-			generator->out_header.open(CLI::outputHeaderFilePath);
+		if (CLI::outputHeaderFilePath.has_value())
+			generator->out_header.open(*CLI::outputHeaderFilePath);
 	} catch (const exception& e){
 		err(CLI::programName, "Failed to open output header file. %s\n", e.what());
 		return false;
 	}
+	
 	try {
-		if (!CLI::outputHeaderFilePath_token.empty())
-			generator->out_tokenHeader.open(CLI::outputHeaderFilePath_token);
+		if (CLI::outputHeaderFilePath_token.has_value())
+			generator->out_tokenHeader.open(*CLI::outputHeaderFilePath_token);
 	} catch (const exception& e){
 		err(CLI::programName, "Failed to open output token header file. %s\n", e.what());
 		return false;
 	}
+	
 	
 	// Run generator
 	try {
@@ -218,6 +240,7 @@ bool handleCodeGeneration(const Document& doc, const Graph& graph, const SymbolE
 		err(CLI::programName, "%s\n", e.what());
 		return false;
 	}
+	
 	
 	return true;
 }

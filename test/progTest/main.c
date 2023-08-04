@@ -124,6 +124,7 @@ int main(int argc, char const* const* argv){
 	f();
 	
 	
+	DFA_deinit(&dfa);
 	printf("================================\n");
 	return 0;
 }

@@ -44,7 +44,7 @@ typedef struct _DFA {
 
 
 bool Stack_init(Stack* stack);
-bool Stack_delete(Stack* stack);
+bool Stack_deinit(Stack* stack);
 bool Stack_rezerve(Stack* stack, int newSize);
 bool Stack_push(Stack* stack, void* value);
 void* Stack_pop(Stack* stack);
@@ -52,7 +52,7 @@ void* Stack_peek(Stack* stack);
 
 
 void DFA_init(DFA* dfa);
-void DFA_delete(DFA* dfa);
+void DFA_deinit(DFA* dfa);
 void DFA_destroyToken(DFA* dfa, CSRToken* token);
 void DFA_popTokens(DFA* dfa, int i);
 StateID DFA_popStates(DFA* dfa, int i);

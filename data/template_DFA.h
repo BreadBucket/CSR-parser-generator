@@ -16,7 +16,6 @@ struct _DFA;
 // ----------------------------------- [ Structures ] --------------------------------------- //
 
 
-
 // $MACRO inline_tokenHeader
 
 
@@ -67,7 +66,7 @@ bool Stack_init(Stack* stack);
  *        Deleting non-initialized objects results in undefined behaviour.
  * @param stack 
  */
-bool Stack_delete(Stack* stack);
+bool Stack_deinit(Stack* stack);
 
 bool Stack_rezerve(Stack* stack, int newSize);
 bool Stack_push(Stack* stack, void* value);
@@ -98,7 +97,7 @@ void DFA_init(struct _DFA* dfa);
  *        Deleting non-initialized objects results in undefined behaviour.
  * @param dfa 
  */
-void DFA_delete(struct _DFA* dfa);
+void DFA_deinit(struct _DFA* dfa);
 
 
 void DFA_destroyToken(struct _DFA* dfa, struct _CSRToken* token);

@@ -261,10 +261,10 @@ void Generator::processTemplate(ostream& out, const char* data){
 		else if (t.macro == "include_header"){
 			if (!out_header.path.empty()){
 				out << '\n';
-				out << t.tab << "#include \"" << out_header.path << "\"";
+				out << t.tab << "#include \"" << out_header.getFileName() << "\"";
 			}
 		} else if (t.macro == "_inline_header"){
-			if (out_tokenHeader.path.empty()){
+			if (out_header.path.empty()){
 				out << '\n';
 				processTemplate(out, t.body.c_str());
 			}
@@ -277,12 +277,12 @@ void Generator::processTemplate(ostream& out, const char* data){
 		else if (t.macro == "include_tokenHeader"){
 			if (!out_tokenHeader.path.empty()){
 				out << '\n';
-				out << t.tab << "#include \"" << out_tokenHeader.path << "\"";
+				out << t.tab << "#include \"" << out_tokenHeader.getFileName() << "\"";
 			}
 		} else if (t.macro == "include_tokenHeader-noMainHeader"){
 			if (!out_tokenHeader.path.empty() && out_header.path.empty()){
 				out << '\n';
-				out << t.tab << "#include \"" << out_tokenHeader.path << "\"";
+				out << t.tab << "#include \"" << out_tokenHeader.getFileName() << "\"";
 			}
 		} else if (t.macro == "_inline_tokenHeader"){
 			if (out_tokenHeader.path.empty()){
@@ -305,12 +305,12 @@ void Generator::generate(const Graph& graph, const SymbolEnum& symEnum){
 	generateReductionNames(graph.getReductions());
 	generateStateNames(graph.states);
 	
-	if (!out.isVoid())
-		processTemplate(out, data::template_DFA_c);
-	if (!out_header.isVoid())
-		processTemplate(out_header, data::template_DFA_h);
 	if (!out_tokenHeader.isVoid())
 		processTemplate(out_tokenHeader, data::template_TokenHeader_h);
+	if (!out_header.isVoid())
+		processTemplate(out_header, data::template_DFA_h);
+	if (!out.isVoid())
+		processTemplate(out, data::template_DFA_c);
 	
 }
 

@@ -82,10 +82,12 @@ static void writeTransitionSwitch(ostream& out, const Tab& tab, const vector<Con
 void GeneratorTemplate::generateTransitionSwitch(ostream& out, const Tab& tab, const vector<State*> states){
 	Tab tab1 = tab + 1;
 	
-	for (const State* state : states){
-		if (state != nullptr){
-			out << tab << "__" << state->cname << ": {\n";
-			writeTransitionSwitch(out, tab1, state->connections);
+	for (int i = 0 ; i < states.size() ; i++){
+		if (states[i] != nullptr){
+			if (i > 0)
+				out << '\n';
+			out << tab << "__" << states[i]->cname << ": {\n";
+			writeTransitionSwitch(out, tab1, states[i]->connections);
 			out << tab << "} goto __STATE_END;";
 		}
 	}

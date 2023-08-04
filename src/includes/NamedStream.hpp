@@ -61,19 +61,28 @@ public:
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 public:
-	inline bool isFile(){
+	inline bool isFile() const {
 		return ((void*)stream == (void*)&fileStream);
 	}
 	
-	inline bool isVoid(){
+	inline bool isVoid() const {
 		return (isFile() & !fileStream.good());
 	}
 	
-	inline void close(){
-		fileStream.close();
-		stream = &fileStream;
+	inline bool good() const {
+		return !isVoid();
 	}
 	
+public:
+	std::string getFileName() const {
+		return path.substr(path.find_last_of('/') + 1);
+	}
+	
+	std::string getDirName() const {
+		return path.substr(0, path.find_last_of('/') + 1);
+	}
+	
+// ----------------------------------- [ Functions ] ---------------------------------------- //
 public:
 	/**
 	 * @brief 
@@ -87,6 +96,11 @@ public:
 	 */
 	inline void open(const std::string& path){
 		open(std::string(path));
+	}
+	
+	inline void close(){
+		fileStream.close();
+		stream = &fileStream;
 	}
 	
 // ----------------------------------- [ Operators ] ---------------------------------------- //

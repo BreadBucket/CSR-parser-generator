@@ -16,7 +16,7 @@
 
 
 // $BEGIN _inline_header
-// ------------------------------------------------------------------------------------------ //
+// ----------------------------------- [ Structures ] --------------------------------------- //
 
 
 // $MACRO inline_header
@@ -34,7 +34,7 @@ bool Stack_init(Stack* stack){
 }
 
 
-bool Stack_delete(Stack* stack){
+bool Stack_deinit(Stack* stack){
 	stack->count = 0;
 	stack->size = 0;
 	free(stack->v);
@@ -100,11 +100,22 @@ void DFA_init(DFA* dfa){
 }
 
 
-// void DFA_delete(DFA* dfa){
-// 	Stack_delete(&dfa->tokenStack);
-// 	Stack_delete(&dfa->tokenBuffer);
-// 	Stack_delete(&dfa->stateStack);
-// }
+void DFA_unlinkTokens(DFA* dfa, CSRToken** v, int n){
+	for (int i = 0 ; i < n ; i++){
+		CSRToken* t = (CSRToken*)v[i];
+		if (--(t->refCount) <= 0)
+			DFA_destroyToken(dfa, t);
+	}
+}
+
+
+void DFA_deinit(DFA* dfa){
+	DFA_unlinkTokens(dfa, (CSRToken**)dfa->tokenStack.v, dfa->tokenStack.count);
+	DFA_unlinkTokens(dfa, (CSRToken**)dfa->tokenBuffer.v, dfa->tokenBuffer.count);
+	Stack_deinit(&dfa->tokenStack);
+	Stack_deinit(&dfa->tokenBuffer);
+	Stack_deinit(&dfa->stateStack);
+}
 
 
 void DFA_destroyToken(DFA* dfa, CSRToken* token){
@@ -190,9 +201,9 @@ bool DFA_consume(DFA* dfa, CSRToken* const currentToken){
 		return false;
 	}
 	
-	Stack*  const tokenStack     = &dfa->tokenStack;
-	Stack*  const tokenBuffer    = &dfa->tokenBuffer;
-	Stack*  const stateStack     = &dfa->stateStack;
+	Stack* const tokenStack  = &dfa->tokenStack;
+	Stack* const tokenBuffer = &dfa->tokenBuffer;
+	Stack* const stateStack  = &dfa->stateStack;
 	StateID const currentStateId = dfa->currentStateId;
 	CSRTokenID const currentTokenId = currentToken->id;
 	

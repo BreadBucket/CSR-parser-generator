@@ -6,7 +6,6 @@ extern "C" {
 
 #include <cstdint>
 #include <cstring>
-#include <string>
 #include <unordered_set>
 #include <stdexcept>
 #include <iostream>
@@ -22,14 +21,15 @@ using namespace CLI;
 
 namespace CLI {
 	string programName = "program";
-	string inputFilePath = "";	// Empty opens '0' if not tty.
 	
-	string outputFilePath = "1";
-	string outputHeaderFilePath = "";
-	string outputHeaderFilePath_token = "";
+	optional<string> inputFilePath;
 	
-	string graph_outputFilePath = "";
-	string graph_outputFormat = "";
+	optional<string> outputFilePath;
+	optional<string> outputHeaderFilePath;
+	optional<string> outputHeaderFilePath_token;
+	
+	optional<string> graph_outputFilePath;
+	optional<string> graph_outputFormat;
 	
 	bool verifyReduction = true;
 	
@@ -259,12 +259,12 @@ void CLI::parse(int argc, char const* const* argv){
 
 void CLI::clear(){
 	programName = "program";
-	inputFilePath.clear();
-	outputFilePath = "1";
-	outputHeaderFilePath.clear();
-	outputHeaderFilePath_token.clear();
-	graph_outputFilePath.clear();
-	graph_outputFormat.clear();
+	inputFilePath.reset();
+	outputFilePath.reset();
+	outputHeaderFilePath.reset();
+	outputHeaderFilePath_token.reset();
+	graph_outputFilePath.reset();
+	graph_outputFormat.reset();
 	verifyReduction = true;
 	unicode = true;
 	ansi = true;
