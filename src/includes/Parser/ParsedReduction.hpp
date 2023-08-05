@@ -1,6 +1,7 @@
 #pragma once
 #include <string>
 #include <vector>
+#include <memory>
 
 #include "SourceString.hpp"
 #include "ParsedSymbol.hpp"
@@ -17,8 +18,8 @@ public:
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 public:
-	static bool distinct(const std::vector<ParsedReduction>& v, int* out_first = nullptr, int* out_second = nullptr);
-	static bool validateSize(const std::vector<ParsedReduction>& v, int* out_i);
+	static bool distinct(const std::vector<std::shared_ptr<ParsedReduction>>& v, int* out_first = nullptr, int* out_second = nullptr);
+	static bool validateSize(const std::vector<std::shared_ptr<ParsedReduction>>& v, int* out_i);
 	
 // ------------------------------------------------------------------------------------------ //
 };

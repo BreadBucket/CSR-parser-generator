@@ -2,10 +2,12 @@
 #include <vector>
 #include <memory>
 
-#include "ParsedReduction.hpp"
-#include "SymbolEnum.hpp"
-#include "Symbol.hpp"
-#include "Reduction.hpp"
+
+namespace csr {
+	class ParsedReduction;
+	class Reduction;
+	class SymbolEnum;
+}
 
 
 namespace csr {
@@ -17,7 +19,7 @@ namespace csr {
 	 * @param v List of parsed reductions.
 	 */
 	void convertReductions(
-		const std::vector<ParsedReduction>& in_parsedReductions,
+		const std::vector<std::shared_ptr<ParsedReduction>>& in_parsedReductions,
 		std::vector<std::shared_ptr<Reduction>>& out_reductions,
 		SymbolEnum& symEnum
 	);

@@ -2,25 +2,28 @@
 #include <vector>
 #include <memory>
 
-#include "SourceString.hpp"
-#include "ParsedReduction.hpp"
-#include "SymbolEnum.hpp"
-#include "Graph.hpp"
-
 
 namespace csr {
-class Document {
+	class Reduction;
+	class ParsedReduction;
+	class SourceString;
+	class SymbolEnum;
+	class Graph;
+	class Document;
+}
+
+
+class csr::Document {
 // ------------------------------------[ Properties ] --------------------------------------- //
 public:
 	std::string name;
-	std::vector<ParsedReduction> parsedReductions;
+	std::vector<std::shared_ptr<ParsedReduction>> parsedReductions;
 	std::vector<SourceString> code;
 	
 public:
 	std::vector<std::shared_ptr<Reduction>> reductions;
-	SymbolEnum symEnum;
-	Graph graph;
+	std::shared_ptr<SymbolEnum> symEnum;
+	std::shared_ptr<Graph> graph;
 	
 // ------------------------------------------------------------------------------------------ //	
 };
-}

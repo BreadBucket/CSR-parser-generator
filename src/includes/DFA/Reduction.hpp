@@ -4,11 +4,11 @@
 #include <variant>
 #include <memory>
 
-#include "Symbol.hpp"
-
 
 namespace csr {
+	class Symbol;
 	class Reduction;
+	class ParsedReduction;
 	typedef int ReductionID;
 };
 
@@ -31,6 +31,9 @@ public:
 	ReductionID id;
 	std::vector<std::shared_ptr<Symbol>> left;
 	std::vector<RightSymbol> right;
+	
+public:
+	std::shared_ptr<ParsedReduction> sourceReduction;
 	std::string cname;
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //

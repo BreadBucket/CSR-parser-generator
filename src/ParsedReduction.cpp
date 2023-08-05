@@ -26,11 +26,13 @@ bool equals(const vector<ParsedSymbol>& a, const vector<ParsedSymbol>& b){
 }
 
 
-bool ParsedReduction::distinct(const vector<ParsedReduction>& v, int* a, int* b){
+bool ParsedReduction::distinct(const vector<shared_ptr<ParsedReduction>>& v, int* a, int* b){
 	for (int  i = 0   ;  i < v.size() ;  i++){
 	for (int ii = i+1 ; ii < v.size() ; ii++){
 		
-		if (equals(v[i].left, v[ii].left)){
+		if (v[i] == nullptr || v[ii] == nullptr)
+			continue;
+		else if (equals(v[i]->left, v[ii]->left)){
 			if (a != nullptr)
 				*a = i;
 			if (b != nullptr)
@@ -46,9 +48,11 @@ bool ParsedReduction::distinct(const vector<ParsedReduction>& v, int* a, int* b)
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-bool ParsedReduction::validateSize(const vector<ParsedReduction>& v, int* out_i){
+bool ParsedReduction::validateSize(const vector<shared_ptr<ParsedReduction>>& v, int* out_i){
 	for (int i = 0 ; i < v.size() ; i++){
-		if (v[i].left.size() < v[i].right.size()){
+		if (v[i] == nullptr)
+			continue;
+		else if (v[i]->left.size() < v[i]->right.size()){
 			if (out_i != nullptr)
 				*out_i = i;
 			return false;

@@ -2,6 +2,8 @@
 #include <ostream>
 
 #include "Tab.hpp"
+#include "Symbol.hpp"
+#include "Reduction.hpp"
 #include "Graph.hpp"
 #include "CSRException.hpp"
 

@@ -1,6 +1,6 @@
 #pragma once
-#include "CSRException.hpp"
 #include "SourceString.hpp"
+#include "CSRException.hpp"
 
 
 namespace csr {

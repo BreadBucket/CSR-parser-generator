@@ -2,11 +2,14 @@
 #include <string>
 #include <ostream>
 
-#include "Document.hpp"
-
 
 namespace csr {
-class GraphSerializer {
+	class Document;
+	class GraphSerializer;
+}
+
+
+class csr::GraphSerializer {
 // ---------------------------------- [ Structures ] ---------------------------------------- //
 public:
 	enum class Format {
@@ -30,4 +33,3 @@ public:
 	
 // ------------------------------------------------------------------------------------------ //
 };
-}

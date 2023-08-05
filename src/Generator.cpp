@@ -2,6 +2,11 @@
 #include <regex>
 
 #include "Tab.hpp"
+#include "Symbol.hpp"
+#include "SymbolEnum.hpp"
+#include "Reduction.hpp"
+#include "Document.hpp"
+#include "Graph.hpp"
 #include "data.hpp"
 
 
@@ -16,7 +21,7 @@ namespace csr::GeneratorTemplate {
 	void generateTokenEnum(ostream& out, const Tab& tab, const vector<shared_ptr<Symbol>>& symbols);
 	void generateStateSwitch(ostream& out, const Tab& tab, const vector<State*> states);
 	void generateTransitionSwitch(ostream& out, const Tab& tab, const vector<State*> states);
-	void generateReductions(ostream& out, const Tab& tab, const vector<shared_ptr<Reduction>>& reductions);
+	void generateReductions(ostream& out, const Tab& tab, Document& doc);
 }
 
 
@@ -125,7 +130,6 @@ Tab TemplateParser::getTab(const char* a, const char* b){
 };
 
 
-
 bool TemplateParser::next(){
 	static const regex r = regex(
 		"^(?:"
@@ -206,6 +210,7 @@ bool TemplateParser::next(){
 
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
+
 void Generator::processTemplate(ostream& out, const char* data){
 	TemplateParser t = { out, data };
 	while (t.next()){
@@ -213,16 +218,16 @@ void Generator::processTemplate(ostream& out, const char* data){
 		// Regular content macros
 		if (t.macro == "enum"){
 			out << '\n';
-			GeneratorTemplate::generateTokenEnum(out, t.tab, doc->symEnum.getSymbols());
+			GeneratorTemplate::generateTokenEnum(out, t.tab, doc->symEnum->getSymbols());
 		} else if (t.macro == "state_switch"){
 			out << '\n';
-			GeneratorTemplate::generateStateSwitch(out, t.tab, doc->graph.states);
+			GeneratorTemplate::generateStateSwitch(out, t.tab, doc->graph->states);
 		} else if (t.macro == "transition_switch"){
 			out << '\n';
-			GeneratorTemplate::generateTransitionSwitch(out, t.tab, doc->graph.states);
+			GeneratorTemplate::generateTransitionSwitch(out, t.tab, doc->graph->states);
 		} else if (t.macro == "reductions"){
 			out << '\n';
-			GeneratorTemplate::generateReductions(out, t.tab, doc->reductions);
+			GeneratorTemplate::generateReductions(out, t.tab, *doc);
 		}
 		
 		// Main header macros
@@ -266,11 +271,13 @@ void Generator::processTemplate(ostream& out, const char* data){
 
 
 void Generator::generate(Document& doc){
+	if (doc.symEnum == nullptr || doc.graph == nullptr)
+		return;
 	this->doc = &doc;
 	
-	generateSymbolNames(doc.symEnum.getSymbols());
+	generateSymbolNames(doc.symEnum->getSymbols());
 	generateReductionNames(doc.reductions);
-	generateStateNames(doc.graph.states);
+	generateStateNames(doc.graph->states);
 	
 	if (!out_tokenHeader.isVoid())
 		processTemplate(out_tokenHeader, data::template_TokenHeader_h);

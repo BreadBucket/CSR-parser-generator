@@ -1,8 +1,10 @@
 #include "AliasResolver.hpp"
-
 #include <unordered_map>
 
 #include "ParsedSymbol.hpp"
+#include "ParsedReduction.hpp"
+#include "Reduction.hpp"
+#include "SymbolEnum.hpp"
 #include "ParserException.hpp"
 #include "Error.hpp"
 
@@ -27,7 +29,7 @@ private:
 	
 // ---------------------------------------------------------------- //
 public:
-	void resolve(const ParsedReduction&);
+	void resolve(const shared_ptr<ParsedReduction>&);
 	
 private:
 	void resolveLeft();
@@ -49,11 +51,14 @@ private:
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-void AliasResolver::resolve(const ParsedReduction& r){
-	this->parsedReduction = &r;
+void AliasResolver::resolve(const shared_ptr<ParsedReduction>& pr){
+	this->parsedReduction = pr.get();
 	
-	this->reduction = new Reduction();
-	this->reduction->id = ReductionID(reductions->size());
+	Reduction* r = new Reduction();
+	r->id = ReductionID(reductions->size());
+	r->sourceReduction = pr;
+	
+	this->reduction = r;
 	reductions->emplace_back(this->reduction);
 	
 	aliases.clear();
@@ -62,13 +67,14 @@ void AliasResolver::resolve(const ParsedReduction& r){
 }
 
 
-void csr::convertReductions(const vector<ParsedReduction>& v, vector<shared_ptr<Reduction>>& r, SymbolEnum& e){
+void csr::convertReductions(const vector<shared_ptr<ParsedReduction>>& v, vector<shared_ptr<Reduction>>& r, SymbolEnum& e){
 	AliasResolver o = {};
 	o.reductions = &r;
 	o.symEnum = &e;
 	
-	for (const ParsedReduction& pr : v){
-		o.resolve(pr);
+	for (const shared_ptr<ParsedReduction>& pr : v){
+		if (pr != nullptr)
+			o.resolve(pr);
 	}
 	
 }

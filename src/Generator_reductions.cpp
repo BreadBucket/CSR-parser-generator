@@ -1,8 +1,11 @@
 #include <vector>
 #include <ostream>
 
+#include "utils.hpp"
 #include "Tab.hpp"
+#include "Symbol.hpp"
 #include "Reduction.hpp"
+#include "Document.hpp"
 #include "CSRException.hpp"
 
 
@@ -14,7 +17,7 @@ using namespace csr;
 
 
 namespace csr::GeneratorTemplate {
-	void generateReductions(ostream& out, const Tab& tab, const vector<shared_ptr<Reduction>>& reductions);
+	void generateReductions(ostream& out, const Tab& tab, Document& doc);
 }
 
 
@@ -115,20 +118,20 @@ static void writeReduction(ostream& out, const Tab& tab, const Reduction& r){
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-void GeneratorTemplate::generateReductions(ostream& out, const Tab& tab, const vector<shared_ptr<Reduction>>& reductions){
+void GeneratorTemplate::generateReductions(ostream& out, const Tab& tab, Document& doc){
 	const Tab tab1 = tab + 1;
 	
-	for (const shared_ptr<Reduction>& r : reductions){
-		if (r != nullptr){
-			if (r != *reductions.begin())
-				out << '\n';
-			
-			out << tab << "__" << r->cname << ": { ";
-			writeReductionComment(out, *r);
+	for (const shared_ptr<Reduction>& r : doc.reductions){
+		if (r == nullptr)
+			continue;
+		else if (r != *doc.reductions.begin())
 			out << '\n';
-			writeReduction(out, tab1, *r);
-			out << tab << "} goto __REDUCTIONS_EPILOGUE;\n";
-		}
+		
+		out << tab << "__" << r->cname << ": { ";
+		writeReductionComment(out, *r);
+		out << '\n';
+		writeReduction(out, tab1, *r);
+		out << tab << "} goto __REDUCTIONS_EPILOGUE;\n";
 	}
 }
 

@@ -4,10 +4,11 @@
 #include <deque>
 #include <memory>
 
-#include "Symbol.hpp"
-#include "Reduction.hpp"
-#include "CSRException.hpp"
 
+namespace csr {
+	class Symbol;
+	class Reduction;
+}
 
 
 namespace csr {

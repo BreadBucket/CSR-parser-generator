@@ -4,10 +4,13 @@
 #include <memory>
 
 #include "NamedStream.hpp"
-#include "Document.hpp"
 
 
 namespace csr {
+	class Symbol;
+	class Reduction;
+	class State;
+	class Document;
 	class Generator;
 }
 

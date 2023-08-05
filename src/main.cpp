@@ -16,12 +16,14 @@ extern "C" {
 #include "ANSI.h"
 #include "NamedStream.hpp"
 #include "CLI.hpp"
+#include "ParsedReduction.hpp"
 #include "Parser.hpp"
 #include "SymbolEnum.hpp"
 #include "AliasResolver.hpp"
 #include "Graph.hpp"
 #include "GraphSerializer.hpp"
 #include "Generator.hpp"
+#include "Document.hpp"
 #include "data.hpp"
 #include "Error.hpp"
 
@@ -88,17 +90,12 @@ bool parseInput(const optional<string>& inputPath, Document& doc){
 		doc.name = CLI::programName;
 	
 	
+	unique_ptr<Parser> parser = make_unique<Parser>();
+	
 	// Parse
 	try {
-		unique_ptr<Parser> parser = make_unique<Parser>();
-		
 		parser->tabSize = CLI::tabSize;
 		parser->parse(in);
-		
-		// Transfer parser results
-		doc.parsedReductions = move(parser->reductions);
-		doc.code = move(parser->code);
-		
 	} catch (const ParserException& e) {
 		err(in.path, e.loc, "%s\n", e.what());
 		return false;
@@ -106,6 +103,16 @@ bool parseInput(const optional<string>& inputPath, Document& doc){
 		err(CLI::programName, "%s\n", e.what());
 		return false;
 	}
+	
+	
+	// Move parsed data
+	doc.parsedReductions.clear();
+	doc.parsedReductions.reserve(parser->reductions.size());
+	for (ParsedReduction& r : parser->reductions){
+		doc.parsedReductions.emplace_back(make_shared<ParsedReduction>(move(r)));
+	}
+	
+	doc.code = move(parser->code);
 	
 	
 	return true;
@@ -232,14 +239,14 @@ bool handleCodeGeneration(Document& doc){
 bool validateReduction(const Document& doc){
 	int i;
 	if (CLI::verifyReduction && !ParsedReduction::validateSize(doc.parsedReductions, &i)){
-		err(doc.name, doc.parsedReductions[i].loc, "Reduction produces more symbols than it consumes.\n");
+		err(doc.name, doc.parsedReductions[i]->loc, "Reduction produces more symbols than it consumes.\n");
 		return false;
 	}
 	
 	int a, b;
 	if (!ParsedReduction::distinct(doc.parsedReductions, &a, &b)){
-		err(doc.name, doc.parsedReductions[b].loc, "Duplicate left side of reduction. Previously declared at " ANSI_BOLD);
-		errLoc(doc.name, doc.parsedReductions[a].loc);
+		err(doc.name, doc.parsedReductions[b]->loc, "Duplicate left side of reduction. Previously declared at " ANSI_BOLD);
+		errLoc(doc.name, doc.parsedReductions[a]->loc);
 		fprintf(stderr, ANSI_RESET ".\n");
 		return false;
 	}
@@ -275,7 +282,8 @@ int main(int argc, char const* const* argv){
 	
 	// Enumerate symbols and create reductions
 	try {
-		convertReductions(doc->parsedReductions, doc->reductions, doc->symEnum);
+		doc->symEnum = make_shared<SymbolEnum>();
+		convertReductions(doc->parsedReductions, doc->reductions, *doc->symEnum);
 	} catch (const ParserException& e){
 		err(doc->name, e.loc, "%s\n", e.what());
 		return 1;
@@ -286,7 +294,8 @@ int main(int argc, char const* const* argv){
 	
 	
 	// Build graph
-	doc->graph.build(doc->reductions);
+	doc->graph = make_shared<Graph>();
+	doc->graph->build(doc->reductions);
 	
 	
 	// Serialize graph

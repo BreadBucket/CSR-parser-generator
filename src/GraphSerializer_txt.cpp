@@ -1,6 +1,11 @@
 #include "GraphSerializer.hpp"
 
 #include "utils.hpp"
+#include "Symbol.hpp"
+#include "SymbolEnum.hpp"
+#include "Reduction.hpp"
+#include "Graph.hpp"
+#include "Document.hpp"
 
 using namespace std;
 using namespace csr;
@@ -327,14 +332,20 @@ void Serializer::writeGraph(const Graph& graph){
 void GraphSerializer::serialize_txt(ostream& out, const Document& doc){
 	Serializer serializer = {*this, out};
 	
-	serializer.writeSymbols(doc.symEnum);
-	out << "\n";
+	if (doc.symEnum != nullptr){
+		serializer.writeSymbols(*doc.symEnum);
+		out << "\n";
+	}
+	
 	serializer.writeReductions(doc.reductions);
 	out << "\n";
-	serializer.writeConnections(doc.graph.connections);
-	out << "\n";
-	serializer.writeGraph(doc.graph);
-	out << '\n';
+	
+	if (doc.graph != nullptr){
+		serializer.writeConnections(doc.graph->connections);
+		out << "\n";
+		serializer.writeGraph(*doc.graph);
+		out << '\n';
+	}
 	
 }
 

@@ -1,6 +1,9 @@
 #include "Graph.hpp"
-
 #include <unordered_set>
+
+#include "Symbol.hpp"
+#include "Reduction.hpp"
+#include "CSRException.hpp"
 
 
 using namespace std;
@@ -10,73 +13,73 @@ using namespace csr;
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-// DEBUG
-#include "ANSI.h"
-// #define STR(obj)	str(obj)
-// #define CSTR(obj)	str(obj).c_str()
-// #define PRINTF(...) printf(__VA_ARGS__)
+// // DEBUG
+// // #include "ANSI.h"
+// // #define STR(obj)	str(obj)
+// // #define CSTR(obj)	str(obj).c_str()
+// // #define PRINTF(...) printf(__VA_ARGS__)
 #define PRINTF(...)
 
 
-// DEBUG
-string str(Symbol* symbol){
-	if (symbol != nullptr)
-		return symbol->name;
-	else
-		return "null";
-}
+// // DEBUG
+// string str(Symbol* symbol){
+// 	if (symbol != nullptr)
+// 		return symbol->name;
+// 	else
+// 		return "null";
+// }
 
 
-// DEBUG
-string str(const Item& item){
-	string s = {};
+// // DEBUG
+// string str(const Item& item){
+// 	string s = {};
 	
-	auto add = [&](int i, int n){
-		if (n <= 0){
-			s += "ϵ";
-		} else {
-			while (n > 0){
-				s += str(item.symbols[i]);
-				s += " ";
-				i++;
-				n--;
-			}
-			s.pop_back();
-		}
-	};
+// 	auto add = [&](int i, int n){
+// 		if (n <= 0){
+// 			s += "ϵ";
+// 		} else {
+// 			while (n > 0){
+// 				s += str(item.symbols[i]);
+// 				s += " ";
+// 				i++;
+// 				n--;
+// 			}
+// 			s.pop_back();
+// 		}
+// 	};
 	
-	add(item.iobserved(), item.observed);
-	s += " • ";
-	add(item.imissing(), item.missing);
-	s += " + ";
-	add(item.iextra(), item.extra);
+// 	add(item.iobserved(), item.observed);
+// 	s += " • ";
+// 	add(item.imissing(), item.missing);
+// 	s += " + ";
+// 	add(item.iextra(), item.extra);
 	
-	return s;
-}
+// 	return s;
+// }
 
 
-// DEBUG
-string str(const State& state){
-	string s = "S" + to_string(state.id) + ":\n";
+// // DEBUG
+// string str(const State& state){
+// 	string s = "S" + to_string(state.id) + ":\n";
 	
-	for (const Item& item : state.items){
-		s += "  ";
-		s += str(item);
-		s += "\n";
-	}
+// 	for (const Item& item : state.items){
+// 		s += "  ";
+// 		s += str(item);
+// 		s += "\n";
+// 	}
 	
-	if (state.emptyItems != nullptr){
-		for (const Item& item : *state.emptyItems){
-			s += "  [";
-			s += str(item);
-			s += "]\n";
-		}
-	}
+// 	if (state.emptyItems != nullptr){
+// 		for (const Item& item : *state.emptyItems){
+// 			s += "  [";
+// 			s += str(item);
+// 			s += "]\n";
+// 		}
+// 	}
 	
-	if (s.size() > 0 && s.back() == '\n')
-		s.pop_back();
-	return s;
-}
+// 	if (s.size() > 0 && s.back() == '\n')
+// 		s.pop_back();
+// 	return s;
+// }
 
 
 // // DEBUG
