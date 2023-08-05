@@ -2,20 +2,18 @@
 #include <vector>
 #include <memory>
 #include <istream>
-#include <stdexcept>
 
 #include "ParsedReduction.hpp"
 #include "ParserException.hpp"
 
 
 namespace csr {
+	class ParsedReduction;
 	class Parser;
 }
 
 
 class csr::Parser {
-public:												// DEBUG
-	void printch(const char* color = "\e[96m");		// DEBUG
 // ------------------------------------[ Properties ] --------------------------------------- //
 public:
 	int tabSize = 4;
@@ -274,5 +272,8 @@ public:
 	Parser& operator=(Parser&) = delete;
 	Parser& operator=(Parser&&) = delete;
 	
+// ------------------------------------------------------------------------------------------ //
+// public:												// DEBUG
+// 	void printch(const char* color = "\e[96m");		// DEBUG
 // ------------------------------------------------------------------------------------------ //
 };

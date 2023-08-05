@@ -3,6 +3,7 @@
 
 #include "Tab.hpp"
 #include "Symbol.hpp"
+#include "SourceString.hpp"
 #include "SymbolEnum.hpp"
 #include "Reduction.hpp"
 #include "Document.hpp"
@@ -66,6 +67,17 @@ void Generator::generateStateNames(const vector<State*>& states){
 			state->cname = "STATE_" + to_string(state->id);
 			convertBadChars(state->cname);
 		}
+	}
+}
+
+
+// ----------------------------------- [ Functions ] ---------------------------------------- //
+
+
+static void writeUserCode(ostream& out, const vector<SourceString>& v){
+	for (const SourceString& s : v){
+		if (s.size() > 0)
+			out << '\n' << s;
 	}
 }
 
@@ -264,6 +276,16 @@ void Generator::processTemplate(ostream& out, const char* data){
 			}
 		} else if (t.macro == "inline_tokenHeader"){
 			processTemplate(out, data::template_tokenHeader_inline_h);
+		}
+		
+		// User code
+		else if (t.macro == "_usercode"){
+			if (doc->code.size() > 0){
+				out << '\n';
+				processTemplate(out, t.body.c_str());
+			}
+		} else if (t.macro == "usercode"){
+			writeUserCode(out, doc->code);
 		}
 		
 	}

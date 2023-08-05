@@ -193,6 +193,10 @@ CSRToken* createToken(DFA* dfa, CSRTokenID id, int childCount, ...){
 }
 
 
+// $BEGIN _usercode
+// ----------------------------------- [ USER CODE ] ---------------------------------------- //
+// $MACRO usercode
+// $END
 // $BEGIN _reductions_functions
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 

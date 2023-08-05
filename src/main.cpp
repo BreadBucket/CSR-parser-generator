@@ -259,7 +259,7 @@ bool validateReduction(const Document& doc){
 
 
 int main(int argc, char const* const* argv){
-	printf("================================\n");	// DEBUG
+	// printf("================================\n");	// DEBUG
 	unique_ptr<Document> doc = make_unique<Document>();
 	
 	
@@ -283,7 +283,7 @@ int main(int argc, char const* const* argv){
 	}
 	
 	
-	// Enumerate symbols and create reductions
+	// Enumerate symbols, create reductions and resolve aliases
 	try {
 		doc->symEnum = make_shared<SymbolEnum>();
 		convertReductions(doc->parsedReductions, doc->reductions, *doc->symEnum);

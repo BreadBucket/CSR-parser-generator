@@ -1,9 +1,7 @@
 #include "Parser.hpp"
-
 #include <cstring>
-#include <iostream>
-#include "util/ANSI.h"
-#include "util/utils.hpp"
+
+#include "utils.hpp"
 
 using namespace std;
 using namespace csr;
@@ -12,95 +10,97 @@ using namespace csr;
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-// DEBUG
-#define PATH 			"test/test.csr"
-#define CSTR(color)		"{" color "%s" ANSI_RESET "}"
-#define CSTRNL(color)	CSTR(color) "\n"
+// // DEBUG
+// #include "util/ANSI.h"
+#include <iostream>
+// #define PATH 			"test/test.csr"
+// #define CSTR(color)		"{" color "%s" ANSI_RESET "}"
+// #define CSTRNL(color)	CSTR(color) "\n"
 
 
-// #define PRINTF(...)	printf(__VA_ARGS__)
-#define PRINTF(...)
+// // #define PRINTF(...)	printf(__VA_ARGS__)
+// #define PRINTF(...)
 
 
-// DEBUG
-void printSrc(const SourceString& src){
-	if (!src.empty()){
-		printf("[%d,%d): " PATH ":", src.start.i, src.end.i);
-		if (src.start.valid())
-			printf("%d:%d", src.start.row+1, src.start.col+1);
-		if (src.end.valid())
-			printf("-%d:%d", src.end.row+1, src.end.col+1);
-		printf("  ");
+// // DEBUG
+// void printSrc(const SourceString& src){
+// 	if (!src.empty()){
+// 		printf("[%d,%d): " PATH ":", src.start.i, src.end.i);
+// 		if (src.start.valid())
+// 			printf("%d:%d", src.start.row+1, src.start.col+1);
+// 		if (src.end.valid())
+// 			printf("-%d:%d", src.end.row+1, src.end.col+1);
+// 		printf("  ");
 		
-		printf("\"" ANSI_GREEN "%s" ANSI_RESET "\"", src.c_str());
-	} else{
-		printf("null");
-	}
-	printf("\n");
-}
+// 		printf("\"" ANSI_GREEN "%s" ANSI_RESET "\"", src.c_str());
+// 	} else{
+// 		printf("null");
+// 	}
+// 	printf("\n");
+// }
 
 
-// DEBUG
-char* locStr(const Location& loc){
-	char* s = new char[100];
-	snprintf(s, 100, "[%d]: " PATH ":%d:%d", loc.i, loc.row+1, loc.col+1);
-	return s;
-}
+// // DEBUG
+// char* locStr(const Location& loc){
+// 	char* s = new char[100];
+// 	snprintf(s, 100, "[%d]: " PATH ":%d:%d", loc.i, loc.row+1, loc.col+1);
+// 	return s;
+// }
 
 
-//DEBUG
-void Parser::printch(const char* color){
-	char c = ch();
-	printf(color);
-	printf("[%d/%d]", i, n);
-	if (c == '\n')
-		printf("%s -- '\\n'", locStr(getLoc()));
-	else if (c == '\t')
-		printf("%s -- '\\t'", locStr(getLoc()));
-	else if (c == '\0')
-		printf("%s -- '\\0'", locStr(getLoc()));
-	else
-		printf("%s -- '%c'", locStr(getLoc()), c);
-	printf(ANSI_RESET "\n");
-}
+// //DEBUG
+// void Parser::printch(const char* color){
+// 	char c = ch();
+// 	printf(color);
+// 	printf("[%d/%d]", i, n);
+// 	if (c == '\n')
+// 		printf("%s -- '\\n'", locStr(getLoc()));
+// 	else if (c == '\t')
+// 		printf("%s -- '\\t'", locStr(getLoc()));
+// 	else if (c == '\0')
+// 		printf("%s -- '\\0'", locStr(getLoc()));
+// 	else
+// 		printf("%s -- '%c'", locStr(getLoc()), c);
+// 	printf(ANSI_RESET "\n");
+// }
 
 
-// DEBUG
-void printreduction(const ParsedReduction& r){
-	// if (r.left.size() > 0){
-	// 	for (int i = 0 ; i < r.left.size() ; i++){
-	// 		printSrc(r.left[i].name);
-	// 		if (!r.left[i].alias.empty())
-	// 			printSrc(r.left[i].alias);
-	// 	}
-	// } else {
-	// 	printf("null\n");
-	// }
+// // DEBUG
+// void printreduction(const ParsedReduction& r){
+// 	// if (r.left.size() > 0){
+// 	// 	for (int i = 0 ; i < r.left.size() ; i++){
+// 	// 		printSrc(r.left[i].name);
+// 	// 		if (!r.left[i].alias.empty())
+// 	// 			printSrc(r.left[i].alias);
+// 	// 	}
+// 	// } else {
+// 	// 	printf("null\n");
+// 	// }
 	
-	// printf("->\n");
+// 	// printf("->\n");
 	
-	// if (r.right.size() > 0){
-	// 	for (int i = 0 ; i < r.right.size() ; i++){
-	// 		printSrc(r.right[i].name);
-	// 		if (!r.right[i].alias.empty())
-	// 			printSrc(r.right[i].alias);
-	// 	}
-	// } else {
-	// 	printf("null\n");
-	// }
+// 	// if (r.right.size() > 0){
+// 	// 	for (int i = 0 ; i < r.right.size() ; i++){
+// 	// 		printSrc(r.right[i].name);
+// 	// 		if (!r.right[i].alias.empty())
+// 	// 			printSrc(r.right[i].alias);
+// 	// 	}
+// 	// } else {
+// 	// 	printf("null\n");
+// 	// }
 	
-	// if (!r.code.empty())
-	// 	printSrc(r.code);
+// 	// if (!r.code.empty())
+// 	// 	printSrc(r.code);
 	
-}
+// }
 
 
-// DEBUG
-char* strstr(const string& s){
-	char* str = new char[256];
-	snprintf(str, 256, "{" ANSI_GREEN "%s" ANSI_RESET "}", s.c_str());
-	return str;
-}
+// // DEBUG
+// char* strstr(const string& s){
+// 	char* str = new char[256];
+// 	snprintf(str, 256, "{" ANSI_GREEN "%s" ANSI_RESET "}", s.c_str());
+// 	return str;
+// }
 
 
 // ------------------------------------- [ Macros ] ----------------------------------------- //
@@ -181,15 +181,13 @@ void Parser::parse(istream& in){
 	
 	bool macro = true;
 	SourceString tmp;
-	SourceString* line = &code.emplace_back();	// Temporary code line
 	
 	while (true){
-		parseWhiteSpaceAndComment(*line, true);
+		parseWhiteSpaceAndComment(trash.clear(), true);
 		char c = ch();
 		
 		// EOL
 		if (c == '\n'){
-			line->clear();
 			macro = true;
 			nl();
 		}
@@ -197,17 +195,15 @@ void Parser::parse(istream& in){
 		// Macros
 		else if (c == '#' && macro){
 			macro = false;
+			tmp.clear();
 			
 			push();
-			parseMacro(*line, tmp.clear());
+			parseMacro(trash.clear(), tmp);
+			pop();
 			
 			if (isSegmentDirective(tmp)){
-				pop(1, true);
 				parseSegment();
 			} else {
-				// pop(1, false);
-				// line = &codeSegments->emplace_back();
-				pop(1, true);
 				throw ParserException(getLoc(), "Unexpected directive.");
 			}
 			
@@ -229,8 +225,6 @@ void Parser::parse(istream& in){
 		
 	}
 	
-	// Delete temporary code line
-	code.pop_back();
 }
 
 
@@ -363,7 +357,7 @@ void Parser::parseSegment_header(SourceString& directive, SourceString& type){
 	parseWhiteSpaceAndComment(trash.clear(), true);
 	if (ch() == '\n'){
 		nl();
-	} else {
+	} else if (ch() != 0) {
 		throw ParserException(getLoc(), "Expected termination of segment declaration.");
 	}
 	
