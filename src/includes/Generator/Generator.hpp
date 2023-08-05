@@ -4,17 +4,12 @@
 #include <memory>
 
 #include "NamedStream.hpp"
-#include "Symbol.hpp"
-#include "SymbolEnum.hpp"
-#include "Graph.hpp"
 #include "Document.hpp"
-
 
 
 namespace csr {
 	class Generator;
 }
-
 
 
 class csr::Generator {
@@ -24,13 +19,13 @@ public:
 	NamedStream<std::ostream> out_header;
 	NamedStream<std::ostream> out_tokenHeader;
 	
+// ------------------------------------[ Variables ] ---------------------------------------- //
 private:
-	const Graph* graph;
-	const SymbolEnum* symbols;
+	Document* doc;
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 public:
-	void generate(const Graph& graph, const SymbolEnum& symbols);
+	void generate(Document& doc);
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 public:

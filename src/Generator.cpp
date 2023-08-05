@@ -213,16 +213,16 @@ void Generator::processTemplate(ostream& out, const char* data){
 		// Regular content macros
 		if (t.macro == "enum"){
 			out << '\n';
-			GeneratorTemplate::generateTokenEnum(out, t.tab, symbols->getSymbols());
+			GeneratorTemplate::generateTokenEnum(out, t.tab, doc->symEnum.getSymbols());
 		} else if (t.macro == "state_switch"){
 			out << '\n';
-			GeneratorTemplate::generateStateSwitch(out, t.tab, graph->states);
+			GeneratorTemplate::generateStateSwitch(out, t.tab, doc->graph.states);
 		} else if (t.macro == "transition_switch"){
 			out << '\n';
-			GeneratorTemplate::generateTransitionSwitch(out, t.tab, graph->states);
+			GeneratorTemplate::generateTransitionSwitch(out, t.tab, doc->graph.states);
 		} else if (t.macro == "reductions"){
 			out << '\n';
-			GeneratorTemplate::generateReductions(out, t.tab, graph->getReductions());
+			GeneratorTemplate::generateReductions(out, t.tab, doc->reductions);
 		}
 		
 		// Main header macros
@@ -265,13 +265,12 @@ void Generator::processTemplate(ostream& out, const char* data){
 };
 
 
-void Generator::generate(const Graph& graph, const SymbolEnum& symEnum){
-	this->graph = &graph;
-	this->symbols = &symEnum;
+void Generator::generate(Document& doc){
+	this->doc = &doc;
 	
-	generateSymbolNames(symEnum.getSymbols());
-	generateReductionNames(graph.getReductions());
-	generateStateNames(graph.states);
+	generateSymbolNames(doc.symEnum.getSymbols());
+	generateReductionNames(doc.reductions);
+	generateStateNames(doc.graph.states);
 	
 	if (!out_tokenHeader.isVoid())
 		processTemplate(out_tokenHeader, data::template_TokenHeader_h);

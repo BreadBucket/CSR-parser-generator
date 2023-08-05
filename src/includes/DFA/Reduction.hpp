@@ -17,7 +17,7 @@ class csr::Reduction {
 // ---------------------------------- [ Structures ] ---------------------------------------- //
 public:
 	typedef int SymbolCopy;		// Index of symbol on the left side.
-	struct SymbolConstructor;	// List of symbols as arguments of a new symbol object.
+	struct SymbolConstructor;	// List of symbols as arguments for a constructed symbol.
 	typedef std::variant<SymbolCopy,SymbolConstructor> RightSymbol;
 	
 public:

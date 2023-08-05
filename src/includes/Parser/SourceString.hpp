@@ -1,6 +1,8 @@
 #pragma once
 #include <string>
 
+#define CSR_LOCATION
+
 
 namespace csr {
 	struct Location;

@@ -4,7 +4,7 @@
 
 #include "ParsedSymbol.hpp"
 #include "ParserException.hpp"
-#include "Warning.hpp"
+#include "Error.hpp"
 
 using namespace std;
 using namespace csr;

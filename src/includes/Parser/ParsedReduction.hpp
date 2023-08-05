@@ -4,37 +4,16 @@
 
 #include "SourceString.hpp"
 #include "ParsedSymbol.hpp"
-#include "ParserException.hpp"
 
 
 namespace csr {
 class ParsedReduction {
 // ------------------------------------[ Properties ] --------------------------------------- //
 public:
-	Location loc;
+	Location loc = {-1};
 	std::vector<ParsedSymbol> left;
 	std::vector<ParsedSymbol> right;
 	SourceString code;
-	
-// ---------------------------------- [ Constructors ] -------------------------------------- //
-public:
-	ParsedReduction() : loc{-1} {};
-	
-// ----------------------------------- [ Functions ] ---------------------------------------- //
-public:
-	/**
-	 * @brief Find symbol index of an alias.
-	 * @param alias Alias to search.
-	 * @return int Index of the symbol with the alias. -1 if the symbol was not found.
-	 */
-	int findAlias(const std::string& alias) const;
-	
-	/**
-	 * @brief Create implicit aliases. Copy names from left to right according to aliases.
-	 *        Verify alias correctness (check for duplicates etc.).
-	 * @throws ParserException on any alias inconsistency.
-	 */
-	void resolveSymbolAliases();
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 public:

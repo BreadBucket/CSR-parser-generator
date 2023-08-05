@@ -187,17 +187,7 @@ static void buildEmptySet(const vector<shared_ptr<Reduction>>& reductions, vecto
 
 void Graph::build(const vector<shared_ptr<Reduction>>& v){
 	clear();
-	
-	// Copy non-null reductions for keeping alive
-	reductions.clear();
-	reductions.reserve(v.size());
-	for (const shared_ptr<Reduction>& p : v){
-		if (p != nullptr)
-			reductions.emplace_back(p);
-	}
-	
-	buildEmptySet(reductions, *emptySet);
-	
+	buildEmptySet(v, *emptySet);
 	
 	State* s0 = states.emplace_back(new State(0));
 	s0->emptyItems = emptySet;
@@ -241,8 +231,6 @@ void Graph::build(const vector<shared_ptr<Reduction>>& v){
 
 
 void Graph::clear(){
-	reductions.clear();
-	
 	for (auto p : states)
 		delete p;
 	for (auto p : connections)

@@ -324,16 +324,16 @@ void Serializer::writeGraph(const Graph& graph){
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-void GraphSerializer::serialize_txt(ostream& out, const Graph& graph, const SymbolEnum& symEnum){
+void GraphSerializer::serialize_txt(ostream& out, const Document& doc){
 	Serializer serializer = {*this, out};
 	
-	serializer.writeSymbols(symEnum);
+	serializer.writeSymbols(doc.symEnum);
 	out << "\n";
-	serializer.writeReductions(graph.getReductions());
+	serializer.writeReductions(doc.reductions);
 	out << "\n";
-	serializer.writeConnections(graph.connections);
+	serializer.writeConnections(doc.graph.connections);
 	out << "\n";
-	serializer.writeGraph(graph);
+	serializer.writeGraph(doc.graph);
 	out << '\n';
 	
 }

@@ -2,8 +2,7 @@
 #include <string>
 #include <ostream>
 
-#include "SymbolEnum.hpp"
-#include "Graph.hpp"
+#include "Document.hpp"
 
 
 namespace csr {
@@ -23,8 +22,8 @@ public:
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 public:
-	void serialize(std::ostream& stream, const Graph& graph, const SymbolEnum& symEnum);
-	void serialize_txt(std::ostream& stream, const Graph& graph, const SymbolEnum& symEnum);
+	void serialize(std::ostream& stream, const Document& doc);
+	void serialize_txt(std::ostream& stream, const Document& doc);
 
 public:
 	static Format getFormat(const std::string& filePath);

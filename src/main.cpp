@@ -23,39 +23,11 @@ extern "C" {
 #include "GraphSerializer.hpp"
 #include "Generator.hpp"
 #include "data.hpp"
-
-#include "ptr.hpp"
-#include <functional>
+#include "Error.hpp"
 
 
 using namespace std;
 using namespace csr;
-
-
-// ----------------------------------- [ Functions ] ---------------------------------------- //
-
-
-void errLoc(const string& file, const Location& loc){
-	fprintf(stderr, "%s:%d:%d", file.c_str(), loc.row+1, loc.col+1);
-}
-
-
-template<typename ...T>
-void err(const string& file, const char* format, T... args){
-	fprintf(stderr, ANSI_BOLD "%s: " ANSI_RED "error" ANSI_RESET ": ", file.c_str());
-	fprintf(stderr, format, args...);
-}
-
-
-template<typename ...T>
-void err(const string& file, const Location& loc, const char* format, T... args){
-	if (loc.valid()){
-		fprintf(stderr, ANSI_BOLD "%s:%d:%d: " ANSI_RED "error" ANSI_RESET ": ", file.c_str(), loc.row+1, loc.col+1);
-		fprintf(stderr, format, args...);
-	} else {
-		err(file, format, args...);
-	}
-}
 
 
 // ----------------------------------- [ Functions ] ---------------------------------------- //
@@ -82,17 +54,17 @@ bool parseCLI(int argc, char const* const* argv){
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-Document* parseInput(const optional<string>& inputPath){
+bool parseInput(const optional<string>& inputPath, Document& doc){
 	NamedStream<istream> in = {};
-	in.path = CLI::programName;
 	
-	// Pipe
+	
+	// Default: pipe
 	if (!inputPath.has_value()){
 		if (!isatty(fileno(stdin))){
 			in.open("0");
 		} else {
-			err(CLI::programName, "No input file or pipe specified.\n");
-			return nullptr;
+			err("No input file or pipe specified.\n");
+			return false;
 		}
 	}
 	
@@ -103,39 +75,47 @@ Document* parseInput(const optional<string>& inputPath){
 			if (in.path.empty())
 				in.path = CLI::programName;
 		} catch (const exception& e){
-			err(CLI::programName, "Failed to open input file. %s\n", e.what());
-			return nullptr;
+			err("Failed to open input file. %s\n", e.what());
+			return false;
 		}
 	}
 	
 	
-	// Parse
-	unique_ptr<Parser> parser = make_unique<Parser>();
-	Document* doc = nullptr;
+	// Set document name
+	if (in.isFile())
+		doc.name = in.path;
+	else
+		doc.name = CLI::programName;
 	
+	
+	// Parse
 	try {
+		unique_ptr<Parser> parser = make_unique<Parser>();
+		
 		parser->tabSize = CLI::tabSize;
-		doc = parser->parse(in);
+		parser->parse(in);
+		
+		// Transfer parser results
+		doc.parsedReductions = move(parser->reductions);
+		doc.code = move(parser->code);
+		
 	} catch (const ParserException& e) {
 		err(in.path, e.loc, "%s\n", e.what());
-		return nullptr;
+		return false;
 	} catch (const exception& e) {
 		err(CLI::programName, "%s\n", e.what());
-		return nullptr;
+		return false;
 	}
 	
-	if (doc != nullptr){
-		doc->name = in.path;
-	}
 	
-	return doc;
+	return true;
 }
 
 
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-bool handleGraphSerializationOption(const Graph& graph, const SymbolEnum& symEnum){
+bool handleGraphSerializationOption(const Document& doc){
 	if (!CLI::graph_outputFilePath.has_value()){
 		return true;
 	}
@@ -145,7 +125,7 @@ bool handleGraphSerializationOption(const Graph& graph, const SymbolEnum& symEnu
 	try {
 		out.open(*CLI::graph_outputFilePath);
 	} catch (const exception& e){
-		err(CLI::programName, "Failed to open graph output file. %s\n", e.what());
+		err("Failed to open graph output file. %s\n", e.what());
 		return false;
 	}
 	
@@ -171,14 +151,14 @@ bool handleGraphSerializationOption(const Graph& graph, const SymbolEnum& symEnu
 	// Verify format
 	if (gs.format == GraphSerializer::Format::UNKNOWN){
 		if (CLI::graph_outputFormat.has_value())
-			err(CLI::programName, "Unknown graph format: \"%s\".", CLI::graph_outputFormat->c_str());
+			err("Unknown graph format: \"%s\".", CLI::graph_outputFormat->c_str());
 		else
-			err(CLI::programName, "Unknown graph format.\n");
+			err("Unknown graph format.\n");
 		return false;
 	}
 	
 	
-	gs.serialize(out, graph, symEnum);
+	gs.serialize(out, doc);
 	return true;
 }
 
@@ -186,7 +166,7 @@ bool handleGraphSerializationOption(const Graph& graph, const SymbolEnum& symEnu
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-bool handleCodeGeneration(const Document& doc, const Graph& graph, const SymbolEnum& symEnum){
+bool handleCodeGeneration(Document& doc){
 	unique_ptr<Generator> generator = make_unique<Generator>();
 	
 	// Open default
@@ -232,7 +212,7 @@ bool handleCodeGeneration(const Document& doc, const Graph& graph, const SymbolE
 	
 	// Run generator
 	try {
-		generator->generate(graph, symEnum);
+		generator->generate(doc);
 	} catch (const CSRException& e){
 		err(doc.name, "%s\n", e.what());
 		return false;
@@ -251,15 +231,15 @@ bool handleCodeGeneration(const Document& doc, const Graph& graph, const SymbolE
 
 bool validateReduction(const Document& doc){
 	int i;
-	if (CLI::verifyReduction && !ParsedReduction::validateSize(doc.reductions, &i)){
-		err(doc.name, doc.reductions[i].loc, "Reduction produces more symbols than it consumes.\n");
+	if (CLI::verifyReduction && !ParsedReduction::validateSize(doc.parsedReductions, &i)){
+		err(doc.name, doc.parsedReductions[i].loc, "Reduction produces more symbols than it consumes.\n");
 		return false;
 	}
 	
 	int a, b;
-	if (!ParsedReduction::distinct(doc.reductions, &a, &b)){
-		err(doc.name, doc.reductions[b].loc, "Duplicate left side of reduction. Previously declared at " ANSI_BOLD);
-		errLoc(doc.name, doc.reductions[a].loc);
+	if (!ParsedReduction::distinct(doc.parsedReductions, &a, &b)){
+		err(doc.name, doc.parsedReductions[b].loc, "Duplicate left side of reduction. Previously declared at " ANSI_BOLD);
+		errLoc(doc.name, doc.parsedReductions[a].loc);
 		fprintf(stderr, ANSI_RESET ".\n");
 		return false;
 	}
@@ -273,6 +253,7 @@ bool validateReduction(const Document& doc){
 
 int main(int argc, char const* const* argv){
 	printf("================================\n");	// DEBUG
+	unique_ptr<Document> doc = make_unique<Document>();
 	
 	
 	// Parse command line options
@@ -285,21 +266,16 @@ int main(int argc, char const* const* argv){
 	
 	
 	// Parse csr document
-	unique_ptr<Document> doc = ptr(parseInput(CLI::inputFilePath));
-	if (doc == nullptr){
+	if (!parseInput(CLI::inputFilePath, *doc)){
 		return 1;
-	}
-	if (!validateReduction(*doc)){
+	} else if (!validateReduction(*doc)){
 		return 1;
 	}
 	
 	
 	// Enumerate symbols and create reductions
-	vector<shared_ptr<Reduction>> reductions;
-	shared_ptr<SymbolEnum> symEnum = make_shared<SymbolEnum>();
-	
 	try {
-		convertReductions(doc->reductions, reductions, *symEnum);
+		convertReductions(doc->parsedReductions, doc->reductions, doc->symEnum);
 	} catch (const ParserException& e){
 		err(doc->name, e.loc, "%s\n", e.what());
 		return 1;
@@ -310,18 +286,17 @@ int main(int argc, char const* const* argv){
 	
 	
 	// Build graph
-	unique_ptr<Graph> graph = make_unique<Graph>();
-	graph->build(reductions);
+	doc->graph.build(doc->reductions);
 	
 	
 	// Serialize graph
-	if (!handleGraphSerializationOption(*graph, *symEnum)){
+	if (!handleGraphSerializationOption(*doc)){
 		return 1;
 	}
 	
 	
 	// Generate source code
-	if (!handleCodeGeneration(*doc, *graph, *symEnum)){
+	if (!handleCodeGeneration(*doc)){
 		return 1;
 	}
 	

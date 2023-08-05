@@ -167,23 +167,21 @@ inline bool isSegmentDirective(const string& s){
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-Document* Parser::parse(istream& in){
+void Parser::parse(istream& in){
 	if (in.bad() || buffSize < 1){
-		return nullptr;
+		return;
 	}
 	
 	// Reset
 	reset();
 	this->in = &in;
-	this->doc = make_unique<Document>();
-	
-	doc->reductions.reserve(32);
-	doc->code.reserve(32);
+	reductions.reserve(32);
+	code.reserve(32);
 	
 	
 	bool macro = true;
 	SourceString tmp;
-	SourceString* line = &doc->code.emplace_back();	// Temporary code line
+	SourceString* line = &code.emplace_back();	// Temporary code line
 	
 	while (true){
 		parseWhiteSpaceAndComment(*line, true);
@@ -218,7 +216,7 @@ Document* Parser::parse(istream& in){
 		// Reductions
 		else if (isIdChar(c)){
 			macro = false;
-			ParsedReduction& r = doc->reductions.emplace_back();
+			ParsedReduction& r = reductions.emplace_back();
 			parseReduction(r);
 		}
 		
@@ -232,10 +230,7 @@ Document* Parser::parse(istream& in){
 	}
 	
 	// Delete temporary code line
-	doc->code.pop_back();
-	
-	// Return and release document object
-	return doc.release();
+	code.pop_back();
 }
 
 
@@ -270,11 +265,11 @@ void Parser::parseSegment(){
 	auto parseBody = [&](SegmentType type, const Location& errorLoc) -> SegmentType {
 		switch (type){
 			case SegmentType::REDUCTIONS: {
-				parseSegment_reductions(doc->reductions);
+				parseSegment_reductions(reductions);
 				return SegmentType::CODE;
 			}
 			case SegmentType::CODE: {
-				SourceString& s = doc->code.emplace_back(getLoc());
+				SourceString& s = code.emplace_back(getLoc());
 				parseSegment_code(s);
 				s.end = getLoc();
 				return SegmentType::REDUCTIONS;
@@ -1200,7 +1195,9 @@ void Parser::reset(){
 	
 	trash.clear();
 	frames.clear();
-	doc.reset();
+	
+	reductions.clear();
+	code.clear();
 }
 
 

@@ -12,7 +12,9 @@ using namespace csr;
 
 
 bool equals(const vector<ParsedSymbol>& a, const vector<ParsedSymbol>& b){
-	if (a.size() != b.size())
+	if (&a == &b)
+		return true;
+	else if (a.size() != b.size())
 		return false;
 	
 	for (int i = 0 ; i < a.size() ; i++){

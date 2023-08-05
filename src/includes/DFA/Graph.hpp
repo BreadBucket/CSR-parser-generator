@@ -172,6 +172,12 @@ public:
 
 
 
+/**
+ * @brief Graph constructed from reductions does not own the reduction objects.
+ *        All pointers held by graph elements are considered as a snapshot of references of when
+ *         the graph was built. Destroying the original reduction objects invalidates all
+ *         reduction pointers held by the graph elements.
+ */
 class csr::Graph {
 // ------------------------------------[ Variables ] ---------------------------------------- //
 public:
@@ -180,10 +186,7 @@ public:
 	std::vector<Item>* emptySet;
 	
 private:
-	std::vector<std::shared_ptr<Reduction>> reductions;	// Cache of reductions to keep alive.
-	
-private:
-	std::deque<State*> evolutionQueue;					// Unevolved state references from `states`.
+	std::deque<State*> evolutionQueue;	// Unevolved state references from `states`.
 	
 // ---------------------------------- [ Constructors ] -------------------------------------- //
 public:
@@ -197,12 +200,6 @@ public:
 		for (auto p : connections)
 			delete p;
 		delete emptySet;
-	}
-	
-// ----------------------------------- [ Functions ] ---------------------------------------- //
-public:
-	inline const std::vector<std::shared_ptr<Reduction>>& getReductions() const {
-		return reductions;
 	}
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //

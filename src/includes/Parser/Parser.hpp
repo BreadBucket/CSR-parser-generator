@@ -5,7 +5,6 @@
 #include <stdexcept>
 
 #include "ParsedReduction.hpp"
-#include "Document.hpp"
 #include "ParserException.hpp"
 
 
@@ -22,11 +21,14 @@ public:
 	int tabSize = 4;
 	std::istream* in = nullptr;
 	
+public:
+	std::vector<ParsedReduction> reductions;	// Result
+	std::vector<SourceString> code;				// Result
+	
+// ------------------------------------[ Properties ] --------------------------------------- //
 private:
 	SourceString trash;
 	std::vector<Location> frames;
-	std::unique_ptr<Document> doc;	// Temporary object for storing results
-	
 	
 private:
 	int buffSize  = 1024;	// Preffered buffer size
@@ -58,7 +60,7 @@ public:
 	/**
 	 * @throws ParserException for various parsing issues.
 	 */
-	Document* parse(std::istream& in);
+	void parse(std::istream& in);
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 private:

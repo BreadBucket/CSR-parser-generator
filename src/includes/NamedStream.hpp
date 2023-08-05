@@ -37,6 +37,10 @@ struct io_to_fio<std::iostream> {
 
 
 
+/**
+ * @brief IO stream with stored path. Std stream has empty path.
+ * @tparam T type of IO stream: iostream, istream, ostream.
+ */
 template <typename T> requires ( io_to_fio<T>::valid )
 class NamedStream {
 // ------------------------------------------------------------------------------------------ //
