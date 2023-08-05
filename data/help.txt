@@ -1,26 +1,37 @@
 Usage: %s [options] <file.csr>
 
 Options:
-  --help                                Print help information.
+  --help .............................. Print help information.
   
-  --input=<path>, -i <path>             Set input file path.
+  --input=<path>, -i <path> ........... Set input file path.
                                         Special output path: "0" for stdin (default, only if pipe detected).
   
-  --output=<path>, -o <path>            Set output file path.
+  --output=<path>, -o <path> .......... Set output file path.
                                         Special output path: "1" for stdout (default), "2" for stderr.
   
-  --graph=<path.ext>, -g <path.ext>     Generate graph information and save it to file.
+  --header=<path>, -h <path> .......... Set header file output path.
+                                        If header output is not set or is not a file path, it is inlined into the generated code.
+                                        Special output path: "1" for stdout, "2" for stderr.
+  
+  --token=<path> ...................... Set token header file output path.
+                                        If token header output is not set or is not a file path, it is inlined into the header file.
+                                        Special output path: "1" for stdout, "2" for stderr.
+  
+  --graph=<path.ext>, -g <path.ext> ... Generate graph information and save it to file.
                                         Format of the output is automatically deduced from the path extension,
                                          which can be overriden by '--graphFormat'.
                                         Special output paths:  "1" for stdout, "2" for stderr.
+                                        Default graph format for special outputs is ".txt".
   
-  --graphFormat=<.ext>                  Override graph format. See '--graph'.
+  --graphFormat=<.ext> ................ Override graph format. See '--graph'.
+                                        Currently supported formats:
+                                         - txt
   
-  --productions, -p                     Allow productions: reductions with more symbols on the right than on the left side.
+  --productions, -p ................... Allow productions: reductions with more symbols on the right than on the left side.
   
-  --tabSize <n>, -t <n>                 Modifies error messages containing column address of a file, which
+  --tabSize <n>, -t <n> ............... Modifies error messages containing column address of a file, which
                                          helps them to accurately describe the position of the error.
                                         All tabs read from the input increment the column index by this value (default=4).
   
-  --ascii, -a                           All IO operations only contain ASCII characters and no unicode.
+  --ascii, -a ......................... All IO operations only contain ASCII characters and no unicode.
   

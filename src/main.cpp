@@ -264,7 +264,10 @@ int main(int argc, char const* const* argv){
 	
 	
 	// Parse command line options
-	if (!parseCLI(argc, argv)){
+	if (argc <= 1){
+		help();
+		return 1;
+	} if (!parseCLI(argc, argv)){
 		return 1;
 	} else if (CLI::help){
 		help();

@@ -69,12 +69,12 @@ const struct option long_options[] = {
 	{"input",       required_argument, (int*)&selected_opt, OptionID::IN               },
 	{"output",      required_argument, (int*)&selected_opt, OptionID::OUT              },
 	{"header",      required_argument, (int*)&selected_opt, OptionID::OUT_HEADER       },
-	{"tokenHeader", required_argument, (int*)&selected_opt, OptionID::OUT_HEADER_TOKEN },
+	{"token",       required_argument, (int*)&selected_opt, OptionID::OUT_HEADER_TOKEN },
 	{"graph",       optional_argument, (int*)&selected_opt, OptionID::GRAPH_OUTPATH    },
 	{"graphFormat", required_argument, (int*)&selected_opt, OptionID::GRAPH_FORMAT     },
-	{"ascii",       no_argument,       (int*)&selected_opt, OptionID::ASCII            },
-	{"tabSize",     required_argument, (int*)&selected_opt, OptionID::TAB_SIZE         },
 	{"productions", no_argument,       (int*)&selected_opt, OptionID::VERIFY_REDUCTION },
+	{"tabSize",     required_argument, (int*)&selected_opt, OptionID::TAB_SIZE         },
+	{"ascii",       no_argument,       (int*)&selected_opt, OptionID::ASCII            },
 	{0, 0, 0, 0}
 };
 
