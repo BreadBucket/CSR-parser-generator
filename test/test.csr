@@ -11,6 +11,7 @@
 
 
 
+
 // A B C -> S
 // A A -> A X
 // X A -> A X
@@ -19,14 +20,29 @@
 // Y C C -> C
 
 
-A B C -> S(1,2,3,Z(Z()))
+// A B C -> S(1,2,3)
+// A A -> A(1,2) X
+// X A -> A[2] X[1]
+// X B B -> B(B[2],B[3]) Y
+// Y B -> 2 1
+// Y C C -> C(2,3)
+
+
+A B C -> S(1,2,3,Z(Z())) {
+	printf("\t=== [ inline code ] ===\n");
+	printf("\tReached S. Matched %d tokens. Buffered %d tokens.\n", _matchedTokens_count, _bufferedTokens_count);
+	
+	for (int i = 0 ; i < _matchedTokens_count ; i++){
+		printf("\tMatched: %d\n", _matchedTokens[i]->id);
+	}
+	
+	printf("\t=======================\n");
+}
+
 A A -> A(1,2) X
 X A -> A[2] X[1]
 X B B -> B(B[2],B[3]) Y
 Y B -> 2 1
 Y C C -> C(2,3)
 
-
-
-//   A[left] A[right] -> B(right,A,B(C)) A[left] 
 
