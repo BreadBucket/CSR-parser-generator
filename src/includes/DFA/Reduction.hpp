@@ -33,7 +33,7 @@ public:
 	std::vector<RightSymbol> right;
 	
 public:
-	std::shared_ptr<ParsedReduction> sourceReduction;
+	std::shared_ptr<ParsedReduction> source;
 	std::string cname;
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //

@@ -193,54 +193,62 @@ CSRToken* createToken(DFA* dfa, CSRTokenID id, int childCount, ...){
 }
 
 
+// $BEGIN _reductions_functions
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-bool DFA_consume(DFA* dfa, CSRToken* const currentToken){
-	if (currentToken == NULL){
+// $MACRO reductions_functions
+
+
+// $END
+// ----------------------------------- [ Functions ] ---------------------------------------- //
+
+
+bool DFA_consume(DFA* _dfa, CSRToken* const _currentToken){
+	if (_currentToken == NULL){
 		return false;
 	}
 	
-	Stack* const tokenStack  = &dfa->tokenStack;
-	Stack* const tokenBuffer = &dfa->tokenBuffer;
-	Stack* const stateStack  = &dfa->stateStack;
-	StateID const currentStateId = dfa->currentStateId;
-	CSRTokenID const currentTokenId = currentToken->id;
-	
-	StateID nextStateId = 0;
-	bool halt = false;
+	Stack* const _tokenStack  = &_dfa->tokenStack;
+	Stack* const _tokenBuffer = &_dfa->tokenBuffer;
+	Stack* const _stateStack  = &_dfa->stateStack;
+	StateID const _currentStateId = _dfa->currentStateId;
+	CSRTokenID const _currentTokenId = _currentToken->id;
+	bool _halt = false;
 	
 	// Push current token
-	currentToken->refCount++;
-	Stack_push(tokenStack, currentToken);
+	_currentToken->refCount++;
+	Stack_push(_tokenStack, _currentToken);
 	
 	
-	// $MACRO state_switch //
-	return false; // Unknown state: Halt
+	// DFA switch
+	{
+		StateID _nextStateId = 0;
+		
+		// State switch
+		// $MACRO state_switch //
+		return false; // Unknown state: Halt
 	
-	
-	// Select `nextStateId` or a reduction
-	goto __STATE_END;
-	// $MACRO transition_switch //
-	__STATE_END:
-	
-	
-	// No reductions selected: Push state
-	dfa->currentStateId = nextStateId;
-	Stack_push(stateStack, (void*)(long)nextStateId);
-	return true;
-	
+		// Transition switch: select next state or a reduction
+		goto __STATE_END;
+		// $MACRO transition_switch //
+		__STATE_END:
+		
+		// No reductions selected: Push state
+		_dfa->currentStateId = _nextStateId;
+		Stack_push(_stateStack, (void*)(long)_nextStateId);
+		return true;
+	}
 	
 	// Reduction selections
 	goto __REDUCTIONS_END;
 	{
 		// $MACRO reductions //
 	}
-	__REDUCTIONS_EPILOGUE:
 	__REDUCTIONS_END:
 	
 	
-	return !halt;
+	return !_halt;
 }
 
 
@@ -249,7 +257,7 @@ bool DFA_step(DFA* dfa){
 	
 	if (dfa->tokenBuffer.count > 0)
 		t = Stack_pop(&dfa->tokenBuffer);
-	else
+	else if (dfa->getNextToken != NULL)
 		t = dfa->getNextToken(dfa);
 	
 	return DFA_consume(dfa, t);

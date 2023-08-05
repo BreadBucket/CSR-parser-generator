@@ -1,4 +1,5 @@
 #pragma once
+#define CSR_HEADER
 #include "template_TokenHeader.h"	// $MACRO delete
 // $MACRO include_tokenHeader
 
@@ -6,9 +7,7 @@
 // ----------------------------------- [ Prototypes ] --------------------------------------- //
 
 
-struct _Stack;
 typedef int StateID;
-struct _CSRToken;
 struct _DFA;
 
 
@@ -23,7 +22,7 @@ struct _DFA;
 // ----------------------------------- [ Structures ] --------------------------------------- //
 
 
-typedef struct _Stack {
+typedef struct {
 	int count;
 	int size;
 	void** v;
@@ -31,9 +30,10 @@ typedef struct _Stack {
 
 
 
+typedef CSRToken* (*getNextToken_f)(struct _DFA*);
 typedef CSRToken* (*onTokenCreate_f)(struct _DFA*, CSRToken*);
 typedef bool (*onTokenDelete_f)(struct _DFA*, CSRToken*);
-typedef CSRToken* (*getNextToken_f)(struct _DFA*);
+
 
 
 typedef struct _DFA {
@@ -42,9 +42,19 @@ typedef struct _DFA {
 	Stack stateStack;
 	StateID currentStateId;
 	
-	onTokenCreate_f onTokenCreate;
-	onTokenDelete_f onTokenDelete;
 	getNextToken_f getNextToken;
+	onTokenCreate_f onTokenCreate;
+	
+	/**
+	 * @brief Callback function for when a token object is marked for deletion.
+	 *        A token object is marked for deletion when its ref count reaches 0.
+	 *        The user is responsible for managing the pointer when canceling deletion.
+	 * @param DFA* Event source.
+	 * @param CSRToken* Token marked for deletion.
+	 * @return False to cancel token deletion.
+	 * @return True to delete token object.
+	 */
+	onTokenDelete_f onTokenDelete;
 } DFA;
 
 

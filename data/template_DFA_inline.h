@@ -1,7 +1,4 @@
-struct _Stack;
-enum _TokenID;
 typedef int StateID;
-struct _CSRToken;
 struct _DFA;
 
 
@@ -16,7 +13,7 @@ struct _DFA;
 // ----------------------------------- [ Structures ] --------------------------------------- //
 
 
-typedef struct _Stack {
+typedef struct {
 	int count;
 	int size;
 	void** v;

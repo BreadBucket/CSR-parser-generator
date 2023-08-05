@@ -26,7 +26,7 @@ namespace csr::GeneratorTemplate {
 
 void GeneratorTemplate::generateStateSwitch(ostream& out, const Tab& tab, const vector<State*> states){
 	Tab tab1 = tab + 1;
-	out << tab << "switch (currentStateId){\n";
+	out << tab << "switch (_currentStateId){\n";
 	
 	for (const State* state : states){
 		if (state != nullptr){
@@ -53,7 +53,7 @@ static void writeTransitionCase(ostream& out, const Tab& tab, const Connection& 
 	
 	if (c.to != nullptr){
 		out << '\n';
-		out << tab1 << "nextStateId = " << c.to->id << ";\n";
+		out << tab1 << "_nextStateId = " << c.to->id << ";\n";
 		out << tab1 << "break;\n";
 	} else if (c.reductionItem != nullptr){
 		out << '\n';
@@ -67,7 +67,7 @@ static void writeTransitionSwitch(ostream& out, const Tab& tab, const vector<Con
 	const Tab tab1 = tab + 1;
 	const Tab tab2 = tab + 2;
 	
-	out << tab << "switch (currentTokenId){\n";
+	out << tab << "switch (_currentTokenId){\n";
 	
 	for (const Connection* c : transitions){
 		if (c != nullptr && c->symbol != nullptr)
@@ -75,7 +75,7 @@ static void writeTransitionSwitch(ostream& out, const Tab& tab, const vector<Con
 	}
 	
 	out << tab1 << "default:\n";
-	out << tab2 << "nextStateId = 0;\n";
+	out << tab2 << "_nextStateId = 0;\n";
 	out << tab2 << "break;\n";
 	out << tab1 << "}\n";
 }

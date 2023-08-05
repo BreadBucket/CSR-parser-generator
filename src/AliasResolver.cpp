@@ -56,7 +56,7 @@ void AliasResolver::resolve(const shared_ptr<ParsedReduction>& pr){
 	
 	Reduction* r = new Reduction();
 	r->id = ReductionID(reductions->size());
-	r->sourceReduction = pr;
+	r->source = pr;
 	
 	this->reduction = r;
 	reductions->emplace_back(this->reduction);
@@ -137,7 +137,7 @@ inline bool isIndex(const string& s){
 
 
 bool AliasResolver::resolve_rightSymbol(const ParsedSymbol& psym, Reduction::RightSymbol& sym){
-	// Check for index alias
+	// Name is indexed alias
 	if (isIndex(psym.getName())){
 		auto p = aliases.find(psym.getName());
 		
@@ -167,12 +167,22 @@ bool AliasResolver::resolve_rightSymbol(const ParsedSymbol& psym, Reduction::Rig
 			throw ParserException(psym.getAlias().start, "Aliased symbol copy cannot have a constructor.");
 		}
 		
-		auto p = aliases.find(psym.getAlias());
-		if (p == aliases.end()){
-			throw ParserException(psym.getAlias().start, "Missing alias reference.");
+		// Get index of left symbol
+		int i;
+		{
+			auto p = aliases.find(psym.getAlias());
+			if (p == aliases.end())
+				throw ParserException(psym.getAlias().start, "Missing alias reference.");
+			i = p->second;
 		}
 		
-		sym.emplace<Reduction::SymbolCopy>(p->second);
+		// Left and right name must be equal
+		if (!psym.getName().empty()){
+			if (parsedReduction->left[i].getName() != psym.getName())
+				throw ParserException(psym.getName().start, "Referenced symbol name missmatch.");
+		}
+		
+		sym.emplace<Reduction::SymbolCopy>(i);
 		return true;
 	}
 	

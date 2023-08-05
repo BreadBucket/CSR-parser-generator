@@ -2,12 +2,12 @@
 
 
 
-A B C -> S
-A S Q -> S
-B B C C -> B Q C
-Q C -> C Q
-
-
+// A B C -> S
+// A S Q -> S
+// B B C C -> B Q C {
+// 	printf("Hello world!\n");
+// }
+// Q C -> C Q
 
 
 
@@ -17,6 +17,14 @@ Q C -> C Q
 // X B B -> B Y
 // Y B -> B Y
 // Y C C -> C
+
+
+A B C -> S(1,2,3,Z(Z()))
+A A -> A(1,2) X
+X A -> A[2] X[1]
+X B B -> B(B[2],B[3]) Y
+Y B -> 2 1
+Y C C -> C(2,3)
 
 
 

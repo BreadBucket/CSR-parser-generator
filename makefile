@@ -18,14 +18,13 @@ all: ${compilerPath} obj/program
 
 .PHONY: run
 run: all
-	@./obj/program -i "test/test.csr" --tab=1 \
-		--graph="obj/graph.txt" \
-		--output="obj/switch.c" \
-		--header="obj/switch.h"	\
-		--token="obj/token.h"
+	@./obj/program -i "test/test.csr" --tab=1	\
+		--output="obj/switch.c"	\
+		--graph="obj/graph.txt"	\
+		--header="obj/switch.h"
 
-.PHONY: runGen
-runGen:
+.PHONY: runTest
+runTest:
 	@make -C test/progTest run --no-print-directory
 
 
