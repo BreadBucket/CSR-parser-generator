@@ -1,8 +1,11 @@
 SHELL := /bin/bash
 
-src = src/
+src = src
+obj = obj
+bin = bin
+
 inc = -I src/includes/ -I src/includes/util/ -I src/includes/Parser/ -I src/includes/DFA/ -I src/includes/Generator/
-compilerPath = obj/compiler.mk
+compilerPath = ${obj}/compiler.mk
 
 gcc_options = -std=c++2a -g
 src_finder = find ${src} -type f -iname "*.c" -or -iname "*.cpp"
@@ -11,17 +14,20 @@ src_finder = find ${src} -type f -iname "*.c" -or -iname "*.cpp"
 
 
 .PHONY: all
-all: ${compilerPath} obj/program
+all: ${obj} ${compilerPath} ${bin}/csrpg
+
 
 
 
 
 .PHONY: run
 run: all
-	@./obj/program -i "test/test.csr" --tab=1	\
-		--output="obj/switch.c"	\
-		--graph="obj/graph.txt"	\
-		--header="obj/switch.h"
+	@./${bin}/csrpg
+		-i "test/test.csr"
+		--tab=1	\
+		--output="${bin}/switch.c"	\
+		--graph="${bin}/graph.txt"	\
+		--header="${bin}/switch.h"
 
 .PHONY: runTest
 runTest:
@@ -30,9 +36,15 @@ runTest:
 
 
 
+${obj} ${bin}:
+	mkdir "$@"
+
+
+
+
 .PHONY: clean
 clean:
-	rm -rf "obj/"
+	rm -rf "${obj}" "${bin}"
 	rm -f ${compilerPath}
 	@echo "Project clean."
 
@@ -41,20 +53,22 @@ clean:
 
 # Bake data files into data.o, included in compiler.mk
 .PHONY: rebake
-rebake:
-	rm -f obj/data.o
-	rm -f obj/*.inc
+rebake: ${obj}
+	rm -f ${obj}/data.o
+	rm -f ${obj}/*.inc
 	./bake.sh
-	@touch obj/data.o
+	@touch ${obj}/data.o
 
 .PHONY: bake
-bake:
+bake: ${obj}
 	./bake.sh
 	@touch obj/data.o
 
-obj/data.o: $(shell find "data/" -type f)
+${obj}/data.o: ${obj} $(shell find "data/" -type f)
 	./bake.sh
-	@touch obj/data.o
+	@touch ${obj}/data.o
+
+
 
 
 # Build makefile target dependencies on all source files
@@ -74,23 +88,25 @@ ${compilerPath}:
 																			\
 		while read line; do													\
 			test -n "$${line}" && {											\
-				line=obj/$${line} ;											\
+				line=${obj}/$${line} ;										\
 				echo "$${line}" >>"$${temp}" ;								\
 				echo -e "\t@basename \"\$$@\"" >>"$${temp}" ;				\
 				echo -e "\t@g++ \$$(filter %.c %.cpp %.inc, \$$^) \$${inc} -c \$${gcc_options} -o \$$@" >>"$${temp}" ;	\
-				obj+=( $$(echo "$$line" | grep -oP "^\S+\.o") ) ;		\
-			};															\
-		done <<<"$$(g++ ${inc} -MM $$(${src_finder}))" ;				\
-																		\
-		echo "" >>"$${temp}" ;											\
-		echo "obj/program: obj/data.o $${obj[*]}" >>"$${temp}" ;		\
-		echo -e "\t@basename \"\$$@\"" >>"$${temp}" ;					\
-		echo -e "\t@g++ \$$^ \$${gcc_options} -o \$$@" >>"$${temp}" ;	\
-																		\
-		cat "$${temp}" >"${compilerPath}" ;								\
-		rm "$${temp}"													\
+				obj+=( $$(echo "$$line" | grep -oP "^\S+\.o") ) ;						\
+			};																			\
+		done <<<"$$(g++ ${inc} -MM $$(${src_finder}))" ;								\
+																						\
+		echo "" >>"$${temp}" ;															\
+		echo "${bin}/csrpg: ${bin} obj/data.o $${obj[*]}" >>"$${temp}" ;				\
+		echo -e "\t@basename \"\$$@\"" >>"$${temp}" ;									\
+		echo -e "\t@g++ \$$(filter %.o, \$$^) \$${gcc_options} -o \$$@" >>"$${temp}" ;	\
+																						\
+		cat "$${temp}" >"${compilerPath}" ;												\
+		rm "$${temp}"																	\
 	'
 
-ifeq (,$(filter clean bake obj/data.o compiler,$(MAKECMDGOALS)))
+ifeq (,$(MAKECMDGOALS))
+include ${compilerPath}
+else ifneq (,$(filter ${obj}/%.o ${bin}/% all run ,$(MAKECMDGOALS)))
 include ${compilerPath}
 endif

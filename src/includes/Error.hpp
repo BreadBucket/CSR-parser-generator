@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdio>
 #include <string>
 #include <ostream>
 
@@ -36,6 +37,7 @@ inline void err(const std::string& file, const char* format, T... args){
 }
 
 
+#ifdef CSR_LOCATION
 template<typename ...T>
 inline void err(const std::string& file, const csr::Location& loc, const char* format, T... args){
 	if (CLI::ansi){
@@ -48,6 +50,7 @@ inline void err(const std::string& file, const csr::Location& loc, const char* f
 	}
 	fprintf(stderr, format, args...);
 }
+#endif
 
 
 template<typename ...T>

@@ -37,7 +37,7 @@ using namespace csr;
 
 void help(){
 	const char* name = CLI::programName.c_str();
-	printf(data::help_txt, name);
+	printf(data::help_txt, name);	// help.txt contains format var for program name
 	printf("\n");
 }
 
@@ -47,7 +47,7 @@ bool parseCLI(int argc, char const* const* argv){
 		CLI::parse(argc, (char* const*)argv);
 		return true;
 	} catch (const exception& e) {
-		err(argv[0], "%s\n", e.what());
+		err(string(argv[0]), "%s\n", e.what());
 		return false;
 	}
 }
@@ -160,7 +160,7 @@ bool handleGraphSerializationOption(const Document& doc){
 		if (CLI::graph_outputFormat.has_value())
 			err("Unknown graph format: \"%s\".", CLI::graph_outputFormat->c_str());
 		else
-			err("Unknown graph format.\n");
+			err("Failed to deduce graph format from output file \"%s\".\n", CLI::graph_outputFilePath->c_str());
 		return false;
 	}
 	

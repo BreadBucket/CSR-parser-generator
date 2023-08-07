@@ -20,7 +20,7 @@ using namespace CLI;
 
 
 namespace CLI {
-	string programName = "program";
+	string programName = "csrpg";
 	
 	optional<string> inputFilePath;
 	
@@ -61,7 +61,7 @@ enum OptionID : int {
 } selected_opt;
 
 
-const char* const short_options = "i:o:h:g::t:pa";
+const char* const short_options = "i:o:h:g:t:pa";
 
 
 const struct option long_options[] = {
@@ -243,6 +243,11 @@ void CLI::parse(int argc, char const* const* argv){
 	// Non-option arguments
 	while (optind < argc){
 		prevOpt = optind;	// optind moved to first non-opt argument
+		
+		if (marked.contains(OptionID::IN)){
+			throw runtime_error(string("Multiple input paths specified: '").append(v[prevOpt]).append("'."));
+		}
+		
 		mark(OptionID::IN);
 		inputFilePath = v[optind];
 		optind++;
@@ -258,7 +263,7 @@ void CLI::parse(int argc, char const* const* argv){
 
 
 void CLI::clear(){
-	programName = "program";
+	programName = "csrpg";
 	inputFilePath.reset();
 	outputFilePath.reset();
 	outputHeaderFilePath.reset();

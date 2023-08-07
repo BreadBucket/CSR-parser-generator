@@ -49,7 +49,7 @@ CSRToken* _nextToken(){
 
 void loopPrint(const char* s, int n){
 	while (n > 0){
-		printf(s);
+		printf("%s", s);
 		n--;
 	}
 }
