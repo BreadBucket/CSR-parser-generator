@@ -22,9 +22,9 @@ all: ${obj} ${compilerPath} ${bin}/csrpg
 
 .PHONY: run
 run: all
-	@./${bin}/csrpg
-		-i "test/test.csr"
-		--tab=1	\
+	@./${bin}/csrpg					\
+		-i "test/test.csr"			\
+		--tab=1						\
 		--output="${bin}/switch.c"	\
 		--graph="${bin}/graph.txt"	\
 		--header="${bin}/switch.h"
@@ -53,18 +53,18 @@ clean:
 
 # Bake data files into data.o, included in compiler.mk
 .PHONY: rebake
-rebake: ${obj}
+rebake:
 	rm -f ${obj}/data.o
 	rm -f ${obj}/*.inc
 	./bake.sh
 	@touch ${obj}/data.o
 
 .PHONY: bake
-bake: ${obj}
+bake:
 	./bake.sh
 	@touch obj/data.o
 
-${obj}/data.o: ${obj} $(shell find "data/" -type f)
+${obj}/data.o: $(shell find "data/" -type f)
 	./bake.sh
 	@touch ${obj}/data.o
 

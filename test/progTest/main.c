@@ -3,7 +3,7 @@
 #include <stdlib.h>
 
 #include "ANSI.h"
-#include "../../obj/switch.c"
+#include "../../bin/switch.c"
 
 
 // ------------------------------------[ Variables ] ---------------------------------------- //
