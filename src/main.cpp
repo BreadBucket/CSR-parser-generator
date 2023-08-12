@@ -237,6 +237,11 @@ bool handleCodeGeneration(Document& doc){
 
 
 bool validateReduction(const Document& doc){
+	if (doc.parsedReductions.size() <= 0){
+		err(doc.name, "No reductions detected.\n");
+		return false;
+	}
+	
 	int i;
 	if (CLI::verifyReduction && !ParsedReduction::validateSize(doc.parsedReductions, &i)){
 		err(doc.name, doc.parsedReductions[i]->loc, "Reduction produces more symbols than it consumes.\n");

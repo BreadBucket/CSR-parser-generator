@@ -1,5 +1,6 @@
 #pragma once
 #define CSR_HEADER
+#include <stdbool.h>
 #include "template_TokenHeader.h"	// $MACRO delete
 // $MACRO include_tokenHeader
 
@@ -87,12 +88,6 @@ void* Stack_peek(Stack* stack);
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-CSRToken* createToken(struct _DFA* dfa, CSRTokenID id, int childCount, ...);
-
-
-// ----------------------------------- [ Functions ] ---------------------------------------- //
-
-
 /**
  * @brief Initialize a DFA object: internal stacks are intialized, initial state is set to 0.
  *        DFA objects must be initialized before calling any other DFA functions.
@@ -110,10 +105,11 @@ void DFA_init(struct _DFA* dfa);
 void DFA_deinit(struct _DFA* dfa);
 
 
+CSRToken* DFA_createToken(struct _DFA* dfa, CSRTokenID id, int childCount, ...);
 void DFA_destroyToken(struct _DFA* dfa, struct _CSRToken* token);
 void DFA_popTokens(struct _DFA* dfa, int i);
 StateID DFA_popStates(struct _DFA* dfa, int i);
-bool DFA_consume(struct _DFA* dfa, struct _CSRToken* const currentToken);
+bool DFA_consume(struct _DFA* const dfa, struct _CSRToken* const currentToken);
 bool DFA_step(struct _DFA* dfa);
 
 

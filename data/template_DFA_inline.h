@@ -50,11 +50,10 @@ void* Stack_peek(Stack* stack);
 
 void DFA_init(DFA* dfa);
 void DFA_deinit(DFA* dfa);
+CSRToken* DFA_createToken(DFA* dfa, CSRTokenID id, int childCount, ...);
 void DFA_destroyToken(DFA* dfa, CSRToken* token);
 void DFA_popTokens(DFA* dfa, int i);
 StateID DFA_popStates(DFA* dfa, int i);
-bool DFA_consume(DFA* dfa, CSRToken* const currentToken);
+bool DFA_consume(struct _DFA* const dfa, struct _CSRToken* const currentToken);
 bool DFA_step(DFA* dfa);
 
-
-CSRToken* createToken(DFA* dfa, CSRTokenID id, int childCount, ...);

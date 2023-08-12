@@ -3,23 +3,25 @@
 # Convert all data/* files into C string constants and then compile them.
 # Generate header file containing definitions of all compiled constants.
 
-
-datacpp="obj/data.cpp"
-datahpp="src/data.hpp"
+dataDir="obj/data"
 objFile="obj/data.o"
+datacpp="$dataDir/data.cpp"
+datahpp="src/data.hpp"
 files=()
 
 
-mkdir -p "$(dirname "$objFile")"
+mkdir -p "$dataDir"
+fresh=0
 
 
 # Convert files
 for f in $(find "data/" -type f | sort); do
 	name="$(basename "$f" | tr ". " "__")"
-	p="obj/$(basename "$name").inc"
+	p="$dataDir/${name}.inc"
 	files+=("$p")
 	
 	if [ "$f" -nt "$p" ]; then
+		fresh=1
 		./datastring.sh "$f" "$p"
 		echo "Baked $p"
 	fi
@@ -27,6 +29,10 @@ for f in $(find "data/" -type f | sort); do
 done
 
 
+# Nothing changed, exit
+if [ "$fresh" != "1" ]; then
+	exit 0
+fi
 
 
 # Build data object file

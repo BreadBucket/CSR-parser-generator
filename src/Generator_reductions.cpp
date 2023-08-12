@@ -1,3 +1,5 @@
+#include "Generator.hpp"
+
 #include <vector>
 #include <ostream>
 
@@ -15,11 +17,6 @@ using namespace csr;
 
 
 // ----------------------------------- [ Prototypes ] --------------------------------------- //
-
-
-namespace csr::GeneratorTemplate {
-	void generateReductions(ostream& out, const Tab& tab, Document& doc);
-}
 
 
 static void handleRightSymbol(ostream&, const Reduction&, const Reduction::RightSymbol&);
@@ -90,7 +87,7 @@ static void constructSymbol(ostream& out, const Reduction& r, const Reduction::S
 		throw CSRException("Internal error: Empty symbol c-name.");
 	}
 	
-	out << "createToken(_dfa, " << ctr.symbol->cname << ", " << ctr.args.size();
+	out << "DFA_createToken(_dfa, " << ctr.symbol->cname << ", " << ctr.args.size();
 	
 	if (ctr.args.size() > 0){
 		out << ", ";
@@ -140,13 +137,12 @@ static void writeReduction(ostream& out, const Tab& tab, const Reduction& r){
 	
 	if (code != nullptr){
 		out << tab << '\n';
-		out << tab << "const int _matchedTokens_count = " << r.left.size() << ";\n";
-		out << tab << "const int _bufferedTokens_count = " << r.right.size() << ";\n";
+		out << tab << "int const _matchedTokens_count = " << r.left.size() << ";\n";
+		out << tab << "int const _bufferedTokens_count = " << r.right.size() << ";\n";
 		out << tab << "CSRToken** const _matchedTokens = "; getTokenAddr(out, -r.left.size()); out << ";\n";
 		out << tab << "CSRToken** const _bufferedTokens = "; getBufferTokenAddr(out, -r.right.size()); out << ";\n";
-		out << tab << "const int _popTokens = " << _popTokens << ";\n";
-		out << tab << "const int _popStates = " << _popStates << ";\n";
-		
+		out << tab << "int _popTokens = " << _popTokens << ";\n";
+		out << tab << "int _popStates = " << _popStates << ";\n";
 		out << *code << '\n';
 		out << tab << '\n';
 	}
@@ -166,7 +162,7 @@ static void writeReduction(ostream& out, const Tab& tab, const Reduction& r){
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-void GeneratorTemplate::generateReductions(ostream& out, const Tab& tab, Document& doc){
+void Generator::generateReductions(ostream& out, const Tab& tab, Document& doc){
 	const Tab tab1 = tab + 1;
 	
 	for (const shared_ptr<Reduction>& r : doc.reductions){

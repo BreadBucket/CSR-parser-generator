@@ -1,3 +1,5 @@
+#include "Generator.hpp"
+
 #include <vector>
 #include <ostream>
 
@@ -12,19 +14,10 @@ using namespace std;
 using namespace csr;
 
 
-// ----------------------------------- [ Prototypes ] --------------------------------------- //
-
-
-namespace csr::GeneratorTemplate {
-	void generateStateSwitch(ostream& out, const Tab& tab, const vector<State*> states);
-	void generateTransitionSwitch(ostream& out, const Tab& tab, const vector<State*> states);
-}
-
-
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-void GeneratorTemplate::generateStateSwitch(ostream& out, const Tab& tab, const vector<State*> states){
+void Generator::generateStateSwitch(ostream& out, const Tab& tab, const vector<State*> states){
 	Tab tab1 = tab + 1;
 	out << tab << "switch (_currentStateId){\n";
 	
@@ -81,7 +74,7 @@ static void writeTransitionSwitch(ostream& out, const Tab& tab, const vector<Con
 }
 
 
-void GeneratorTemplate::generateTransitionSwitch(ostream& out, const Tab& tab, const vector<State*> states){
+void Generator::generateTransitionSwitch(ostream& out, const Tab& tab, const vector<State*> states){
 	Tab tab1 = tab + 1;
 	
 	for (int i = 0 ; i < states.size() ; i++){

@@ -21,4 +21,15 @@ typedef struct _CSRToken {
 } CSRToken;
 
 
+// ----------------------------------- [ Functions ] ---------------------------------------- //
+
+
+/**
+ * @brief Get name of a token from its ID.
+ * @param id 
+ * @return Name of existing token, NULL otherwise.
+ */
+const char* CSRToken_getName(CSRTokenID id);
+
+
 // ------------------------------------------------------------------------------------------ //

@@ -3,7 +3,7 @@
 #include <stdlib.h>
 
 #include "ANSI.h"
-#include "../../bin/switch.c"
+#include "../obj/test/test.h"
 
 
 // ------------------------------------[ Variables ] ---------------------------------------- //
@@ -25,12 +25,12 @@ void generateInput(){
 	input = malloc(sizeof(*input) * (input_n + 1));
 	
 	input_i = 0;
-	input[input_i++] = createToken(&dfa, TOKEN_A, 0);
-	input[input_i++] = createToken(&dfa, TOKEN_A, 0);
-	input[input_i++] = createToken(&dfa, TOKEN_B, 0);
-	input[input_i++] = createToken(&dfa, TOKEN_B, 0);
-	input[input_i++] = createToken(&dfa, TOKEN_C, 0);
-	input[input_i++] = createToken(&dfa, TOKEN_C, 0);
+	input[input_i++] = DFA_createToken(&dfa, TOKEN_A, 0);
+	input[input_i++] = DFA_createToken(&dfa, TOKEN_A, 0);
+	input[input_i++] = DFA_createToken(&dfa, TOKEN_B, 0);
+	input[input_i++] = DFA_createToken(&dfa, TOKEN_B, 0);
+	input[input_i++] = DFA_createToken(&dfa, TOKEN_C, 0);
+	input[input_i++] = DFA_createToken(&dfa, TOKEN_C, 0);
 	input[input_i++] = NULL;
 	input_i = 0;
 	
@@ -56,12 +56,14 @@ void loopPrint(const char* s, int n){
 
 
 void printToken(CSRToken* token){
-	if (token == NULL)
-		printf("NULL");
-	else if (token->data == NULL)
-		printf("%d", token->id);
+	const char* name = NULL;
+	if (token != NULL)
+		name = CSRToken_getName(token->id);
+	
+	if (name != NULL)
+		printf("%s", name);
 	else
-		printf("%s", token->data);
+		printf("NULL");
 }
 
 
@@ -124,28 +126,13 @@ void printState(){
 
 
 CSRToken* _onTokenCreate(DFA* dfa, CSRToken* t){
-	switch (t->id){
-		case TOKEN_A:	t->data = strdup("A"); break;
-		case TOKEN_B:	t->data = strdup("B"); break;
-		case TOKEN_C:	t->data = strdup("C"); break;
-		case TOKEN_S:	t->data = strdup("S"); break;
-		// case TOKEN_Q:	t->data = strdup("Q"); break;
-		case TOKEN_X:	t->data = strdup("X"); break;
-		case TOKEN_Y:	t->data = strdup("Y"); break;
-		case TOKEN_Z:	t->data = strdup("Z"); break;
-		default:
-			char* s = malloc(sizeof(*s) * 32);
-			snprintf(s, 32, "%d", t->id);
-			t->data = s;
-			break;
-	}
+	printf(ANSI_GREEN "CREATE: " ANSI_RESET); printToken(t); printf("\n");
 	return t;
 }
 
 
 bool _onTokenDestroy(DFA* dfa, CSRToken* t){
 	printf(ANSI_RED "DESTROY: " ANSI_RESET); printToken(t); printf("\n");
-	free(t->data);
 	return true;
 }
 

@@ -15,17 +15,6 @@ using namespace std;
 using namespace csr;
 
 
-// ----------------------------------- [ Prototypes ] --------------------------------------- //
-
-
-namespace csr::GeneratorTemplate {
-	void generateTokenEnum(ostream& out, const Tab& tab, const vector<shared_ptr<Symbol>>& symbols);
-	void generateStateSwitch(ostream& out, const Tab& tab, const vector<State*> states);
-	void generateTransitionSwitch(ostream& out, const Tab& tab, const vector<State*> states);
-	void generateReductions(ostream& out, const Tab& tab, Document& doc);
-}
-
-
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
@@ -230,16 +219,19 @@ void Generator::processTemplate(ostream& out, const char* data){
 		// Regular content macros
 		if (t.macro == "enum"){
 			out << '\n';
-			GeneratorTemplate::generateTokenEnum(out, t.tab, doc->symEnum->getSymbols());
+			Generator::generateTokenEnum(out, t.tab, doc->symEnum->getSymbols());
+		} else if (t.macro == "token_name_switch"){
+			out << '\n';
+			Generator::generateTokenEnumNameSwitch(out, t.tab, doc->symEnum->getSymbols());
 		} else if (t.macro == "state_switch"){
 			out << '\n';
-			GeneratorTemplate::generateStateSwitch(out, t.tab, doc->graph->states);
+			Generator::generateStateSwitch(out, t.tab, doc->graph->states);
 		} else if (t.macro == "transition_switch"){
 			out << '\n';
-			GeneratorTemplate::generateTransitionSwitch(out, t.tab, doc->graph->states);
+			Generator::generateTransitionSwitch(out, t.tab, doc->graph->states);
 		} else if (t.macro == "reductions"){
 			out << '\n';
-			GeneratorTemplate::generateReductions(out, t.tab, *doc);
+			Generator::generateReductions(out, t.tab, *doc);
 		}
 		
 		// Main header macros

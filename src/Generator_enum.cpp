@@ -1,3 +1,5 @@
+#include "Generator.hpp"
+
 #include <vector>
 #include <memory>
 #include <ostream>
@@ -11,18 +13,10 @@ using namespace std;
 using namespace csr;
 
 
-// ----------------------------------- [ Prototypes ] --------------------------------------- //
-
-
-namespace csr::GeneratorTemplate {
-	void generateTokenEnum(ostream& out, const Tab& tab, const vector<shared_ptr<Symbol>>& symbols);
-}
-
-
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-void GeneratorTemplate::generateTokenEnum(ostream& out, const Tab& tab, const vector<shared_ptr<Symbol>>& symbols){
+void Generator::generateTokenEnum(ostream& out, const Tab& tab, const vector<shared_ptr<Symbol>>& symbols){
 	const Tab tab1 = tab + 1;
 	out << tab << "typedef enum {";
 	
@@ -38,6 +32,27 @@ void GeneratorTemplate::generateTokenEnum(ostream& out, const Tab& tab, const ve
 	}
 	
 	out << '\n' << tab << "} CSRTokenID;";
+}
+
+
+// ----------------------------------- [ Functions ] ---------------------------------------- //
+
+
+void Generator::generateTokenEnumNameSwitch(ostream& out, const Tab& tab, const vector<shared_ptr<Symbol>>& symbols){
+	const Tab tab1 = tab + 1;
+	
+	out << tab << "switch (id){\n";
+	
+	for (int i = 0 ; i < symbols.size() ; i++){
+		if (symbols[i]->cname.empty()){
+			throw CSRException("Internal error: Empty symbol c-name.");
+		}
+		
+		out << tab1 << "case " << symbols[i]->cname << ":";
+		out << '\t' << "return \"" << symbols[i]->name << "\";\n";
+	}
+	
+	out << tab << "}";
 }
 
 

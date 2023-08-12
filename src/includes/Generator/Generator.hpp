@@ -6,6 +6,8 @@
 #include "NamedStream.hpp"
 
 
+struct Tab;
+
 namespace csr {
 	class Symbol;
 	class Reduction;
@@ -40,6 +42,13 @@ public:
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 private:
 	void processTemplate(std::ostream& out, const char* data);
+	
+private:
+	static void generateTokenEnum(std::ostream& out, const Tab& tab, const std::vector<std::shared_ptr<Symbol>>& symbols);
+	static void generateTokenEnumNameSwitch(std::ostream& out, const Tab& tab, const std::vector<std::shared_ptr<Symbol>>& symbols);
+	static void generateStateSwitch(std::ostream& out, const Tab& tab, const std::vector<State*> states);
+	static void generateTransitionSwitch(std::ostream& out, const Tab& tab, const std::vector<State*> states);
+	static void generateReductions(std::ostream& out, const Tab& tab, Document& doc);
 	
 // ------------------------------------------------------------------------------------------ //
 };

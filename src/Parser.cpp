@@ -12,7 +12,7 @@ using namespace csr;
 
 // // DEBUG
 // #include "util/ANSI.h"
-#include <iostream>
+// #include <iostream>
 // #define PATH 			"test/test.csr"
 // #define CSTR(color)		"{" color "%s" ANSI_RESET "}"
 // #define CSTRNL(color)	CSTR(color) "\n"

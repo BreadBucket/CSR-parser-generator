@@ -26,6 +26,15 @@
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
+const char* CSRToken_getName(CSRTokenID id){
+	// $MACRO token_name_switch
+	return NULL;
+}
+
+
+// ----------------------------------- [ Functions ] ---------------------------------------- //
+
+
 bool Stack_init(Stack* stack){
 	stack->count = 0;
 	stack->size = 1;
@@ -157,7 +166,7 @@ StateID DFA_popStates(DFA* dfa, int i){
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-CSRToken* createToken(DFA* dfa, CSRTokenID id, int childCount, ...){
+CSRToken* DFA_createToken(DFA* dfa, CSRTokenID id, int childCount, ...){
 	CSRToken* t = malloc(sizeof(CSRToken));
 	if (t == NULL)
 		return NULL;
@@ -208,7 +217,7 @@ CSRToken* createToken(DFA* dfa, CSRTokenID id, int childCount, ...){
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-bool DFA_consume(DFA* _dfa, CSRToken* const _currentToken){
+bool DFA_consume(DFA* const _dfa, CSRToken* const _currentToken){
 	if (_currentToken == NULL){
 		return false;
 	}

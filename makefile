@@ -16,32 +16,17 @@ src_finder = find ${src} -type f -iname "*.c" -or -iname "*.cpp"
 .PHONY: all
 all: ${obj} ${compilerPath} ${bin}/csrpg
 
-
-
-
-
+# Run CSRPG
 .PHONY: run
 run: all
-	@./${bin}/csrpg					\
-		-i "test/test.csr"			\
-		--tab=1						\
-		--output="${bin}/switch.c"	\
-		--graph="${bin}/graph.txt"	\
-		--header="${bin}/switch.h"
+	@make -C test gen --no-print-directory
 
+# Run test program
 .PHONY: runTest
 runTest:
-	@make -C test/progTest run --no-print-directory
+	@make -C test run --no-print-directory
 
-
-
-
-${obj} ${bin}:
-	mkdir "$@"
-
-
-
-
+# Remove generated files
 .PHONY: clean
 clean:
 	rm -rf "${obj}" "${bin}"
@@ -51,11 +36,18 @@ clean:
 
 
 
+# Create directories
+${obj} ${bin}:
+	mkdir "$@"
+
+
+
+
 # Bake data files into data.o, included in compiler.mk
 .PHONY: rebake
 rebake:
-	rm -f ${obj}/data.o
-	rm -f ${obj}/*.inc
+	rm -f "${obj}/data.o"
+	rm -rf "${obj}/data"
 	./bake.sh
 	@touch ${obj}/data.o
 

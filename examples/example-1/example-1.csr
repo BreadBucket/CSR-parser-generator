@@ -1,0 +1,41 @@
+
+
+A B C -> S(1,2,3,Z(Z())) {
+	f("S", _matchedTokens, _matchedTokens_count, _bufferedTokens_count);
+}
+A A -> A(1,2) X
+X A -> A[2] X[1]
+X B B -> B(B[2],B[3]) Y
+Y B -> 2 1
+Y C C -> C(2,3)
+
+
+
+#if CSR_CODE
+#include <stdio.h>
+
+void nl();
+
+void f(const char* name, CSRToken** t, int matched, int buffered){
+	printf("\t=== [ inline code ] ===\n");
+	
+	printf("\tReached %s. Matched %d tokens. Buffered %d tokens.\n", name, matched, buffered);
+	
+	for (int i = 0 ; i < matched ; i++){
+		printf("\tMatched: %s", t[i]->data);
+		nl();
+	}
+	
+	printf("\t=======================\n");
+}
+
+#endif
+
+
+
+// This is also included
+#ifdef CSR_CODE
+void nl(){
+	printf("\n");
+}
+#endif
