@@ -8,6 +8,7 @@
 #include "Symbol.hpp"
 #include "Reduction.hpp"
 #include "ParsedReduction.hpp"
+#include "Graph.hpp"
 #include "Document.hpp"
 #include "CSRException.hpp"
 
@@ -129,9 +130,9 @@ static void writeReduction(ostream& out, const Tab& tab, const Reduction& r){
 	
 	// Construct symbols to buffer
 	for (int i = r.right.size() - 1 ; i >= 0 ; i--){
-		out << tab << "Stack_push(_tokenBuffer, ";
+		out << tab << "Stack_push(_tokenBuffer, _incRef(";
 		handleRightSymbol(out, r, r.right[i]);
-		out << ");\n";
+		out << "));\n";
 	}
 	
 	
@@ -178,7 +179,39 @@ void Generator::generateReductions(ostream& out, const Tab& tab, Document& doc){
 		out << tab << "__" << r->cname << ": { ";
 		out << '\n';
 		writeReduction(out, tab1, *r);
-		out << tab << "} goto __REDUCTIONS_END;\n";
+		out << tab << "} goto __REDUCTION_END;\n";
+	}
+}
+
+
+// ----------------------------------- [ Functions ] ---------------------------------------- //
+
+
+static void writeReductionItem(ostream& out, const Tab& tab, const Item& item){
+	const Tab tab1 = tab + 1;
+	out << tab << "__" << item.cname << ":\n";
+	
+	if (item.extra > 0){
+		out << tab1 << "DFA_unconsume(_dfa, " << item.extra << ");\n";
+		out << tab1 << "DFA_popStates(_dfa, " << item.extra << ");\n";
+	}
+	
+	out << tab1 << "goto __" << item.reduction->cname << ";";
+}
+
+
+// ----------------------------------- [ Functions ] ---------------------------------------- //
+
+
+void Generator::generateReductionItems(ostream& out, const Tab& tab, Graph& graph){
+	bool nl = false;
+	for (Connection* c : graph.connections){
+		if (c->reductionItem != nullptr){
+			if (nl)
+				out << '\n';
+			nl = true;
+			writeReductionItem(out, tab, *c->reductionItem);
+		}
 	}
 }
 

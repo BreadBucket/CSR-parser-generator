@@ -126,11 +126,13 @@ void printState(){
 
 
 CSRToken* _onTokenCreate(DFA* dfa, CSRToken* t){
+	// printf(ANSI_GREEN "CREATE: " ANSI_RESET "%s\n", CSRToken_getName(t->id));
 	return t;
 }
 
 
 bool _onTokenDestroy(DFA* dfa, CSRToken* t){
+	// printf(ANSI_RED "DESTROY: " ANSI_RESET "%s\n", CSRToken_getName(t->id));
 	return true;
 }
 
@@ -159,9 +161,12 @@ int main(int argc, char const* const* argv){
 	
 	
 	printf("\n");
-	printf("TREE:\n");
-	printTokenTree(Stack_peek(&dfa.tokenStack), 1);
-	printf("\n\n");
+	printf("AST:\n");
+	for (int i = 0 ; i < dfa.tokenStack.count ; i++){
+		printTokenTree((CSRToken*)dfa.tokenStack.v[i], 1);
+		printf("\n");
+	}
+	printf("\n");
 	
 	
 	DFA_deinit(&dfa);

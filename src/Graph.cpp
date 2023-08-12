@@ -13,16 +13,16 @@ using namespace csr;
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-// // DEBUG
-// // #include "ANSI.h"
-// // #define STR(obj)	str(obj)
-// // #define CSTR(obj)	str(obj).c_str()
-// // #define PRINTF(...) printf(__VA_ARGS__)
+// DEBUG
+// #include "ANSI.h"
+// #define STR(obj)	str(obj)
+// #define CSTR(obj)	str(obj).c_str()
+// #define PRINTF(...) printf(__VA_ARGS__)
 #define PRINTF(...)
 
 
 // // DEBUG
-// string str(Symbol* symbol){
+// static string str(Symbol* symbol){
 // 	if (symbol != nullptr)
 // 		return symbol->name;
 // 	else
@@ -31,7 +31,7 @@ using namespace csr;
 
 
 // // DEBUG
-// string str(const Item& item){
+// static string str(const Item& item){
 // 	string s = {};
 	
 // 	auto add = [&](int i, int n){
@@ -59,7 +59,7 @@ using namespace csr;
 
 
 // // DEBUG
-// string str(const State& state){
+// static string str(const State& state){
 // 	string s = "S" + to_string(state.id) + ":\n";
 	
 // 	for (const Item& item : state.items){
@@ -83,7 +83,7 @@ using namespace csr;
 
 
 // // DEBUG
-// string str(const Connection& v, const Map_IdToSymbol& id_to_symbol){
+// static string str(const Connection& v){
 // 	string s = {};
 	
 // 	if (v.from != nullptr)
@@ -92,13 +92,14 @@ using namespace csr;
 // 		s += "(null)";
 	
 // 	s += " --[";
-// 	s += str(v.symbol, id_to_symbol);
+// 	s += str(v.symbol);
 // 	s += "]--> ";
 	
 // 	if (v.to != nullptr)
 // 		s += "S" + to_string(v.to->id);
 // 	else if (v.reductionItem != nullptr)
-// 		s += str(v.reductionItem->right, id_to_symbol);
+// 		// s += str(v.reductionItem->reduction);
+// 		s += "REDUCTION ITEM";
 // 	else
 // 		s += "(null)";
 	
@@ -107,11 +108,11 @@ using namespace csr;
 
 
 // // DEBUG
-// string str(const vector<Connection*>& v, const Map_IdToSymbol& id_to_symbol){
+// static string str(const vector<Connection*>& v){
 // 	string s = {};
 	
 // 	for (const Connection* c : v){
-// 		s += str(*c, id_to_symbol);
+// 		s += str(*c);
 // 		s += '\n';
 // 	}
 	
@@ -198,7 +199,7 @@ void Graph::build(const vector<shared_ptr<Reduction>>& v){
 	
 	
 	while (evolutionQueue.size() > 0){
-		// PRINTF("\n\n");	// DEBUG
+		PRINTF("\n\n");	// DEBUG
 		State* s = evolutionQueue.front();
 		evolutionQueue.pop_front();
 		evolve(*s);
@@ -323,7 +324,7 @@ void Graph::evolve(State& base){
 		}
 		
 		// DEBUG
-		PRINTF(ANSI_YELLOW "%s ", CSTR(symbol));
+		PRINTF(ANSI_YELLOW "%s " ANSI_RESET, CSTR(symbol));
 		tempState->id = states.size();
 		if (existingState != nullptr){
 			tempState->id = existingState->id;
@@ -345,8 +346,10 @@ void Graph::evolve(State& base){
 		// Check for reduction item
 		const Item* ri = tempState->getReductionItem();
 		if (ri != nullptr){
-			PRINTF(ANSI_PURPLE "%s\n" ANSI_RESET, CSTR(*tempState));
-			c->reductionItem = ri->reduction;
+			// PRINTF(ANSI_PURPLE "%s\n" ANSI_RESET, CSTR(*tempState));
+			PRINTF("<< " ANSI_PURPLE "%s" ANSI_RESET " >>\n", CSTR(*ri));
+			// Copy item, state object holding the item object is temporary
+			c->reductionItem = make_unique<Item>(*ri);
 			continue;
 		}
 		

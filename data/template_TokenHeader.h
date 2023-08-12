@@ -1,5 +1,6 @@
 #pragma once
 #define CSR_TOKEN_HEADER
+#include <stdarg.h>
 
 
 // ----------------------------------- [ Structures ] --------------------------------------- //
@@ -30,6 +31,9 @@ typedef struct _CSRToken {
  * @return Name of existing token, NULL otherwise.
  */
 const char* CSRToken_getName(CSRTokenID id);
+
+
+CSRToken* CSRToken_create(CSRTokenID id);
 
 
 // ------------------------------------------------------------------------------------------ //

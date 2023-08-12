@@ -12,6 +12,8 @@ namespace csr {
 	class Symbol;
 	class Reduction;
 	class State;
+	class Connection;
+	class Graph;
 	class Document;
 	class Generator;
 }
@@ -38,6 +40,7 @@ public:
 	static void generateSymbolNames(const std::vector<std::shared_ptr<Symbol>>& symbols);
 	static void generateReductionNames(const std::vector<std::shared_ptr<Reduction>>& reductions);
 	static void generateStateNames(const std::vector<State*>& states);
+	static void generateReductionItemNames(const std::vector<Connection*>& connections);
 	
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 private:
@@ -49,6 +52,7 @@ private:
 	static void generateStateSwitch(std::ostream& out, const Tab& tab, const std::vector<State*> states);
 	static void generateTransitionSwitch(std::ostream& out, const Tab& tab, const std::vector<State*> states);
 	static void generateReductions(std::ostream& out, const Tab& tab, Document& doc);
+	static void generateReductionItems(std::ostream& out, const Tab& tab, Graph& graph);
 	
 // ------------------------------------------------------------------------------------------ //
 };

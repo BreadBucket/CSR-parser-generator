@@ -34,8 +34,12 @@
 // Y C C -> C(2,3)
 
 
+#if CSR_CODE
+#include <stdio.h>
+#endif
 
 
-A B -> C
-A A A B -> D
+
+A -> B
+A B B -> C
 

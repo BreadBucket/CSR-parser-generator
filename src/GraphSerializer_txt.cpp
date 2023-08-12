@@ -205,10 +205,10 @@ void Serializer::writeConnection(const Connection& connection){
 	}
 	
 	// Reduction item
-	else if (connection.reductionItem != nullptr){
-		out << "(";
-		writeReduction(*connection.reductionItem);
-		out << ")";
+	else if (connection.reductionItem != nullptr && connection.reductionItem->reduction != nullptr){
+		out << '(';
+		writeReduction(*connection.reductionItem->reduction);
+		out << ")+" << connection.reductionItem->extra;
 	}
 	
 	// Nothing

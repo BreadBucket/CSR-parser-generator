@@ -27,6 +27,7 @@ void Generator::convertBadChars(string& s){
 	
 }
 
+
 void Generator::generateSymbolNames(const vector<shared_ptr<Symbol>>& symbols){
 	for (const shared_ptr<Symbol> sym : symbols){
 		if (sym == nullptr){
@@ -50,11 +51,23 @@ void Generator::generateReductionNames(const vector<shared_ptr<Reduction>>& redu
 	}
 }
 
+
 void Generator::generateStateNames(const vector<State*>& states){
 	for (State* state : states){
 		if (state != nullptr){
 			state->cname = "STATE_" + to_string(state->id);
 			convertBadChars(state->cname);
+		}
+	}
+}
+
+
+void Generator::generateReductionItemNames(const vector<Connection*>& connections){
+	static long guid = 0;
+	for (Connection* c : connections){
+		if (c != nullptr && c->reductionItem != nullptr){
+			c->reductionItem->cname = "REDUCTIONITEM_" + to_string(guid++);
+			convertBadChars(c->reductionItem->cname);
 		}
 	}
 }
@@ -229,6 +242,9 @@ void Generator::processTemplate(ostream& out, const char* data){
 		} else if (t.macro == "transition_switch"){
 			out << '\n';
 			Generator::generateTransitionSwitch(out, t.tab, doc->graph->states);
+		} else if (t.macro == "reduction_items"){
+			out << '\n';
+			Generator::generateReductionItems(out, t.tab, *doc->graph);
 		} else if (t.macro == "reductions"){
 			out << '\n';
 			Generator::generateReductions(out, t.tab, *doc);
@@ -291,6 +307,7 @@ void Generator::generate(Document& doc){
 	
 	generateSymbolNames(doc.symEnum->getSymbols());
 	generateReductionNames(doc.reductions);
+	generateReductionItemNames(doc.graph->connections);
 	generateStateNames(doc.graph->states);
 	
 	if (!out_tokenHeader.isVoid())

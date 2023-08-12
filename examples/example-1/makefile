@@ -30,12 +30,12 @@ ${bin} ${obj}:
 	mkdir -p "$@"
 	
 # Make executable
-${bin}/${name}: ${bin} ${csr} main.c ${obj}/${name}.c ${obj}/${name}.h
+${bin}/${name}: ${bin} main.c ${obj}/${name}.c ${obj}/${name}.h
 	gcc $(filter %.c , $^) -g -o "$@"
 	@echo "$@"
 
 # Make source code
-${obj}/${name}.c ${obj}/${name}.h: ${obj} ${csrpg}
+${obj}/${name}.c ${obj}/${name}.h: ${obj} ${csr}
 	${csrpg} -i "${name}.csr" -o "$(patsubst %.h,%.c,$@)" -h "$(patsubst %.c,%.h,$@)" -g "$(patsubst %.c,%,$@).txt"
 	@echo "$(patsubst %.h,%.c,$@)"
 	@echo "$(patsubst %.c,%.h,$@)"

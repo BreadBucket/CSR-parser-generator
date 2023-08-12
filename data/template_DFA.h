@@ -1,6 +1,7 @@
 #pragma once
 #define CSR_HEADER
 #include <stdbool.h>
+#include <stdarg.h>
 #include "template_TokenHeader.h"	// $MACRO delete
 // $MACRO include_tokenHeader
 
@@ -110,6 +111,7 @@ void DFA_destroyToken(struct _DFA* dfa, struct _CSRToken* token);
 void DFA_popTokens(struct _DFA* dfa, int i);
 StateID DFA_popStates(struct _DFA* dfa, int i);
 bool DFA_consume(struct _DFA* const dfa, struct _CSRToken* const currentToken);
+bool DFA_unconsume(DFA*, int n);
 bool DFA_step(struct _DFA* dfa);
 
 

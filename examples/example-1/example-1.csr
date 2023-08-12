@@ -22,7 +22,7 @@ void f(const char* name, CSRToken** t, int matched, int buffered){
 	printf("\tReached %s. Matched %d tokens. Buffered %d tokens.\n", name, matched, buffered);
 	
 	for (int i = 0 ; i < matched ; i++){
-		printf("\tMatched: %s", t[i]->data);
+		printf("\tMatched: %s", CSRToken_getName(t[i]->id));
 		nl();
 	}
 	

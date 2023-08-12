@@ -32,6 +32,19 @@ const char* CSRToken_getName(CSRTokenID id){
 }
 
 
+inline CSRToken* CSRToken_create(CSRTokenID id){
+	CSRToken* t = malloc(sizeof(CSRToken));
+	if (t != NULL){
+		t->id = id;
+		t->childCount = 0;
+		t->children = NULL;
+		t->data = NULL;
+		t->refCount = 0;
+	}
+	return t;
+}
+
+
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
@@ -127,23 +140,6 @@ void DFA_deinit(DFA* dfa){
 }
 
 
-void DFA_destroyToken(DFA* dfa, CSRToken* token){
-	if (dfa->onTokenDelete != NULL && !dfa->onTokenDelete(dfa, token)){
-		return;
-	} else {
-		CSRToken** children = token->children;
-		
-		for (int i = 0 ; i < token->childCount ; i++){
-			if (--(children[i]->refCount) <= 0)
-				DFA_destroyToken(dfa, children[i]);
-		}
-		
-		free(children);
-		free(token);
-	}
-}
-
-
 void DFA_popTokens(DFA* dfa, int i){
 	Stack* const tokenStack = &dfa->tokenStack;
 	
@@ -163,41 +159,84 @@ StateID DFA_popStates(DFA* dfa, int i){
 }
 
 
+bool DFA_unconsume(DFA* dfa, int n){
+	Stack* tokens = &dfa->tokenStack;
+	Stack* buffer = &dfa->tokenBuffer;
+	
+	// Resize buffer
+	const int minBuffSize = buffer->count + n;
+	if (buffer->size < minBuffSize){
+		if (!Stack_rezerve(buffer, minBuffSize))
+			return false;
+	}
+	
+	// Move tokens
+	void** p1 = &tokens->v[tokens->count - 1];
+	void** p2 = &buffer->v[buffer->count];
+	for (int i = 0 ; i < n ; i++){
+		*p2 = *p1;
+		p1--;
+		p2++;
+	}
+	
+	tokens->count -= n;
+	buffer->count += n;
+}
+
+
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
 CSRToken* DFA_createToken(DFA* dfa, CSRTokenID id, int childCount, ...){
-	CSRToken* t = malloc(sizeof(CSRToken));
+	CSRToken* t = CSRToken_create(id);
 	if (t == NULL)
 		return NULL;
 	
-	t->id = id;
-	t->childCount = childCount;
-	t->children = NULL;
-	t->data = NULL;
-	t->refCount = 0;
-	
 	// Add children
 	if (childCount > 0){
-		va_list argp;
-		va_start(argp, childCount);
-		
+		t->childCount = childCount;
 		t->children = malloc(sizeof(*t->children) * childCount + 1);
 		t->children[childCount] = NULL;
 		
+		va_list l;
+		va_start(l, childCount);
+		
 		for (int i = 0 ; i < childCount ; i++){
-			CSRToken* child = va_arg(argp, CSRToken*);
+			CSRToken* child = va_arg(l, CSRToken*);
 			child->refCount++;
 			t->children[i] = child;
 		}
 		
-		va_end(argp);
+		va_end(l);
 	}
 	
-	// User modification
+	
 	if (dfa->onTokenCreate != NULL)
 		t = dfa->onTokenCreate(dfa, t);
 	
+	return t;
+}
+
+
+void DFA_destroyToken(DFA* dfa, CSRToken* token){
+	if (dfa->onTokenDelete != NULL && !dfa->onTokenDelete(dfa, token)){
+		return;
+	} else {
+		CSRToken** children = token->children;
+		
+		for (int i = 0 ; i < token->childCount ; i++){
+			if (--(children[i]->refCount) <= 0)
+				DFA_destroyToken(dfa, children[i]);
+		}
+		
+		free(children);
+		free(token);
+	}
+}
+
+
+static inline CSRToken* _incRef(CSRToken* t){
+	t->refCount++;
 	return t;
 }
 
@@ -225,7 +264,7 @@ bool DFA_consume(DFA* const _dfa, CSRToken* const _currentToken){
 	Stack* const _tokenStack  = &_dfa->tokenStack;
 	Stack* const _tokenBuffer = &_dfa->tokenBuffer;
 	Stack* const _stateStack  = &_dfa->stateStack;
-	StateID const _currentStateId = _dfa->currentStateId;
+	StateID const _currentStateId = _dfa->currentStateId;	// inconsistency when popping extra symbols from reduction item
 	CSRTokenID const _currentTokenId = _currentToken->id;
 	bool _halt = false;
 	
@@ -253,12 +292,21 @@ bool DFA_consume(DFA* const _dfa, CSRToken* const _currentToken){
 		return true;
 	}
 	
-	// Reduction selections
-	goto __REDUCTIONS_END;
+	
+	// Reduction items
+	goto __REDUCTIONITEM_END;
+	{
+		// $MACRO reduction_items //
+	}
+	__REDUCTIONITEM_END:
+	
+	
+	// Reductions
+	goto __REDUCTION_END;
 	{
 		// $MACRO reductions //
 	}
-	__REDUCTIONS_END:
+	__REDUCTION_END:
 	
 	
 	return !_halt;
@@ -268,10 +316,12 @@ bool DFA_consume(DFA* const _dfa, CSRToken* const _currentToken){
 bool DFA_step(DFA* dfa){
 	CSRToken* t;
 	
-	if (dfa->tokenBuffer.count > 0)
+	if (dfa->tokenBuffer.count > 0){
 		t = Stack_pop(&dfa->tokenBuffer);
-	else if (dfa->getNextToken != NULL)
+		t->refCount--;
+	} else if (dfa->getNextToken != NULL){
 		t = dfa->getNextToken(dfa);
+	}
 	
 	return DFA_consume(dfa, t);
 }

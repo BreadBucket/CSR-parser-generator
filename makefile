@@ -22,9 +22,14 @@ run: all
 	@make -C test gen --no-print-directory
 
 # Run test program
-.PHONY: runTest
-runTest:
+.PHONY: run-test
+run-test: ${bin}/csrpg
 	@make -C test run --no-print-directory
+
+# Run example programs
+.PHONY: run-example-1
+run-example-1: ${bin}/csrpg
+	@make --no-print-directory -C examples/example-1/ run
 
 # Remove generated files
 .PHONY: clean
@@ -99,6 +104,6 @@ ${compilerPath}:
 
 ifeq (,$(MAKECMDGOALS))
 include ${compilerPath}
-else ifneq (,$(filter ${obj}/%.o ${bin}/% all run ,$(MAKECMDGOALS)))
+else ifneq (,$(filter ${obj}/%.o ${bin}/% all run% ,$(MAKECMDGOALS)))
 include ${compilerPath}
 endif

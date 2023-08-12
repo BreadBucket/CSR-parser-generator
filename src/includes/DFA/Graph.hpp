@@ -26,6 +26,7 @@ class csr::Item {
 // ------------------------------------[ Properties ] --------------------------------------- //
 public:
 	Reduction* reduction = nullptr;
+	std::string cname;
 	
 public:
 	int observed = 0;	// Amount of observed symbols.
@@ -124,7 +125,7 @@ public:
 	/**
 	 * @brief Check if the state contains a reduction item.
 	 *        A reduction item is the longest item that is fully observed and has no other non-fully observed rivals.
-	 * @return Item* Pointer to the reduction item within the state, otherwise null.
+	 * @return Item* Pointer to the reduction item within the state, otherwise null. Pointer has a short lifespan.
 	 */
 	const Item* getReductionItem() const;
 	
@@ -152,7 +153,7 @@ public:
 	Symbol* symbol = nullptr;
 	State* from = nullptr;
 	State* to = nullptr;
-	Reduction* reductionItem = nullptr;
+	std::unique_ptr<Item> reductionItem = nullptr;
 	
 // ---------------------------------- [ Constructors ] -------------------------------------- //
 public:
@@ -164,8 +165,8 @@ public:
 	Connection(State* from, Symbol* symbol, State* to) :
 		symbol{symbol}, from{from}, to{to} {}
 	
-	Connection(State* from, Symbol* symbol, Reduction* reductionItem) :
-		symbol{symbol}, from{from}, reductionItem{reductionItem} {}
+	Connection(State* from, Symbol* symbol, std::unique_ptr<Item> reductionItem) :
+		symbol{symbol}, from{from}, reductionItem{move(reductionItem)} {}
 	
 // ------------------------------------------------------------------------------------------ //
 };
