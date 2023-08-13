@@ -31,7 +31,7 @@ namespace CLI {
 	optional<string> graph_outputFilePath;
 	optional<string> graph_outputFormat;
 	
-	bool verifyReduction = true;
+	bool allowProductions = false;
 	
 	bool unicode = true;
 	bool ansi = true;
@@ -51,30 +51,30 @@ enum OptionID : int {
 	OUT,
 	OUT_HEADER,
 	OUT_HEADER_TOKEN,
-	GRAPH_OUTPATH,
-	GRAPH_FORMAT,
+	OUT_GRAPH,
+	OUT_GRAPH_FORMAT,
 	UNICODE,
 	ASCII,
 	ANSI,
 	TAB_SIZE,
-	VERIFY_REDUCTION,
+	ALLOW_PRODUCTIONS,
 } selected_opt;
 
 
-const char* const short_options = "i:o:h:g:t:pa";
+const char* const short_options = "i:o:h:t:g:f:pa";
 
 
 const struct option long_options[] = {
-	{"help",        no_argument,       (int*)&selected_opt, OptionID::HELP             },
-	{"input",       required_argument, (int*)&selected_opt, OptionID::IN               },
-	{"output",      required_argument, (int*)&selected_opt, OptionID::OUT              },
-	{"header",      required_argument, (int*)&selected_opt, OptionID::OUT_HEADER       },
-	{"token",       required_argument, (int*)&selected_opt, OptionID::OUT_HEADER_TOKEN },
-	{"graph",       optional_argument, (int*)&selected_opt, OptionID::GRAPH_OUTPATH    },
-	{"graphFormat", required_argument, (int*)&selected_opt, OptionID::GRAPH_FORMAT     },
-	{"productions", no_argument,       (int*)&selected_opt, OptionID::VERIFY_REDUCTION },
-	{"tabSize",     required_argument, (int*)&selected_opt, OptionID::TAB_SIZE         },
-	{"ascii",       no_argument,       (int*)&selected_opt, OptionID::ASCII            },
+	{"help",         no_argument,       (int*)&selected_opt, OptionID::HELP              },
+	{"input",        required_argument, (int*)&selected_opt, OptionID::IN                },
+	{"output",       required_argument, (int*)&selected_opt, OptionID::OUT               },
+	{"header",       required_argument, (int*)&selected_opt, OptionID::OUT_HEADER        },
+	{"header-token", required_argument, (int*)&selected_opt, OptionID::OUT_HEADER_TOKEN  },
+	{"graph",        required_argument, (int*)&selected_opt, OptionID::OUT_GRAPH         },
+	{"graph-format", required_argument, (int*)&selected_opt, OptionID::OUT_GRAPH_FORMAT  },
+	{"productions",  no_argument,       (int*)&selected_opt, OptionID::ALLOW_PRODUCTIONS },
+	{"tab",          required_argument, (int*)&selected_opt, OptionID::TAB_SIZE          },
+	{"ascii",        no_argument,       (int*)&selected_opt, OptionID::ASCII             },
 	{0, 0, 0, 0}
 };
 
@@ -90,12 +90,14 @@ OptionID shortOptionToLong(char c){
 			return OptionID::OUT;
 		case 'h':
 			return OptionID::OUT_HEADER;
-		case 'g':
-			return OptionID::GRAPH_OUTPATH;
 		case 't':
-			return OptionID::TAB_SIZE;
+			return OptionID::OUT_HEADER_TOKEN;
+		case 'g':
+			return OptionID::OUT_GRAPH;
+		case 'f':
+			return OptionID::OUT_GRAPH_FORMAT;
 		case 'p':
-			return OptionID::VERIFY_REDUCTION;
+			return OptionID::ALLOW_PRODUCTIONS;
 		case 'a':
 			return OptionID::ASCII;
 		default:
@@ -202,7 +204,7 @@ void CLI::parse(int argc, char const* const* argv){
 				outputHeaderFilePath_token = optarg;
 				break;
 			
-			case OptionID::GRAPH_OUTPATH:
+			case OptionID::OUT_GRAPH:
 				if (optarg != nullptr){
 					mark(selected_opt);
 					graph_outputFilePath = optarg;
@@ -211,7 +213,7 @@ void CLI::parse(int argc, char const* const* argv){
 				}
 				break;
 			
-			case OptionID::GRAPH_FORMAT:
+			case OptionID::OUT_GRAPH_FORMAT:
 				mark(selected_opt);
 				graph_outputFormat = optarg;
 				break;
@@ -230,8 +232,8 @@ void CLI::parse(int argc, char const* const* argv){
 				unicode = true;
 				break;
 			
-			case OptionID::VERIFY_REDUCTION:
-				verifyReduction = false;
+			case OptionID::ALLOW_PRODUCTIONS:
+				allowProductions = true;
 				break;
 			
 		}
@@ -270,7 +272,7 @@ void CLI::clear(){
 	outputHeaderFilePath_token.reset();
 	graph_outputFilePath.reset();
 	graph_outputFormat.reset();
-	verifyReduction = true;
+	allowProductions = false;
 	unicode = true;
 	ansi = true;
 	tabSize = 4;

@@ -252,12 +252,12 @@ void Generator::processTemplate(ostream& out, const char* data){
 		
 		// Main header macros
 		else if (t.macro == "include_header"){
-			if (!out_header.path.empty()){
+			if (!headerPath.empty()){
 				out << '\n';
-				out << t.tab << "#include \"" << out_header.getFileName() << "\"";
+				out << t.tab << "#include \"" << headerPath << "\"";
 			}
 		} else if (t.macro == "_inline_header"){
-			if (out_header.path.empty()){
+			if (inline_header){
 				out << '\n';
 				processTemplate(out, t.body.c_str());
 			}
@@ -268,17 +268,17 @@ void Generator::processTemplate(ostream& out, const char* data){
 		
 		// Token header macros
 		else if (t.macro == "include_tokenHeader"){
-			if (!out_tokenHeader.path.empty()){
+			if (!tokenHeaderPath.empty()){
 				out << '\n';
-				out << t.tab << "#include \"" << out_tokenHeader.getFileName() << "\"";
+				out << t.tab << "#include \"" << tokenHeaderPath << "\"";
 			}
 		} else if (t.macro == "include_tokenHeader-noMainHeader"){
-			if (!out_tokenHeader.path.empty() && out_header.path.empty()){
+			if (!tokenHeaderPath.empty() && headerPath.empty()){
 				out << '\n';
-				out << t.tab << "#include \"" << out_tokenHeader.getFileName() << "\"";
+				out << t.tab << "#include \"" << tokenHeaderPath << "\"";
 			}
 		} else if (t.macro == "_inline_tokenHeader"){
-			if (out_tokenHeader.path.empty()){
+			if (inline_tokenHeader){
 				out << '\n';
 				processTemplate(out, t.body.c_str());
 			}
@@ -303,6 +303,9 @@ void Generator::processTemplate(ostream& out, const char* data){
 void Generator::generate(Document& doc){
 	if (doc.symEnum == nullptr || doc.graph == nullptr)
 		return;
+	else if (out_tokenHeader.isVoid() && out_header.isVoid() && out.isVoid())
+		return;
+	
 	this->doc = &doc;
 	
 	generateSymbolNames(doc.symEnum->getSymbols());

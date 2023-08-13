@@ -26,6 +26,12 @@ public:
 	NamedStream<std::ostream> out_header;
 	NamedStream<std::ostream> out_tokenHeader;
 	
+public:
+	bool inline_header = true;
+	bool inline_tokenHeader = true;
+	std::string headerPath;			// Include as file
+	std::string tokenHeaderPath;	// Include as file
+	
 // ------------------------------------[ Variables ] ---------------------------------------- //
 private:
 	Document* doc;

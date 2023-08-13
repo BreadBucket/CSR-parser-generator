@@ -1,3 +1,7 @@
+
+#define CSR_TOKEN_HEADER
+
+
 typedef enum {TEMP} CSRTokenID; // $MACRO delete
 // $MACRO enum
 

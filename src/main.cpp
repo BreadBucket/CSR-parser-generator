@@ -175,6 +175,9 @@ bool handleGraphSerializationOption(const Document& doc){
 
 bool handleCodeGeneration(Document& doc){
 	unique_ptr<Generator> generator = make_unique<Generator>();
+	generator->inline_header = true;
+	generator->inline_tokenHeader = true;
+	
 	
 	// Open default
 	if (!CLI::outputFilePath.has_value() &
@@ -191,26 +194,54 @@ bool handleCodeGeneration(Document& doc){
 	}
 	
 	
-	// Open output streams
+	// Open C stream
 	try {
-		if (CLI::outputFilePath.has_value())
+		if (CLI::outputFilePath.has_value() && !CLI::outputFilePath->empty())
 			generator->out.open(*CLI::outputFilePath);
 	} catch (const exception& e){
 		err(CLI::programName, "Failed to open output file. %s\n", e.what());
 		return false;
 	}
 	
+	// Open header stream
 	try {
-		if (CLI::outputHeaderFilePath.has_value())
-			generator->out_header.open(*CLI::outputHeaderFilePath);
+		if (CLI::outputHeaderFilePath.has_value()){
+			
+			if (!CLI::outputHeaderFilePath->empty()){
+				generator->out_header.open(*CLI::outputHeaderFilePath);
+				
+				if (generator->out_header.good() && generator->out_header.isFile()){
+					generator->headerPath = generator->out_header.getFileName();
+				}
+				
+				generator->inline_header = !generator->out_header.isFile();
+			} else {
+				generator->inline_header = false;
+			}
+			
+		}
 	} catch (const exception& e){
 		err(CLI::programName, "Failed to open output header file. %s\n", e.what());
 		return false;
 	}
 	
+	// Open token header stream
 	try {
-		if (CLI::outputHeaderFilePath_token.has_value())
-			generator->out_tokenHeader.open(*CLI::outputHeaderFilePath_token);
+		if (CLI::outputHeaderFilePath_token.has_value()){
+			
+			if (!CLI::outputHeaderFilePath_token->empty()){
+				generator->out_tokenHeader.open(*CLI::outputHeaderFilePath_token);
+				
+				if (generator->out_tokenHeader.good() && generator->out_tokenHeader.isFile()){
+					generator->tokenHeaderPath = generator->out_tokenHeader.getFileName();
+				}
+				
+				generator->inline_tokenHeader = !generator->out_tokenHeader.isFile();
+			} else {
+				generator->inline_tokenHeader = false;
+			}
+			
+		}
 	} catch (const exception& e){
 		err(CLI::programName, "Failed to open output token header file. %s\n", e.what());
 		return false;
@@ -243,8 +274,8 @@ bool validateReduction(const Document& doc){
 	}
 	
 	int i;
-	if (CLI::verifyReduction && !ParsedReduction::validateSize(doc.parsedReductions, &i)){
-		err(doc.name, doc.parsedReductions[i]->loc, "Reduction produces more symbols than it consumes.\n");
+	if (!CLI::allowProductions && !ParsedReduction::validateLength(doc.parsedReductions, &i)){
+		err(doc.name, doc.parsedReductions[i]->loc, "Reduction produces more symbols than it consumes. Allow productions using option '--productions'.\n");
 		return false;
 	}
 	

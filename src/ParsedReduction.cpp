@@ -48,7 +48,7 @@ bool ParsedReduction::distinct(const vector<shared_ptr<ParsedReduction>>& v, int
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-bool ParsedReduction::validateSize(const vector<shared_ptr<ParsedReduction>>& v, int* out_i){
+bool ParsedReduction::validateLength(const vector<shared_ptr<ParsedReduction>>& v, int* out_i){
 	for (int i = 0 ; i < v.size() ; i++){
 		if (v[i] == nullptr)
 			continue;

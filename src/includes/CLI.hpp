@@ -17,7 +17,7 @@ namespace CLI {
 	extern std::optional<std::string> graph_outputFilePath;
 	extern std::optional<std::string> graph_outputFormat;
 	
-	extern bool verifyReduction;
+	extern bool allowProductions;
 	
 	extern bool unicode;
 	extern bool ansi;

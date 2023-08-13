@@ -1,3 +1,6 @@
+#define CSR_HEADER
+
+
 typedef int StateID;
 struct _DFA;
 
@@ -57,4 +60,3 @@ StateID DFA_popStates(DFA*, int i);
 bool DFA_consume(struct _DFA* const dfa, struct _CSRToken* const token);
 bool DFA_step(DFA*);
 bool DFA_unconsume(DFA*, int n);
-

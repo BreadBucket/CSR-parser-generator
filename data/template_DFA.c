@@ -140,10 +140,10 @@ void DFA_deinit(DFA* dfa){
 }
 
 
-void DFA_popTokens(DFA* dfa, int i){
+void DFA_popTokens(DFA* dfa, int n){
 	Stack* const tokenStack = &dfa->tokenStack;
 	
-	for ( ; i > 0 ; i--){
+	for ( ; n > 0 ; n--){
 		CSRToken* t = (CSRToken*)Stack_pop(tokenStack);
 		if (--(t->refCount) <= 0)
 			DFA_destroyToken(dfa, t);
@@ -152,8 +152,8 @@ void DFA_popTokens(DFA* dfa, int i){
 }
 
 
-StateID DFA_popStates(DFA* dfa, int i){
-	const int count = dfa->stateStack.count - i;
+StateID DFA_popStates(DFA* dfa, int n){
+	const int count = dfa->stateStack.count - n;
 	dfa->stateStack.count = count;
 	return dfa->currentStateId = (StateID)(long)dfa->stateStack.v[count - 1];
 }

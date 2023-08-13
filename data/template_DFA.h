@@ -106,13 +106,13 @@ void DFA_init(struct _DFA* dfa);
 void DFA_deinit(struct _DFA* dfa);
 
 
-CSRToken* DFA_createToken(struct _DFA* dfa, CSRTokenID id, int childCount, ...);
-void DFA_destroyToken(struct _DFA* dfa, struct _CSRToken* token);
-void DFA_popTokens(struct _DFA* dfa, int i);
-StateID DFA_popStates(struct _DFA* dfa, int i);
+CSRToken* DFA_createToken(struct _DFA*, CSRTokenID id, int childCount, ...);
+void DFA_destroyToken(struct _DFA*, struct _CSRToken* token);
+void DFA_popTokens(struct _DFA*, int n);
+StateID DFA_popStates(struct _DFA*, int n);
+bool DFA_step(struct _DFA*);
 bool DFA_consume(struct _DFA* const dfa, struct _CSRToken* const currentToken);
 bool DFA_unconsume(DFA*, int n);
-bool DFA_step(struct _DFA* dfa);
 
 
 // ------------------------------------------------------------------------------------------ //
