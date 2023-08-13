@@ -1,6 +1,8 @@
 // Language that accepts A^n B^n C^n ie. equal amounts of A's, B's and C's.
+// CSR with an AST.
 
-A B C -> S
-A S Q -> S
-B B C C -> B[1] Q C[4]
+
+A B C -> S(1,2,3)
+A S Q -> S(1,2,3)
+B B C C -> B[1] Q(B[2], C[3]) C[4]
 Q C -> C[2] Q[1]

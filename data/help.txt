@@ -21,7 +21,7 @@ Options:
                                 
   --graph=<path.ext>, ......... Generate graph information and save it to file.
    -g <path.ext>                Format of the output is automatically deduced from the path
-                                 extension, which can be overriden by '--graphFormat'.
+                                 extension, which can be overriden by '--graph-format'.
                                 Special output paths:  "1" for stdout, "2" for stderr.
                                 Default graph format for special outputs is ".txt".
                                 
@@ -37,5 +37,5 @@ Options:
                                 All tabs read from the input increment the column index by
                                  this value (default 4).
                                 
-  --ascii, .................... All IO operations only contain ASCII characters and no unicode.
+  --ascii, .................... All output operations only contain ASCII characters and no unicode.
    -a                           

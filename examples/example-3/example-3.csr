@@ -1,0 +1,70 @@
+// Language that accepts A^n B^n C^n ie. equal amounts of A's, B's and C's.
+// CSR with an AST, that groups together all A, B and C's.
+
+
+A A -> A(1,2) X {
+	mergeChildren(_dfa, _bufferedTokens[1]);
+}
+
+X A -> A[2] X[1]
+
+X B B -> B(B[2], B[3]) Y {
+	mergeChildren(_dfa, _bufferedTokens[1]);
+}
+
+Y B -> B[2] Y[1]
+
+Y C C -> C(2,3) {
+	mergeChildren(_dfa, _bufferedTokens[0]);
+}
+
+A B C -> S(1,2,3)
+
+
+
+#if CSR_CODE
+void mergeChildren(DFA* dfa, CSRToken* t){
+	
+	// Calculate new children array size
+	int newChildCount = t->childCount;
+	for (int i = 0 ; i < t->childCount ; i++){
+		if (t->children[i]->childCount > 0)
+			newChildCount += t->children[i]->childCount - 1;
+	}
+	
+	// No change
+	if (newChildCount == t->childCount){
+		return;
+	}
+	
+	// Resize null-terminated child array
+	t->children = realloc(t->children, sizeof(*t->children) * (newChildCount + 1));
+	t->children[newChildCount] = NULL;
+	
+	// Transfer childrens children
+	for (int i = t->childCount - 1, i_ = newChildCount - 1 ; i >= 0 ; i--){
+		CSRToken* child = t->children[i];
+		
+		if (child->childCount > 0){
+			// Transfer children to parent
+			for (int ii = 0 ; ii < child->childCount ; ii++)
+				t->children[i_--] = child->children[ii];
+			
+			// Remove child array
+			child->childCount = 0;
+			free(child->children);
+			child->children = NULL;
+			
+			DFA_destroyToken(dfa, child);
+		}
+		
+		// Child is top-level, move to new position in array
+		else {
+			t->children[i_--] = child;
+		}
+		
+	}
+	
+	t->childCount = newChildCount;
+}
+#endif

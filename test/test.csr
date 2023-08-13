@@ -40,6 +40,35 @@
 
 
 
-A -> B
-A B B -> C
+// A -> B
+// A B B -> C
 
+
+
+// A B C -> S(1,2,3) {
+// 	printf("1\n");
+// }
+
+A A -> A(1,2) X {
+	printf("2\n");
+}
+
+X A -> A[2] X[1] {
+	printf("3\n");
+}
+
+X B B -> B(B[2], B[3]) Y {
+	printf("4\n");
+}
+
+Y B -> B[2] Y[1] {
+	printf("5\n");
+}
+
+Y C C -> C(2,3) {
+	printf("6\n");
+}
+
+A B C -> S(1,2,3) {
+	printf("1\n");
+}

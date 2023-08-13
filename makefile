@@ -27,9 +27,9 @@ run-test: ${bin}/csrpg
 	@make -C test run --no-print-directory
 
 # Run example programs
-.PHONY: run-example-1
-run-example-1: ${bin}/csrpg
-	@make --no-print-directory -C examples/example-1/ run
+.PHONY: run-example-1 run-example-2 run-example-3
+run-example-1 run-example-2 run-example-3: ${bin}/csrpg
+	@make --no-print-directory -C examples/$(patsubst run-%,%,$@)/ run
 
 # Remove generated files
 .PHONY: clean

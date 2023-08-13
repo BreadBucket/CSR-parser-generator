@@ -12,30 +12,25 @@
 DFA dfa;
 
 
-CSRToken** input;
-int input_i;
-int input_n;
+CSRTokenID input[] = {
+	TOKEN_A,
+	TOKEN_A,
+	TOKEN_B,
+	TOKEN_B,
+	TOKEN_C,
+	TOKEN_C
+};
+
+const int input_n = sizeof(input)/sizeof(*input);
+int input_i = 0;
 
 
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-void generateInput(){
-	input_n = 6;
-	input = malloc(sizeof(*input) * (input_n + 1));
-	
-	input_i = 0;
-	input[input_i++] = DFA_createToken(&dfa, TOKEN_A, 0);
-	input[input_i++] = DFA_createToken(&dfa, TOKEN_A, 0);
-	input[input_i++] = NULL;
-	input_i = 0;
-	
-}
-
-
 CSRToken* _nextToken(struct _DFA*){
 	if (input_i < input_n)
-		return input[input_i++];
+		return CSRToken_create(input[input_i++]);
 	return NULL;
 }
 
@@ -44,10 +39,8 @@ CSRToken* _nextToken(struct _DFA*){
 
 
 void loopPrint(const char* s, int n){
-	while (n > 0){
+	while (n-- > 0)
 		printf("%s", s);
-		n--;
-	}
 }
 
 
@@ -55,7 +48,6 @@ void printToken(CSRToken* token){
 	const char* name = NULL;
 	if (token != NULL)
 		name = CSRToken_getName(token->id);
-	
 	if (name != NULL)
 		printf("%s", name);
 	else
@@ -64,13 +56,13 @@ void printToken(CSRToken* token){
 
 
 void printTokenTree(CSRToken* token, int lvl){
-	loopPrint("  ", lvl);
+	loopPrint(" ", lvl);
 	printToken(token);
 	
-	lvl++;
 	if (token == NULL || token->childCount <= 0)
 		return;
 	
+	lvl++;
 	printf(":");
 	for (int i = 0 ; i < token->childCount ; i++){
 		printf("\n");
@@ -99,10 +91,13 @@ void printStack(){
 			printToken(((CSRToken*)dfa.tokenBuffer.v[i]));
 			printf(" ");
 		}
-	} else if (input_i < input_n){
+	}
+	
+	if (input_i < input_n){
 		printf(ANSI_CYAN);
-		printToken(input[input_i]);
-		printf(" ");
+		for (int i = input_i ; i < input_n ; i++)
+			printf("%s ", CSRToken_getName(input[i]));
+		printf(ANSI_RESET);
 	}
 	
 	printf(ANSI_RESET);
@@ -139,17 +134,17 @@ void printDetailStack(){
 
 
 CSRToken* _onTokenCreate(DFA* dfa, CSRToken* t){
-	printf(ANSI_GREEN "CREATE: " ANSI_RESET);
-	printToken(t);
-	printf(" (%p)\n", t);
+	// printf(ANSI_GREEN "CREATE: " ANSI_RESET);
+	// printToken(t);
+	// printf(" (%p)\n", t);
 	return t;
 }
 
 
 bool _onTokenDestroy(DFA* dfa, CSRToken* t){
-	printf(ANSI_RED "DESTROY: " ANSI_RESET);
-	printToken(t);
-	printf(" (%p)\n", t);
+	// printf(ANSI_RED "DESTROY: " ANSI_RESET);
+	// printToken(t);
+	// printf(" (%p)\n", t);
 	return true;
 }
 
@@ -164,8 +159,6 @@ int main(int argc, char const* const* argv){
 	dfa.getNextToken = _nextToken;
 	dfa.onTokenCreate = _onTokenCreate;
 	dfa.onTokenDelete = _onTokenDestroy;
-	
-	generateInput();
 	
 	
 	for (int i = 0 ; i < 20 ; i++){
