@@ -3,7 +3,7 @@
 
 #include "../../obj/examples/example-3.h"
 
-// Input: AABBCC
+// Input: AAABBBCCC
 // Expected output:
 /*
 AST:
