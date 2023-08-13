@@ -4,10 +4,7 @@
 
 
 // Input: AABBCC
-// Expected output: 
-/*
-Stack: [S]
-*/
+// Expected output: "Parsing completed."
 
 
 // ------------------------------------[ Variables ] ---------------------------------------- //
