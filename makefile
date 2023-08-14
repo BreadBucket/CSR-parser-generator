@@ -36,7 +36,8 @@ run-example-1 run-example-2 run-example-3: ${bin}/csrpg
 clean:
 	rm -rf "${obj}" "${bin}"
 	rm -f ${compilerPath}
-	@echo "Project clean."
+	@make -C test/pascal clean
+	@echo "Project cleaned."
 
 
 
