@@ -26,8 +26,7 @@ static void handleRightSymbol(ostream&, const Reduction&, const Reduction::Right
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
-static void writeReductionComment(ostream& out, const Reduction& r){
-	out << "// ";
+static void writeReductionSignature(ostream& out, const Reduction& r){
 	
 	for (int i = 0 ; i < r.left.size() ; i++){
 		const shared_ptr<Symbol>& sym = r.left[i];
@@ -172,8 +171,8 @@ void Generator::generateReductions(ostream& out, const Tab& tab, Document& doc){
 		else if (r != *doc.reductions.begin())
 			out << '\n';
 		
-		out << tab;
-		writeReductionComment(out, *r);
+		out << tab << "// ";
+		writeReductionSignature(out, *r);
 		out << '\n';
 		
 		out << tab << "__" << r->cname << ": { ";

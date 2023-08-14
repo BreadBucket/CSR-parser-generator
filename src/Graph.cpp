@@ -1,4 +1,5 @@
 #include "Graph.hpp"
+#include <deque>
 #include <unordered_set>
 
 #include "Symbol.hpp"
@@ -14,6 +15,7 @@ using namespace csr;
 
 
 // DEBUG
+#include <iostream>
 // #include "ANSI.h"
 // #define STR(obj)	str(obj)
 // #define CSTR(obj)	str(obj).c_str()
@@ -33,7 +35,7 @@ using namespace csr;
 // // DEBUG
 // static string str(const Item& item){
 // 	string s = {};
-	
+
 // 	auto add = [&](int i, int n){
 // 		if (n <= 0){
 // 			s += "ϵ";
@@ -56,12 +58,12 @@ using namespace csr;
 	
 // 	return s;
 // }
-
+	
 
 // // DEBUG
 // static string str(const State& state){
 // 	string s = "S" + to_string(state.id) + ":\n";
-	
+
 // 	for (const Item& item : state.items){
 // 		s += "  ";
 // 		s += str(item);
@@ -80,17 +82,17 @@ using namespace csr;
 // 		s.pop_back();
 // 	return s;
 // }
-
-
+	
+	
 // // DEBUG
 // static string str(const Connection& v){
 // 	string s = {};
-	
+
 // 	if (v.from != nullptr)
 // 		s += "S" + to_string(v.from->id);
 // 	else
 // 		s += "(null)";
-	
+
 // 	s += " --[";
 // 	s += str(v.symbol);
 // 	s += "]--> ";
@@ -110,16 +112,25 @@ using namespace csr;
 // // DEBUG
 // static string str(const vector<Connection*>& v){
 // 	string s = {};
-	
+
 // 	for (const Connection* c : v){
 // 		s += str(*c);
 // 		s += '\n';
 // 	}
-	
+
 // 	if (s.size() > 0 && s.back() == '\n')
 // 		s.pop_back();
 // 	return s;
 // }
+
+
+// ----------------------------------- [ Structures ] --------------------------------------- //
+
+
+struct Graph::InternalData {
+	deque<State*> evolutionQueue;		// Unevolved state references from `states`.
+	vector<Symbol*> evolutionSymbols;
+};
 
 
 // ----------------------------------- [ Functions ] ---------------------------------------- //
@@ -144,6 +155,30 @@ bool equals(const vector<shared_ptr<Symbol>>& lhs, const vector<Symbol*>& rhs){
 	
 	return true;
 }
+
+
+template <>
+struct std::equal_to<Symbol*> {
+	constexpr bool operator()(const Symbol* lhs, const Symbol* rhs) const noexcept {
+		if (lhs == rhs)
+			return true;
+		else if (lhs != nullptr && rhs != nullptr)
+			return (lhs->id == rhs->id);
+		else
+			return false;
+	}
+};
+
+
+template <>
+struct std::hash<csr::Symbol*> {
+	constexpr int operator()(const Symbol* p) const noexcept {
+		if (p == nullptr)
+			return 0;
+		else
+			return p->id;
+	}
+};
 
 
 // ----------------------------------- [ Functions ] ---------------------------------------- //
@@ -186,51 +221,47 @@ static void buildEmptySet(const vector<shared_ptr<Reduction>>& reductions, vecto
 }
 
 
+static void getAllSymbols(const vector<Item>& items, vector<Symbol*>& symbols){
+	unordered_set<Symbol*> set = {};
+	symbols.reserve(set.size() * 2);
+	set.reserve(set.size() * 2);
+	
+	for (const Item& item : items){
+	for (Symbol* sym : item.symbols){
+		if (sym != nullptr)
+			set.emplace(sym);
+	}}
+	
+	symbols.assign(set.begin(), set.end());
+}
+
+
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
 void Graph::build(const vector<shared_ptr<Reduction>>& v){
 	clear();
+	data = new InternalData();
+	
 	buildEmptySet(v, *emptySet);
+	getAllSymbols(*emptySet, data->evolutionSymbols);
+	
 	
 	State* s0 = states.emplace_back(new State(0));
 	s0->emptyItems = emptySet;
-	evolutionQueue.push_back(s0);
+	data->evolutionQueue.push_back(s0);
 	
 	
-	while (evolutionQueue.size() > 0){
+	while (data->evolutionQueue.size() > 0){
 		PRINTF("\n\n");	// DEBUG
-		State* s = evolutionQueue.front();
-		evolutionQueue.pop_front();
+		State* s = data->evolutionQueue.front();
+		data->evolutionQueue.pop_front();
 		evolve(*s);
 	}
 	
 	
-	// // DEBUG
-	// PRINTF("\n\n\n\n\n\n");
-	// // PRINTF("%s\n\n", str(connections, id_to_symbol).c_str());
-	// for (const State* s : states){
-	// 	bool unresolved = false;
-		
-	// 	for (const State* e : evolutionQueue){
-	// 		if (s->id == e->id){
-	// 			unresolved = true;
-	// 			break;
-	// 		}
-	// 	}
-		
-	// 	PRINTF(ANSI_GREEN);
-	// 	if (unresolved)
-	// 		PRINTF(ANSI_YELLOW);
-	// 	PRINTF("%s\n", CSTR(*s));
-	// 	PRINTF(ANSI_RESET);
-	// }
-	
-	// PRINTF("\nQUEUE: %d\n", evolutionQueue.size());
-	
-	
 	// Release unused memory
-	evolutionQueue.shrink_to_fit();
+	delete data;
 }
 
 
@@ -244,58 +275,7 @@ void Graph::clear(){
 	connections.clear();
 	emptySet->clear();
 	
-	evolutionQueue.clear();
-}
-
-
-// ----------------------------------- [ Functions ] ---------------------------------------- //
-
-
-template <>
-struct std::equal_to<Symbol*> {
-	constexpr bool operator()(const Symbol* lhs, const Symbol* rhs) const noexcept {
-		if (lhs == rhs)
-			return true;
-		else if (lhs != nullptr && rhs != nullptr)
-			return (lhs->id == rhs->id);
-		else
-			return false;
-	}
-};
-
-
-template <>
-struct std::hash<csr::Symbol*> {
-	constexpr int operator()(const Symbol* p) const noexcept {
-		if (p == nullptr)
-			return 0;
-		else
-			return p->id;
-	}
-};
-
-
-unordered_set<Symbol*> getMissingSymbols(const State& state){
-	unordered_set<Symbol*> symbols = {};
-	
-	// Relevant items
-	for (const Item& item : state.items){
-		if (item.missing > 0){
-			Symbol* symbol = item[item.imissing()];
-			symbols.emplace(symbol);
-		}
-	}
-	
-	// Empty set
-	if (state.emptyItems != nullptr){
-		for (const Item& item : *state.emptyItems){
-			if (item.missing > 0){
-				Symbol* symbol = item[item.imissing()];
-				symbols.emplace(symbol);
-			}
-		}
-	}
-	return symbols;
+	delete data;
 }
 
 
@@ -305,7 +285,7 @@ unordered_set<Symbol*> getMissingSymbols(const State& state){
 void Graph::evolve(State& base){
 	PRINTF(ANSI_RESET "STEP %s\n", CSTR(base));
 	
-	unordered_set<Symbol*> symbols = getMissingSymbols(base);
+	const vector<Symbol*>& symbols = data->evolutionSymbols;
 	State* tempState = nullptr;
 	
 	for (Symbol* symbol : symbols){
@@ -332,24 +312,24 @@ void Graph::evolve(State& base){
 		}
 		
 		
-		// Create connection
-		Connection* c = new Connection(&base, symbol, existingState);
-		connections.push_back(c);
-		base.connections.push_back(c);
-		
-		// Connect already existing state
+		// Create connection to existing state
 		if (existingState != nullptr){
-			c->to = existingState;
+			if (existingState->id != 0){
+				Connection* c = new Connection(&base, symbol, existingState);
+				connections.push_back(c);
+				base.connections.push_back(c);
+			}
 			continue;
 		}
 		
 		// Check for reduction item
 		const Item* ri = tempState->getReductionItem();
 		if (ri != nullptr){
-			// PRINTF(ANSI_PURPLE "%s\n" ANSI_RESET, CSTR(*tempState));
-			PRINTF("<< " ANSI_PURPLE "%s" ANSI_RESET " >>\n", CSTR(*ri));
 			// Copy item, state object holding the item object is temporary
-			c->reductionItem = make_unique<Item>(*ri);
+			PRINTF("<< " ANSI_PURPLE "%s" ANSI_RESET " >>\n", CSTR(*ri));
+			Connection* c = new Connection(&base, symbol, make_unique<Item>(*ri));
+			connections.push_back(c);
+			base.connections.push_back(c);
 			continue;
 		}
 		
@@ -360,10 +340,12 @@ void Graph::evolve(State& base){
 			// Register new state
 			tempState->id = states.size();
 			states.push_back(tempState);
-			evolutionQueue.push_back(tempState);
+			data->evolutionQueue.push_back(tempState);
 			
 			// Finalize connection
-			c->to = tempState;
+			Connection* c = new Connection(&base, symbol, tempState);
+			connections.push_back(c);
+			base.connections.push_back(c);
 			
 			tempState = nullptr;
 		}
@@ -454,19 +436,6 @@ const Item* State::getReductionItem() const {
 	else
 		return nullptr;
 }
-
-
-// void State::sort(){
-// 	std::sort(items.begin(), items.end(), [](const Item& a, const Item& b) -> bool {
-// 		if (a.reduction < b.reductionId)
-// 			return true;
-// 		else if (a.reductionId == b.reductionId){
-// 			if (a.observed > b.observed)
-// 				return true;
-// 		}
-// 		return false;
-// 	});
-// }
 
 
 bool State::equivalent(const State& other) const {

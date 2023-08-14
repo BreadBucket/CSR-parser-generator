@@ -1,7 +1,6 @@
 #pragma once
 #include <string>
 #include <vector>
-#include <deque>
 #include <memory>
 
 
@@ -188,7 +187,8 @@ public:
 	std::vector<Item>* emptySet;
 	
 private:
-	std::deque<State*> evolutionQueue;	// Unevolved state references from `states`.
+	struct InternalData;
+	InternalData* data = nullptr;
 	
 // ---------------------------------- [ Constructors ] -------------------------------------- //
 public:
