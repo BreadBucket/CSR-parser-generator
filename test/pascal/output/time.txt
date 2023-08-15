@@ -1,0 +1,28 @@
+tangle[1000]:
+  RESULT: program 
+  TOKENS: 13437
+  DFA:    6.599ms
+  DELETE: 2.097ms
+  TOTAL:  8.702ms
+
+weave[1000]:
+  RESULT: program 
+  TOKENS: 28019
+  DFA:    13.937ms
+  DELETE: 4.711ms
+  TOTAL:  18.651ms
+
+tex[1000]:
+  RESULT: program 
+  TOKENS: 120480
+  DFA:    54.347ms
+  DELETE: 18.708ms
+  TOTAL:  73.060ms
+
+mf[1000]:
+  RESULT: program 
+  TOKENS: 123736
+  DFA:    58.049ms
+  DELETE: 19.957ms
+  TOTAL:  78.009ms
+

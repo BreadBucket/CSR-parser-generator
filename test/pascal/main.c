@@ -39,6 +39,7 @@ struct {
 
 
 bool ansi = false;
+bool fid = 0;
 
 
 // ------------------------------------- [ Macros ] ----------------------------------------- //
@@ -365,11 +366,10 @@ void f1(){
 void f(){
 	DFA_init(&dfa);
 	
-	
-	// f0();
-	f1();
-	// fx();
-	
+	if (fid == 0)
+		f0();
+	else if (fid == 1)
+		f1();
 	
 	getResult();
 	
@@ -384,7 +384,12 @@ int main(int argc, char const* const* argv){
 	printf("======================================================\n");
 	
 	if (argc >= 2 && strcmp(argv[1],"-c") == 0){
+		fid = 1;
 		ansi = true;
+	} else if (argc >= 2 && strcmp(argv[1],"-f0") == 0){
+		fid = 0;
+	} else if (argc >= 2 && strcmp(argv[1],"-f1") == 0){
+		fid = 1;
 	}
 	
 	
@@ -395,6 +400,7 @@ int main(int argc, char const* const* argv){
 	
 	
 	printResult();
+	
 	
 	if (ansi){
 		printf("Tokens: " ANSI_YELLOW "%d" ANSI_RESET "\n", sw.tokenCounter);
@@ -411,7 +417,7 @@ int main(int argc, char const* const* argv){
 	}
 	
 	printf("======================================================\n");
-	return 0;
+	return (result_n == 1 && result[0] == TOKEN_program) ? 0 : 1;
 }
 
 

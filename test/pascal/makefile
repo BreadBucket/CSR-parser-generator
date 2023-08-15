@@ -24,16 +24,16 @@ run: ${bin}/pascal
 # translate: ${bin}/translate
 # 	${bin}/translate <"old-pascal.csr" >"pascal.csr"
 
-# .PHONY: test
-# test: ${bin}/translate
-# 	${bin}/translate <debug.txt
-
 .PHONY: clean
 clean:
 	rm -rf "${obj}" "${bin}/translate" "${bin}/pascal"
 	rm -f "${csr}"
+	rm -f "${out}/mf.txt" "${out}/tangle.txt" "${out}/weave.txt" "${out}/tex.txt"
 	@echo "Project cleaned."
 
+.PHONY: getProg
+getProg:
+	@echo "${bin}/pascal"
 
 
 
@@ -47,10 +47,11 @@ ${bin}/pascal: ${obj}/pascal.o ${obj}/main.o | ${bin}
 	gcc $^ -lm ${FLAGS} -o "$@"
 
 ${obj}/main.o: main.c | ${obj}
-	@gcc $^ -c ${FLAGS} -o "$@"
+	gcc $^ -c ${FLAGS} -o "$@"
 	@basename "$@"
 ${obj}/pascal.o: ${obj}/pascal.c | ${obj}
-	@gcc $^ -c ${FLAGS} -o "$@"
+	@echo "Compiling DFA ..."
+	gcc $^ -c ${FLAGS} -o "$@"
 	@basename "$@"
 
 
@@ -62,5 +63,6 @@ ${csr}: ${bin}/translate ${in}/src-pascal.csr
 
 # CSRPG
 ${obj}/pascal.c: ${csr} | ${obj}
+	@echo "Building DFA ..."
 	${csrpg} -i "${csr}" -o "${obj}/pascal.c" -h "${obj}/pascal.h" -t "${obj}/pascal-tokens.h" -g "${obj}/pascal.txt"
 
