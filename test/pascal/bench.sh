@@ -8,7 +8,7 @@ make ${prog}
 
 
 N=100
-if [ "$1" -gt 0 ]; then
+if [ "${1:-0}" -gt "0" ]; then
 	N=$1
 fi
 
@@ -30,6 +30,7 @@ function run(){
 	local txt="${out}/${name}.txt"
 	
 	rm -f "$txt"
+	statsArg="-stat"
 	
 	# echo "${name}:"
 	for ((i = 0 ; i < $2 ; i+=1)); do
@@ -38,48 +39,53 @@ function run(){
 		# grep "TOTAL" <<<"$s" | grep -oP "\\d+(\.\\d+)?ms"
 		# cat <<<"$s" >>"$txt"
 		
-		cat "${in}/$1" | ./lexer | ${prog} ${arg} >>"$txt"
+		cat "${in}/$1" | ./lexer | ${prog} ${statsArg} ${arg} >>"$txt"
+		statsArg=""
 	done
 	
 	
 	printf "${name}[$N]:\n"
-	printf "  RESULT: %s\n"      "$(grep "Result" "${txt}" | head -n 1 | grep -oP ":.*" | grep -oP "\\w.*")"
-	printf "  TOKENS: %s\n"      "$(grep "Tokens" "${txt}" | head -n 1 | grep -oP "\\d+")"
-	printf "  INPUT:  %.3fms\n"  "$(avgFields "$txt" "INPUT")"
-	printf "  DFA:    %.3fms\n"  "$(avgFields "$txt" "DFA")"
-	printf "  DELETE: %.3fms\n"  "$(avgFields "$txt" "DELETE")"
-	printf "  TOTAL:  %.3fms\n"  "$(avgFields "$txt" "TOTAL")"
+	printf "  result:     %s\n"      "$(grep "Result" "${txt}" | head -n 1 | grep -oP ":.*" | grep -oP "\\w.*")"
+	printf "  tokens:     %s\n"      "$(grep "Tokens" "${txt}" | head -n 1 | grep -oP "\\d+")"
+	printf "  symbols:    %s\n"      "$(grep "Symbols" "${txt}" | head -n 1 | grep -oP "\\d+")"
+	printf "  reductions: %s\n"      "$(grep "Reductions" "${txt}" | head -n 1 | grep -oP "\\d+")"
+	printf "  steps:      %s\n"      "$(grep "Steps" "${txt}" | head -n 1 | grep -oP "\\d+")"
+	printf "  INPUT:      %.3fms\n"  "$(avgFields "$txt" "INPUT")"
+	printf "  DFA:        %.3fms\n"  "$(avgFields "$txt" "DFA")"
+	printf "  DELETE:     %.3fms\n"  "$(avgFields "$txt" "DELETE")"
+	printf "  TOTAL:      %.3fms\n"  "$(avgFields "$txt" "TOTAL")"
 }
 
 
 
 
-arg="-f0"
-rm -f "${out}/time.txt"
-run "tangle.p" $N | tee -a "${out}/time.txt"
-printf "\n"    $N | tee -a "${out}/time.txt"
-run "weave.p"  $N | tee -a "${out}/time.txt"
-printf "\n"    $N | tee -a "${out}/time.txt"
-run "tex.p"    $N | tee -a "${out}/time.txt"
-printf "\n"    $N | tee -a "${out}/time.txt"
-run "mf.p"     $N | tee -a "${out}/time.txt"
-printf "\n"    $N | tee -a "${out}/time.txt"
+# arg="-f0"
+# rm -f "${out}/time.txt"
+# run "tangle.p" $N | tee -a "${out}/time.txt"
+# printf "\n"    $N | tee -a "${out}/time.txt"
+# run "weave.p"  $N | tee -a "${out}/time.txt"
+# printf "\n"    $N | tee -a "${out}/time.txt"
+# run "tex.p"    $N | tee -a "${out}/time.txt"
+# printf "\n"    $N | tee -a "${out}/time.txt"
+# run "mf.p"     $N | tee -a "${out}/time.txt"
+# printf "\n"    $N | tee -a "${out}/time.txt"
 
-# Remove INPUT field
-grep -v "INPUT" "${out}/time.txt" >"${out}/_time.txt"
-rm -rf "${out}/time.txt"
-mv "${out}/_time.txt" "${out}/time.txt"
+# # Remove INPUT field
+# grep -v "INPUT" "${out}/time.txt" >"${out}/_time.txt"
+# rm -rf "${out}/time.txt"
+# mv "${out}/_time.txt" "${out}/time.txt"
 
 
 arg="-f1"
-rm -f "${out}/time_buffered.txt"
-run "tangle.p" $N | tee -a "${out}/time_buffered.txt"
-printf "\n"    $N | tee -a "${out}/time_buffered.txt"
-run "weave.p"  $N | tee -a "${out}/time_buffered.txt"
-printf "\n"    $N | tee -a "${out}/time_buffered.txt"
-run "tex.p"    $N | tee -a "${out}/time_buffered.txt"
-printf "\n"    $N | tee -a "${out}/time_buffered.txt"
-run "mf.p"     $N | tee -a "${out}/time_buffered.txt"
-printf "\n"    $N | tee -a "${out}/time_buffered.txt"
+f="${out}/time.txt"
+rm -f "$f"
+run "tangle.p" $N | tee -a "$f"
+printf "\n"    $N | tee -a "$f"
+run "weave.p"  $N | tee -a "$f"
+printf "\n"    $N | tee -a "$f"
+run "tex.p"    $N | tee -a "$f"
+printf "\n"    $N | tee -a "$f"
+run "mf.p"     $N | tee -a "$f"
+printf "\n"    $N | tee -a "$f"
 
 

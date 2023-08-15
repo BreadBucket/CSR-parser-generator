@@ -31,6 +31,9 @@ int inputBuffer_i;
 
 struct {
 	int tokenCounter;
+	int symbolCounter;
+	int reductionCounter;
+	int stepCounter;
 	double buffer;
 	double dfa;
 	double deinit;
@@ -38,9 +41,10 @@ struct {
 } sw = {};
 
 
-bool ansi = false;
-bool fid = 0;
-
+struct {
+	int fid;
+	bool stats;
+} settings = {};
 
 // ------------------------------------- [ Macros ] ----------------------------------------- //
 
@@ -297,17 +301,43 @@ void getResult(){
 
 
 void printResult(){
-	printf("Result: ");
-	if (ansi)
-		printf(ANSI_GREEN);
-	
-	for (int i = 0 ; i < result_n ; i++){
+	printf("Result:     ");
+	for (int i = 0 ; i < result_n ; i++)
 		printf("%s ", CSRToken_getName(result[i]));
+	printf("\n");
+}
+
+
+// ----------------------------------- [ Functions ] ---------------------------------------- //
+
+
+bool _onTokenDestroy(DFA*, CSRToken*){
+	sw.symbolCounter++;
+	return true;
+}
+
+
+void runDFA(){
+	STOPWATCH_START(sw.dfa);
+	
+	if (!settings.stats){
+		while (DFA_step(&dfa));
 	}
 	
-	if (ansi)
-		printf(ANSI_RESET);
-	printf("\n");
+	else {
+		dfa.onTokenDelete = _onTokenDestroy;
+		
+		int prevBuf = dfa.tokenBuffer.count;
+		while (DFA_step(&dfa)){
+			sw.stepCounter++;
+			if (dfa.tokenBuffer.count > prevBuf || (prevBuf > 0 && dfa.tokenBuffer.count >= prevBuf))
+				sw.reductionCounter++;
+			prevBuf = dfa.tokenBuffer.count;
+		}
+		
+	}
+	
+	STOPWATCH_STOP(sw.dfa);
 }
 
 
@@ -316,10 +346,7 @@ void printResult(){
 
 void f0(){
 	dfa.getNextToken = nextToken;
-	
-	STOPWATCH_START(sw.dfa);
-	while (DFA_step(&dfa));
-	STOPWATCH_STOP(sw.dfa);
+	runDFA();
 }
 
 
@@ -331,13 +358,8 @@ void f1(){
 	fillInputBuffer();
 	STOPWATCH_STOP(sw.buffer);
 	
-	// Execute DFA
-	STOPWATCH_START(sw.dfa);
-	while (DFA_step(&dfa));
-	STOPWATCH_STOP(sw.dfa);
+	runDFA();
 }
-
-
 
 
 // void fX(){
@@ -366,9 +388,9 @@ void f1(){
 void f(){
 	DFA_init(&dfa);
 	
-	if (fid == 0)
+	if (settings.fid == 0)
 		f0();
-	else if (fid == 1)
+	else if (settings.fid == 1)
 		f1();
 	
 	getResult();
@@ -382,14 +404,16 @@ void f(){
 
 int main(int argc, char const* const* argv){
 	printf("======================================================\n");
+	settings.fid = 1;
+	settings.stats = false;
 	
-	if (argc >= 2 && strcmp(argv[1],"-c") == 0){
-		fid = 1;
-		ansi = true;
-	} else if (argc >= 2 && strcmp(argv[1],"-f0") == 0){
-		fid = 0;
-	} else if (argc >= 2 && strcmp(argv[1],"-f1") == 0){
-		fid = 1;
+	for (int i = 1 ; i < argc ; i++){
+		if (strcmp(argv[i],"-f0") == 0)
+			settings.fid = 0;
+		else if (strcmp(argv[i],"-f1") == 0)
+			settings.fid = 1;
+		else if (strcmp(argv[i],"-stat") == 0)
+			settings.stats = true;
 	}
 	
 	
@@ -399,23 +423,17 @@ int main(int argc, char const* const* argv){
 	STOPWATCH_STOP(sw.total);
 	
 	
-	printResult();
-	
-	
-	if (ansi){
-		printf("Tokens: " ANSI_YELLOW "%d" ANSI_RESET "\n", sw.tokenCounter);
-		printf("INPUT:  " ANSI_YELLOW "%.3fms" ANSI_RESET " (~%.1fs)\n", sw.buffer, sw.buffer/1000.0);
-		printf("DFA:    " ANSI_YELLOW "%.3fms" ANSI_RESET " (~%.1fs)\n", sw.dfa, sw.dfa/1000.0);
-		printf("DELETE: " ANSI_YELLOW "%.3fms" ANSI_RESET " (~%.1fs)\n", sw.deinit, sw.deinit/1000.0);
-		printf("TOTAL:  " ANSI_YELLOW "%.3fms" ANSI_RESET " (~%.1fs)\n", sw.total, sw.total/1000.0);
-	} else {
-		printf("Tokens: %d\n", sw.tokenCounter);
-		printf("INPUT:  %.3fms (~%.1fs)\n", sw.buffer, sw.buffer/1000.0);
-		printf("DFA:    %.3fms (~%.1fs)\n", sw.dfa, sw.dfa/1000.0);
-		printf("DELETE: %.3fms (~%.1fs)\n", sw.deinit, sw.deinit/1000.0);
-		printf("TOTAL:  %.3fms (~%.1fs)\n", sw.total, sw.total/1000.0);
+	if (settings.stats){
+		printResult();
+		printf("Tokens:     %d\n", sw.tokenCounter);
+		printf("Symbols:    %d\n", sw.symbolCounter);
+		printf("Reductions: %d\n", sw.reductionCounter);
+		printf("Steps:      %d\n", sw.stepCounter);
 	}
-	
+	printf("INPUT:      %.3fms (~%.1fs)\n", sw.buffer, sw.buffer/1000.0);
+	printf("DFA:        %.3fms (~%.1fs)\n", sw.dfa, sw.dfa/1000.0);
+	printf("DELETE:     %.3fms (~%.1fs)\n", sw.deinit, sw.deinit/1000.0);
+	printf("TOTAL:      %.3fms (~%.1fs)\n", sw.total, sw.total/1000.0);
 	printf("======================================================\n");
 	return (result_n == 1 && result[0] == TOKEN_program) ? 0 : 1;
 }

@@ -18,7 +18,7 @@ all: ${bin}/pascal
 
 .PHONY: run
 run: ${bin}/pascal
-	cat "${in}/mf.p" | ./lexer | ${bin}/pascal
+	cat "${in}/mf.p" | ./lexer | ${bin}/pascal -stat
 
 # .PHONY: translate
 # translate: ${bin}/translate
@@ -27,7 +27,6 @@ run: ${bin}/pascal
 .PHONY: clean
 clean:
 	rm -rf "${obj}" "${bin}/translate" "${bin}/pascal"
-	rm -f "${csr}"
 	rm -f "${out}/mf.txt" "${out}/tangle.txt" "${out}/weave.txt" "${out}/tex.txt"
 	@echo "Project cleaned."
 

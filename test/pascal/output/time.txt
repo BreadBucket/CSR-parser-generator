@@ -1,28 +1,44 @@
 tangle[1000]:
-  RESULT: program 
-  TOKENS: 13437
-  DFA:    6.599ms
-  DELETE: 2.097ms
-  TOTAL:  8.702ms
+  result:     program 
+  tokens:     13437
+  symbols:    53019
+  reductions: 38243
+  steps:      76554
+  INPUT:      1.187ms
+  DFA:        5.877ms
+  DELETE:     2.100ms
+  TOTAL:      9.171ms
 
 weave[1000]:
-  RESULT: program 
-  TOKENS: 28019
-  DFA:    13.937ms
-  DELETE: 4.711ms
-  TOTAL:  18.651ms
+  result:     program 
+  tokens:     28019
+  symbols:    116170
+  reductions: 84885
+  steps:      168031
+  INPUT:      2.377ms
+  DFA:        12.112ms
+  DELETE:     4.449ms
+  TOTAL:      18.942ms
 
 tex[1000]:
-  RESULT: program 
-  TOKENS: 120480
-  DFA:    54.347ms
-  DELETE: 18.708ms
-  TOTAL:  73.060ms
+  result:     program 
+  tokens:     120480
+  symbols:    461576
+  reductions: 329447
+  steps:      661767
+  INPUT:      10.664ms
+  DFA:        45.485ms
+  DELETE:     17.670ms
+  TOTAL:      73.822ms
 
 mf[1000]:
-  RESULT: program 
-  TOKENS: 123736
-  DFA:    58.049ms
-  DELETE: 19.957ms
-  TOTAL:  78.009ms
+  result:     program 
+  tokens:     123736
+  symbols:    490373
+  reductions: 353439
+  steps:      705266
+  INPUT:      10.638ms
+  DFA:        48.523ms
+  DELETE:     18.970ms
+  TOTAL:      78.134ms
 
