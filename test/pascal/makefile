@@ -8,6 +8,8 @@ out = output
 csrpg = ${root}/bin/csrpg
 csr   = ${in}/pascal.csr
 
+FLAGS = -O2
+
 
 
 
@@ -42,13 +44,13 @@ ${obj} ${bin}:
 
 # Program
 ${bin}/pascal: ${obj}/pascal.o ${obj}/main.o | ${bin}
-	gcc $^ -o "$@"
+	gcc $^ -lm ${FLAGS} -o "$@"
 
 ${obj}/main.o: main.c | ${obj}
-	@gcc $^ -c -o "$@"
+	@gcc $^ -c ${FLAGS} -o "$@"
 	@basename "$@"
 ${obj}/pascal.o: ${obj}/pascal.c | ${obj}
-	@gcc $^ -c -o "$@"
+	@gcc $^ -c ${FLAGS} -o "$@"
 	@basename "$@"
 
 

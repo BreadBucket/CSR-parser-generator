@@ -1,6 +1,15 @@
 #include <string.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
+
+#ifndef __USE_POSIX199309
+	#define __USE_POSIX199309
+	#include <time.h>
+	#undef __USE_POSIX199309
+#else
+	#include <time.h>
+#endif
 
 #include "../../obj/pascal/pascal.h"
 #include "../../obj/pascal/pascal-tokens.h"
@@ -12,10 +21,47 @@
 
 
 DFA dfa;
+CSRTokenID* result;
+int result_n;
+
+CSRTokenID* inputBuffer;
+int inputBuffer_n;
+int inputBuffer_i;
 
 
-int tokenCounter = 0;
-CSRToken* bufferedToken;
+struct {
+	int tokenCounter;
+	double buffer;
+	double dfa;
+	double deinit;
+	double total;
+} sw = {};
+
+
+bool ansi = false;
+
+
+// ------------------------------------- [ Macros ] ----------------------------------------- //
+
+
+#define STOPWATCH_START(var) {			\
+	struct timespec t1, t2;				\
+	clock_gettime(CLOCK_REALTIME, &t1);	\
+
+#define STOPWATCH_STOP(var)				\
+	clock_gettime(CLOCK_REALTIME, &t2);	\
+	var = dt_ms(&t1, &t2);				\
+}										\
+
+
+inline double dt_ms(struct timespec* t1, struct timespec* t2){
+	#define S_TO_NS ((long)1e9)
+	#define NS_TO_MS ((double)1.0/1e6)
+	const long ns1 = (t1->tv_sec * S_TO_NS) + t1->tv_nsec;
+	const long ns2 = (t2->tv_sec * S_TO_NS) + t2->tv_nsec;
+	const long dt = ns2 - ns1;
+	return (double)dt * NS_TO_MS;
+}
 
 
 // ----------------------------------- [ Functions ] ---------------------------------------- //
@@ -37,268 +83,120 @@ char* nextLine(){
 }
 
 
-// ----------------------------------- [ Functions ] ---------------------------------------- //
-
-
-void enlistTokens(){
-	Stack list;
-	Stack_init(&list);
-	
-	char* name = nextLine();
-	while (name != NULL){
-		bool exists = false;
-		
-		for (int i = 0 ; i < list.count ; i++){
-			if (strcmp((char*)list.v[i], name) == 0){
-				exists = true;
-				break;
-			}
-		}
-		
-		if (!exists){
-			Stack_push(&list, strdup(name));
-			printf("%s\n", name);
-		}
-		
-	}
-	
-	// Delete strings
-	for (int i = 0 ; i < list.count ; i++){
-		free(list.v[i]);
-	}
-	
-	Stack_deinit(&list);
-}
-
-
-CSRToken* peekToken(){
-	if (bufferedToken == NULL)
-		bufferedToken = dfa.getNextToken(&dfa);
-	return bufferedToken;
-}
-
-
-// ----------------------------------- [ Functions ] ---------------------------------------- //
-
-
 CSRTokenID getId(const char* name){
 	if (name == NULL) return -1;
-	else if (strcmp(name, "BOOLEANCONST") == 0) return TOKEN_BOOLEANCONST;
-	else if (strcmp(name, "STRINGCONST")  == 0) return TOKEN_STRINGCONST;
-	else if (strcmp(name, "REALCONST")    == 0) return TOKEN_REALCONST;
-	else if (strcmp(name, "INTEGERCONST") == 0) return TOKEN_INTEGERCONST;
-	else if (strcmp(name, "ADD")          == 0) return TOKEN_ADD;
-	else if (strcmp(name, "ASSIGN")       == 0) return TOKEN_ASSIGN;
-	else if (strcmp(name, "COLON")        == 0) return TOKEN_COLON;
-	else if (strcmp(name, "COMMA")        == 0) return TOKEN_COMMA;
-	else if (strcmp(name, "DIV")          == 0) return TOKEN_DIV;
-	else if (strcmp(name, "DOT")          == 0) return TOKEN_DOT;
-	else if (strcmp(name, "EQU")          == 0) return TOKEN_EQU;
-	else if (strcmp(name, "GEQ")          == 0) return TOKEN_GEQ;
-	else if (strcmp(name, "GTH")          == 0) return TOKEN_GTH;
-	else if (strcmp(name, "INTERVAL")     == 0) return TOKEN_INTERVAL;
-	else if (strcmp(name, "LBRACKET")     == 0) return TOKEN_LBRACKET;
-	else if (strcmp(name, "LPARENT")      == 0) return TOKEN_LPARENT;
-	else if (strcmp(name, "LEQ")          == 0) return TOKEN_LEQ;
-	else if (strcmp(name, "LTH")          == 0) return TOKEN_LTH;
-	else if (strcmp(name, "MUL")          == 0) return TOKEN_MUL;
-	else if (strcmp(name, "NEQ")          == 0) return TOKEN_NEQ;
-	else if (strcmp(name, "PTR")          == 0) return TOKEN_PTR;
-	else if (strcmp(name, "RBRACKET")     == 0) return TOKEN_RBRACKET;
-	else if (strcmp(name, "RPARENT")      == 0) return TOKEN_RPARENT;
-	else if (strcmp(name, "SEMIC")        == 0) return TOKEN_SEMIC;
-	else if (strcmp(name, "SUB")          == 0) return TOKEN_SUB;
-	else if (strcmp(name, "BOOLEAN")      == 0) return TOKEN_BOOLEAN;
-	else if (strcmp(name, "CHAR")         == 0) return TOKEN_CHAR;
-	else if (strcmp(name, "REAL")         == 0) return TOKEN_REAL;
-	else if (strcmp(name, "INTEGER")      == 0) return TOKEN_INTEGER;
-	else if (strcmp(name, "AND")          == 0) return TOKEN_AND;
-	else if (strcmp(name, "ARRAY")        == 0) return TOKEN_ARRAY;
-	else if (strcmp(name, "BEGIN")        == 0) return TOKEN_BEGIN;
-	else if (strcmp(name, "CASE")         == 0) return TOKEN_CASE;
-	else if (strcmp(name, "CONST")        == 0) return TOKEN_CONST;
-	else if (strcmp(name, "DO")           == 0) return TOKEN_DO;
-	else if (strcmp(name, "DOWNTO")       == 0) return TOKEN_DOWNTO;
-	else if (strcmp(name, "ELSE")         == 0) return TOKEN_ELSE;
-	else if (strcmp(name, "END")          == 0) return TOKEN_END;
-	else if (strcmp(name, "FILE")         == 0) return TOKEN_FILE;
-	else if (strcmp(name, "FOR")          == 0) return TOKEN_FOR;
-	else if (strcmp(name, "FORWARD")      == 0) return TOKEN_FORWARD;
-	else if (strcmp(name, "FUNCTION")     == 0) return TOKEN_FUNCTION;
-	else if (strcmp(name, "GOTO")         == 0) return TOKEN_GOTO;
-	else if (strcmp(name, "IDIV")         == 0) return TOKEN_IDIV;
-	else if (strcmp(name, "IF")           == 0) return TOKEN_IF;
-	else if (strcmp(name, "IMOD")         == 0) return TOKEN_IMOD;
-	else if (strcmp(name, "IN")           == 0) return TOKEN_IN;
-	else if (strcmp(name, "LABEL")        == 0) return TOKEN_LABEL;
-	// else if (strcmp(name, "NIL")          == 0) return TOKEN_NIL;
-	else if (strcmp(name, "NOT")          == 0) return TOKEN_NOT;
-	else if (strcmp(name, "OF")           == 0) return TOKEN_OF;
-	else if (strcmp(name, "OR")           == 0) return TOKEN_OR;
-	else if (strcmp(name, "PACKED")       == 0) return TOKEN_PACKED;
-	else if (strcmp(name, "PROCEDURE")    == 0) return TOKEN_PROCEDURE;
-	else if (strcmp(name, "PROGRAM")      == 0) return TOKEN_PROGRAM;
-	else if (strcmp(name, "RECORD")       == 0) return TOKEN_RECORD;
-	else if (strcmp(name, "REPEAT")       == 0) return TOKEN_REPEAT;
-	else if (strcmp(name, "SET")          == 0) return TOKEN_SET;
-	else if (strcmp(name, "STEP")         == 0) return TOKEN_STEP;
-	else if (strcmp(name, "THEN")         == 0) return TOKEN_THEN;
-	else if (strcmp(name, "TO")           == 0) return TOKEN_TO;
-	else if (strcmp(name, "TYPE")         == 0) return TOKEN_TYPE;
-	else if (strcmp(name, "UNTIL")        == 0) return TOKEN_UNTIL;
-	else if (strcmp(name, "VAR")          == 0) return TOKEN_VAR;
-	else if (strcmp(name, "WHILE")        == 0) return TOKEN_WHILE;
-	else if (strcmp(name, "WITH")         == 0) return TOKEN_WITH;
-	else if (strcmp(name, "IDENTIFIER")   == 0) return TOKEN_IDENTIFIER;
-	else return -1;
-}
-
-
-// ----------------------------------- [ Functions ] ---------------------------------------- //
-
-
-void loopPrint(const char* s, int n){
-	while (n-- > 0)
-		printf("%s", s);
-}
-
-
-void printToken(CSRToken* token){
-	const char* name = NULL;
-	if (token != NULL)
-		name = CSRToken_getName(token->id);
-	if (name != NULL)
-		printf("%s", name);
-	else
-		printf("NULL");
-}
-
-
-void printTokenTree(CSRToken* token, int lvl){
-	loopPrint(" ", lvl);
-	printToken(token);
-	
-	if (token == NULL || token->childCount <= 0)
-		return;
-	
-	lvl++;
-	printf(":");
-	for (int i = 0 ; i < token->childCount ; i++){
-		printf("\n");
-		printTokenTree(token->children[i], lvl);
+	switch (name[0]){
+		case 'A':
+			if (strcmp(name, "ADD"          ) == 0) return TOKEN_ADD;
+			if (strcmp(name, "AND"          ) == 0) return TOKEN_AND;
+			if (strcmp(name, "ARRAY"        ) == 0) return TOKEN_ARRAY;
+			if (strcmp(name, "ASSIGN"       ) == 0) return TOKEN_ASSIGN;
+			break;
+		case 'B':
+			if (strcmp(name, "BEGIN"        ) == 0) return TOKEN_BEGIN;
+			if (strcmp(name, "BOOLEAN"      ) == 0) return TOKEN_BOOLEAN;
+			if (strcmp(name, "BOOLEANCONST" ) == 0) return TOKEN_BOOLEANCONST;
+			break;
+		case 'C':
+			if (strcmp(name, "CASE"         ) == 0) return TOKEN_CASE;
+			if (strcmp(name, "CHAR"         ) == 0) return TOKEN_CHAR;
+			if (strcmp(name, "COLON"        ) == 0) return TOKEN_COLON;
+			if (strcmp(name, "COMMA"        ) == 0) return TOKEN_COMMA;
+			if (strcmp(name, "CONST"        ) == 0) return TOKEN_CONST;
+			break;
+		case 'D':
+			if (strcmp(name, "DIV"          ) == 0) return TOKEN_DIV;
+			if (strcmp(name, "DO"           ) == 0) return TOKEN_DO;
+			if (strcmp(name, "DOT"          ) == 0) return TOKEN_DOT;
+			if (strcmp(name, "DOWNTO"       ) == 0) return TOKEN_DOWNTO;
+			break;
+		case 'E':
+			if (strcmp(name, "ELSE"         ) == 0) return TOKEN_ELSE;
+			if (strcmp(name, "END"          ) == 0) return TOKEN_END;
+			if (strcmp(name, "EQU"          ) == 0) return TOKEN_EQU;
+			break;
+		case 'F':
+			if (strcmp(name, "FILE"         ) == 0) return TOKEN_FILE;
+			if (strcmp(name, "FOR"          ) == 0) return TOKEN_FOR;
+			if (strcmp(name, "FORWARD"      ) == 0) return TOKEN_FORWARD;
+			if (strcmp(name, "FUNCTION"     ) == 0) return TOKEN_FUNCTION;
+			break;
+		case 'G':
+			if (strcmp(name, "GEQ"          ) == 0) return TOKEN_GEQ;
+			if (strcmp(name, "GOTO"         ) == 0) return TOKEN_GOTO;
+			if (strcmp(name, "GTH"          ) == 0) return TOKEN_GTH;
+			break;
+		case 'I':
+			if (name[1] == 'D'){
+				if (strcmp(name, "IDENTIFIER"   ) == 0) return TOKEN_IDENTIFIER;
+				if (strcmp(name, "IDIV"         ) == 0) return TOKEN_IDIV;
+			} else if (name[1] == 'N'){
+				if (strcmp(name, "IN"           ) == 0) return TOKEN_IN;
+				if (strcmp(name, "INTEGER"      ) == 0) return TOKEN_INTEGER;
+				if (strcmp(name, "INTEGERCONST" ) == 0) return TOKEN_INTEGERCONST;
+				if (strcmp(name, "INTERVAL"     ) == 0) return TOKEN_INTERVAL;
+			} else {
+				if (strcmp(name, "IF"           ) == 0) return TOKEN_IF;
+				if (strcmp(name, "IMOD"         ) == 0) return TOKEN_IMOD;
+			}
+			break;
+		case 'L':
+			if (strcmp(name, "LABEL"        ) == 0) return TOKEN_LABEL;
+			if (strcmp(name, "LBRACKET"     ) == 0) return TOKEN_LBRACKET;
+			if (strcmp(name, "LEQ"          ) == 0) return TOKEN_LEQ;
+			if (strcmp(name, "LPARENT"      ) == 0) return TOKEN_LPARENT;
+			if (strcmp(name, "LTH"          ) == 0) return TOKEN_LTH;
+			break;
+		case 'M':
+			if (strcmp(name, "MUL"          ) == 0) return TOKEN_MUL;
+			break;
+		case 'N':
+			if (strcmp(name, "NEQ"          ) == 0) return TOKEN_NEQ;
+			if (strcmp(name, "NIL"          ) == 0) return -1;
+			if (strcmp(name, "NOT"          ) == 0) return TOKEN_NOT;
+			break;
+		case 'O':
+			if (strcmp(name, "OF"           ) == 0) return TOKEN_OF;
+			if (strcmp(name, "OR"           ) == 0) return TOKEN_OR;
+			break;
+		case 'P':
+			if (strcmp(name, "PACKED"       ) == 0) return TOKEN_PACKED;
+			if (strcmp(name, "PROCEDURE"    ) == 0) return TOKEN_PROCEDURE;
+			if (strcmp(name, "PROGRAM"      ) == 0) return TOKEN_PROGRAM;
+			if (strcmp(name, "PTR"          ) == 0) return TOKEN_PTR;
+			break;
+		case 'R':
+			if (strcmp(name, "RBRACKET"     ) == 0) return TOKEN_RBRACKET;
+			if (strcmp(name, "REAL"         ) == 0) return TOKEN_REAL;
+			if (strcmp(name, "REALCONST"    ) == 0) return TOKEN_REALCONST;
+			if (strcmp(name, "RECORD"       ) == 0) return TOKEN_RECORD;
+			if (strcmp(name, "REPEAT"       ) == 0) return TOKEN_REPEAT;
+			if (strcmp(name, "RPARENT"      ) == 0) return TOKEN_RPARENT;
+			break;
+		case 'S':
+			if (strcmp(name, "SEMIC"        ) == 0) return TOKEN_SEMIC;
+			if (strcmp(name, "SET"          ) == 0) return TOKEN_SET;
+			if (strcmp(name, "STEP"         ) == 0) return TOKEN_STEP;
+			if (strcmp(name, "STRINGCONST"  ) == 0) return TOKEN_STRINGCONST;
+			if (strcmp(name, "SUB"          ) == 0) return TOKEN_SUB;
+			break;
+		case 'T':
+			if (strcmp(name, "THEN"         ) == 0) return TOKEN_THEN;
+			if (strcmp(name, "TO"           ) == 0) return TOKEN_TO;
+			if (strcmp(name, "TYPE"         ) == 0) return TOKEN_TYPE;
+			break;
+		case 'U':
+			if (strcmp(name, "UNTIL"        ) == 0) return TOKEN_UNTIL;
+			break;
+		case 'V':
+			if (strcmp(name, "VAR"          ) == 0) return TOKEN_VAR;
+			break;
+		case 'W':
+			if (strcmp(name, "WHILE"        ) == 0) return TOKEN_WHILE;
+			if (strcmp(name, "WITH"         ) == 0) return TOKEN_WITH;
+			break;
 	}
-	
-}
-
-
-// ----------------------------------- [ Functions ] ---------------------------------------- //
-
-
-void printStack(){
-	printf(ANSI_GREEN);
-	
-	for (int i = 0 ; i < dfa.tokenStack.count ; i++){
-		printToken(((CSRToken*)dfa.tokenStack.v[i]));
-		printf(" ");
-	}
-	
-	printf(ANSI_RESET "| ");
-	
-	if (dfa.tokenBuffer.count > 0){
-		printf(ANSI_YELLOW);
-		for (int i = dfa.tokenBuffer.count - 1 ; i >= 0 ; i--){
-			printToken(((CSRToken*)dfa.tokenBuffer.v[i]));
-			printf(" ");
-		}
-	}
-	
-	if (peekToken() != NULL){
-		printf(ANSI_CYAN);
-		printf("%s[%d] ", CSRToken_getName(peekToken()->id), tokenCounter-1);
-		printf(ANSI_RESET);
-	}
-	
-	printf(ANSI_RESET);
-}
-
-
-void printState(){
-	printf("[%3d]:  { ", dfa.currentStateId);
-	printStack();
-	printf("}\n");
-}
-
-
-void printDetailStack(){
-	printf("TOKENS:\n");
-	for (int i = 0 ; i < dfa.tokenStack.count ; i++){
-		CSRToken* t = dfa.tokenStack.v[i];
-		printf("  [%d]: %s (%p) ref:%d\n", i, CSRToken_getName(t->id), t, t->refCount);
-	}
-	
-	if (dfa.tokenBuffer.count > 0){
-		printf("--------\n");
-		for (int i = 0 ; i < dfa.tokenBuffer.count ; i++){
-			CSRToken* t = dfa.tokenBuffer.v[i];
-			printf("  [%d]: %s (%p) ref:%d\n", i, CSRToken_getName(t->id), t, t->refCount);
-		}
-	}
-}
-
-
-// ----------------------------------- [ Functions ] ---------------------------------------- //
-
-
-CSRToken* nextToken(){
-	if (bufferedToken != NULL){
-		CSRToken* t = bufferedToken;
-		bufferedToken = NULL;
-		return t;
-	}
-	
-	char* name = nextLine();
-	if (name == NULL)
-		return NULL;
-	
-	CSRTokenID id = getId(name);
-	if (id < 0){
-		fprintf(stderr, "Failed to parse token '%s'.\n", name);
-		exit(1);
-	}
-	
-	tokenCounter++;
-	return CSRToken_create(id);
-}
-
-
-// ----------------------------------- [ Functions ] ---------------------------------------- //
-
-
-CSRToken* staticNext(){
-	static int i = 0;
-	static CSRTokenID v[] = {
-		TOKEN_program_upto_consts,
-		TOKEN_TYPE,
-		TOKEN_IDENTIFIER,
-		TOKEN_EQU,
-		TOKEN_INTEGERCONST,
-		TOKEN_INTERVAL,
-		TOKEN_INTEGERCONST,
-		TOKEN_SEMIC,
-		TOKEN_IDENTIFIER,
-		-1
-	};
-	
-	
-	if (bufferedToken != NULL){
-		CSRToken* t = bufferedToken;
-		bufferedToken = NULL;
-		return t;
-	}
-	else if (v[i] == -1)
-		return NULL;
-	else
-		return CSRToken_create(v[i++]);
+	return -1;
 }
 
 
@@ -316,75 +214,202 @@ void printTokens(int i, int n){
 }
 
 
-// --------------------------------- [ Main Function ] -------------------------------------- //
+void fillInputBuffer(){
+	int count = 0;
+	size_t size = 32767;
+	CSRTokenID* v = malloc(sizeof(*v) * size);
+	
+	while (true){
+		const char* line = nextLine();
+		if (line == NULL){
+			break;
+		}
+		
+		if (count >= size){
+			// size *= 2;
+			// v = realloc(v, size);
+			CSRTokenID* _v = malloc(sizeof(*v) * size * 2);
+			memcpy(_v, v, sizeof(*v) * size);
+			free(v);
+			v = _v;
+			size *= 2;
+		}
+		
+		CSRTokenID id = getId(line);
+		if (id < 0){
+			fprintf(stderr, "Failed to parse token '%s'.\n", line);
+			exit(1);
+		}
+		
+		v[count++] = id;
+	}
+	
+	inputBuffer = v;
+	inputBuffer_i = 0;
+	inputBuffer_n = count;
+	sw.tokenCounter = count;
+}
+
+
+// ----------------------------------- [ Functions ] ---------------------------------------- //
+
+
+CSRToken* nextToken(){
+	char* name = nextLine();
+	if (name == NULL)
+		return NULL;
+	
+	CSRTokenID id = getId(name);
+	if (id < 0){
+		fprintf(stderr, "Failed to parse token '%s'.\n", name);
+		exit(1);
+	}
+	
+	sw.tokenCounter++;
+	return CSRToken_create(id);
+}
+
+
+CSRToken* nextToken_buffered(){
+	if (inputBuffer_i < inputBuffer_n)
+		return CSRToken_create(inputBuffer[inputBuffer_i++]);
+	else
+		return NULL;
+}
+
+
+// ----------------------------------- [ Functions ] ---------------------------------------- //
+
+
+void getResult(){
+	result_n = dfa.tokenStack.count;
+	result = malloc(sizeof(*result) * dfa.tokenStack.count);
+	
+	for (int i = 0 ; i < result_n ; i++){
+		if (dfa.tokenStack.v[i] != NULL)
+			result[i] = ((CSRToken*)dfa.tokenStack.v[i])->id;
+		else
+			result[i] = -1;
+	}
+	
+}
+
+
+void printResult(){
+	printf("Result: ");
+	if (ansi)
+		printf(ANSI_GREEN);
+	
+	for (int i = 0 ; i < result_n ; i++){
+		printf("%s ", CSRToken_getName(result[i]));
+	}
+	
+	if (ansi)
+		printf(ANSI_RESET);
+	printf("\n");
+}
+
+
+// ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
 void f0(){
 	dfa.getNextToken = nextToken;
-	while (DFA_step(&dfa));
 	
-	printf("STACK: " ANSI_YELLOW);
-	for (int i = 0 ; i < dfa.tokenStack.count ; i++){
-		CSRToken* t = (CSRToken*)dfa.tokenStack.v[i];
-		printf("%s ", CSRToken_getName(t->id));
-	}
-	printf(ANSI_RESET "\n");
+	STOPWATCH_START(sw.dfa);
+	while (DFA_step(&dfa));
+	STOPWATCH_STOP(sw.dfa);
 }
 
 
 void f1(){
-	dfa.getNextToken = nextToken;
+	dfa.getNextToken = nextToken_buffered;
 	
-	// const int max = 20702;
-	const int max = 20800;
-	for (int i = 0 ; i < max ; i++){
-		if (!DFA_step(&dfa))
-			break;
-		
-		if (i < (max-20)) continue;
-		
-		printf("%-3d ", i);
-		printState();
-	}
+	// Read all tokens
+	STOPWATCH_START(sw.buffer);
+	fillInputBuffer();
+	STOPWATCH_STOP(sw.buffer);
 	
-	printf("HALT at token[%d]\n", tokenCounter);
-	printState();
+	// Execute DFA
+	STOPWATCH_START(sw.dfa);
+	while (DFA_step(&dfa));
+	STOPWATCH_STOP(sw.dfa);
 }
 
 
-void f2(){
-	dfa.getNextToken = staticNext;
-	int i = 0;
-	
-	printf("%-3d ", i++);
-	printState();
-	
-	while (DFA_step(&dfa)){
-		printf("%-3d ", i++);
-		printState();
-	}
-	
-	printf("HALT\n");
-	printf("%-3d ", --i);
-	printState();
-}
 
+
+// void fX(){
+// 	dfa.getNextToken = nextToken;
+	
+// 	// const int max = 20702;
+// 	const int max = 20800;
+// 	for (int i = 0 ; i < max ; i++){
+// 		if (!DFA_step(&dfa))
+// 			break;
+		
+// 		if (i < (max-20)) continue;
+		
+// 		printf("%-3d ", i);
+// 		printState();
+// 	}
+	
+// 	printf("HALT at token[%d]\n", tokenCounter);
+// 	printState();
+// }
+
+
+// --------------------------------- [ Main Function ] -------------------------------------- //
+
+
+void f(){
+	DFA_init(&dfa);
+	
+	
+	// f0();
+	f1();
+	// fx();
+	
+	
+	getResult();
+	
+	
+	STOPWATCH_START(sw.deinit);
+	DFA_deinit(&dfa);
+	STOPWATCH_STOP(sw.deinit);
+}
 
 
 int main(int argc, char const* const* argv){
 	printf("======================================================\n");
-	DFA_init(&dfa);
+	
+	if (argc >= 2 && strcmp(argv[1],"-c") == 0){
+		ansi = true;
+	}
 	
 	
-	// printTokens(0, 100);
+	// Run program
+	STOPWATCH_START(sw.total);
+	f();
+	STOPWATCH_STOP(sw.total);
 	
 	
-	f0();
-	// f1();
-	// f2();
+	printResult();
 	
+	if (ansi){
+		printf("Tokens: " ANSI_YELLOW "%d" ANSI_RESET "\n", sw.tokenCounter);
+		printf("INPUT:  " ANSI_YELLOW "%.3fms" ANSI_RESET " (~%.1fs)\n", sw.buffer, sw.buffer/1000.0);
+		printf("DFA:    " ANSI_YELLOW "%.3fms" ANSI_RESET " (~%.1fs)\n", sw.dfa, sw.dfa/1000.0);
+		printf("DELETE: " ANSI_YELLOW "%.3fms" ANSI_RESET " (~%.1fs)\n", sw.deinit, sw.deinit/1000.0);
+		printf("TOTAL:  " ANSI_YELLOW "%.3fms" ANSI_RESET " (~%.1fs)\n", sw.total, sw.total/1000.0);
+	} else {
+		printf("Tokens: %d\n", sw.tokenCounter);
+		printf("INPUT:  %.3fms (~%.1fs)\n", sw.buffer, sw.buffer/1000.0);
+		printf("DFA:    %.3fms (~%.1fs)\n", sw.dfa, sw.dfa/1000.0);
+		printf("DELETE: %.3fms (~%.1fs)\n", sw.deinit, sw.deinit/1000.0);
+		printf("TOTAL:  %.3fms (~%.1fs)\n", sw.total, sw.total/1000.0);
+	}
 	
-	DFA_deinit(&dfa);
 	printf("======================================================\n");
 	return 0;
 }
