@@ -314,7 +314,7 @@ bool DFA_consume(DFA* const _dfa, CSRToken* const _currentToken){
 
 
 bool DFA_step(DFA* dfa){
-	CSRToken* t;
+	CSRToken* t = NULL;
 	
 	if (dfa->tokenBuffer.count > 0){
 		t = Stack_pop(&dfa->tokenBuffer);
