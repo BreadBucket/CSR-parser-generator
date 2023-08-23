@@ -4,10 +4,10 @@ tangle[1000]:
   symbols:    53019
   reductions: 38243
   steps:      76554
-  LEXER:      0.512ms
-  PARSER:     5.475ms
-  ANALYSIS:   6.061ms
-  CLEANUP:    1.838ms
+  LEXER:      0.526ms
+  PARSER:     2.920ms
+  ANALYSIS:   3.512ms
+  CLEANUP:    0.000ms
 
 weave[1000]:
   result:     program 
@@ -15,10 +15,10 @@ weave[1000]:
   symbols:    116170
   reductions: 84885
   steps:      168031
-  LEXER:      0.899ms
-  PARSER:     11.398ms
-  ANALYSIS:   12.489ms
-  CLEANUP:    4.467ms
+  LEXER:      0.941ms
+  PARSER:     5.924ms
+  ANALYSIS:   6.977ms
+  CLEANUP:    0.000ms
 
 tex[1000]:
   result:     program 
@@ -26,10 +26,10 @@ tex[1000]:
   symbols:    461576
   reductions: 329447
   steps:      661767
-  LEXER:      3.721ms
-  PARSER:     43.998ms
-  ANALYSIS:   48.558ms
-  CLEANUP:    18.556ms
+  LEXER:      3.952ms
+  PARSER:     23.626ms
+  ANALYSIS:   28.207ms
+  CLEANUP:    0.000ms
 
 mf[1000]:
   result:     program 
@@ -37,8 +37,8 @@ mf[1000]:
   symbols:    490373
   reductions: 353439
   steps:      705266
-  LEXER:      3.676ms
-  PARSER:     47.115ms
-  ANALYSIS:   51.274ms
-  CLEANUP:    19.794ms
+  LEXER:      3.846ms
+  PARSER:     24.917ms
+  ANALYSIS:   29.616ms
+  CLEANUP:    0.000ms
 

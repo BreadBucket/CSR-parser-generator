@@ -1,10 +1,17 @@
 #!/bin/bash
 
-in="input/"
-out="output/"
 
-prog="./obj/program"
 make all
+
+in="input/"
+
+out_1="output/tree"
+out_2="output/notree"
+
+prog_1="./obj/program"
+prog_2="./obj/program-notree"
+
+
 
 
 N=100
@@ -36,7 +43,9 @@ function run(){
 	local name="$(basename ${1%%.*})"
 	local txt="${out}/${name}.txt"
 	
+	mkdir -p "$out"
 	rm -f "$txt"
+	
 	${prog} -stats <"${in}/$1" >>"$txt"
 	
 	# Bench lexer
@@ -69,8 +78,26 @@ function run(){
 
 
 
+out="$out_1"
+prog="$prog_1"
 f="${out}/time.txt"
 rm -f "$f"
+
+run "tangle.p" $N | tee -a "$f"
+printf "\n"    $N | tee -a "$f"
+run "weave.p"  $N | tee -a "$f"
+printf "\n"    $N | tee -a "$f"
+run "tex.p"    $N | tee -a "$f"
+printf "\n"    $N | tee -a "$f"
+run "mf.p"     $N | tee -a "$f"
+printf "\n"    $N | tee -a "$f"
+
+
+out="$out_2"
+prog="$prog_2"
+f="${out}/time.txt"
+rm -f "$f"
+
 run "tangle.p" $N | tee -a "$f"
 printf "\n"    $N | tee -a "$f"
 run "weave.p"  $N | tee -a "$f"

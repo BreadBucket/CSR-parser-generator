@@ -55,40 +55,27 @@ CONST const_declaration --> const_declarations(1,2) ;
 const_declarations const_declaration --> const_declarations(1,2) ;
 
 ### TYPE DECLARATIONS:
-###########################################
-###########################################
-###########################################
-###########################################
 
-
-#### HERE ####
-(TYPE IDENTIFIER EQU|type_declarations IDENTIFIER EQU|ARRAY LBRACKET|ARRAY LBRACKET simple_types COMMA|ARRAY LBRACKET simple_types RBRACKET OF|FILE OF|SET OF|record_field_names COLON|var_names COLON)
-IDENTIFIER --> 1 named_type(2) ;
-#### HERE ####
-
-(TYPE IDENTIFIER EQU|type_declarations IDENTIFIER EQU|ARRAY LBRACKET|ARRAY LBRACKET simple_types COMMA|ARRAY LBRACKET simple_types RBRACKET OF|FILE OF|SET OF|record_field_names COLON|var_names COLON)
-(STRINGCONST|REALCONST|INTEGERCONST|BOOLEANCONST|IDENTIFIER)
-INTERVAL --> 1 constant(2) 3 ;
-
-
-(TYPE IDENTIFIER EQU|type_declarations IDENTIFIER EQU|ARRAY LBRACKET|ARRAY LBRACKET simple_types COMMA|ARRAY LBRACKET simple_types RBRACKET OF|FILE OF|SET OF|record_field_names COLON|var_names COLON)
-(ADD|SUB)
-(STRINGCONST|REALCONST|INTEGERCONST|BOOLEANCONST|IDENTIFIER)
-INTERVAL --> 1 constant(2,3) 4;
-
-
-(TYPE IDENTIFIER EQU|type_declarations IDENTIFIER EQU|ARRAY LBRACKET|ARRAY LBRACKET simple_types COMMA|ARRAY LBRACKET simple_types RBRACKET OF|FILE OF|SET OF|record_field_names COLON|var_names COLON)
-PTR IDENTIFIER --> 1 pointer_type(2,3) ;
-
-
-(TYPE IDENTIFIER EQU|type_declarations IDENTIFIER EQU|ARRAY LBRACKET|ARRAY LBRACKET simple_types COMMA|ARRAY LBRACKET simple_types RBRACKET OF|FILE OF|SET OF|record_field_names COLON|var_names COLON)
-LPARENT IDENTIFIER --> 1 2 enum_names(3) ;
-
-
-###########################################
-###########################################
-###########################################
-###########################################
+(TYPE IDENTIFIER EQU|type_declarations IDENTIFIER EQU|
+ ARRAY LBRACKET|ARRAY LBRACKET simple_types COMMA|ARRAY LBRACKET simple_types RBRACKET OF|
+ FILE OF|SET OF|record_field_names COLON|var_names COLON)
+ IDENTIFIER --> 1 named_type(2) ;
+(TYPE IDENTIFIER EQU|type_declarations IDENTIFIER EQU|
+ ARRAY LBRACKET|ARRAY LBRACKET simple_types COMMA|ARRAY LBRACKET simple_types RBRACKET OF|
+ FILE OF|SET OF|record_field_names COLON|var_names COLON)
+ (STRINGCONST|REALCONST|INTEGERCONST|BOOLEANCONST|IDENTIFIER) INTERVAL --> 1 constant(2) 3 ;
+(TYPE IDENTIFIER EQU|type_declarations IDENTIFIER EQU|
+ ARRAY LBRACKET|ARRAY LBRACKET simple_types COMMA|ARRAY LBRACKET simple_types RBRACKET OF|
+ FILE OF|SET OF|record_field_names COLON|var_names COLON)
+ (ADD|SUB) (STRINGCONST|REALCONST|INTEGERCONST|BOOLEANCONST|IDENTIFIER) INTERVAL --> 1 constant(2,3) 4;
+(TYPE IDENTIFIER EQU|type_declarations IDENTIFIER EQU|
+ ARRAY LBRACKET|ARRAY LBRACKET simple_types COMMA|ARRAY LBRACKET simple_types RBRACKET OF|
+ FILE OF|SET OF|record_field_names COLON|var_names COLON)
+ PTR IDENTIFIER --> 1 pointer_type(2,3) ;
+(TYPE IDENTIFIER EQU|type_declarations IDENTIFIER EQU|
+ ARRAY LBRACKET|ARRAY LBRACKET simple_types COMMA|ARRAY LBRACKET simple_types RBRACKET OF|
+ FILE OF|SET OF|record_field_names COLON|var_names COLON)
+ LPARENT IDENTIFIER --> 1 2 enum_names(3) ;
 
 (TYPE|type_declarations) IDENTIFIER EQU type SEMIC --> 1 type_declaration(2,3,4,5) ;
 TYPE type_declaration --> type_declarations(1,2) ;

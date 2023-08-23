@@ -1,0 +1,44 @@
+tangle[1000]:
+  result:     program 
+  tokens:     13437
+  symbols:    53019
+  reductions: 38243
+  steps:      76554
+  LEXER:      0.523ms
+  PARSER:     5.633ms
+  ANALYSIS:   6.266ms
+  CLEANUP:    2.139ms
+
+weave[1000]:
+  result:     program 
+  tokens:     28019
+  symbols:    116170
+  reductions: 84885
+  steps:      168031
+  LEXER:      0.930ms
+  PARSER:     11.832ms
+  ANALYSIS:   12.346ms
+  CLEANUP:    4.754ms
+
+tex[1000]:
+  result:     program 
+  tokens:     120480
+  symbols:    461576
+  reductions: 329447
+  steps:      661767
+  LEXER:      3.734ms
+  PARSER:     43.952ms
+  ANALYSIS:   48.213ms
+  CLEANUP:    18.300ms
+
+mf[1000]:
+  result:     program 
+  tokens:     123736
+  symbols:    490373
+  reductions: 353439
+  steps:      705266
+  LEXER:      3.653ms
+  PARSER:     46.970ms
+  ANALYSIS:   51.143ms
+  CLEANUP:    19.804ms
+

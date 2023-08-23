@@ -19,6 +19,11 @@ struct RightSymbol {
 };
 
 
+struct {
+	bool noTree = false;
+} settings;
+
+
 // ----------------------------------- [ Functions ] ---------------------------------------- //
 
 
@@ -107,15 +112,21 @@ void genAlternatives(vector<LeftSymbol>& left, vector<RightSymbol>& right){
 				
 				// Build constructor
 				if (!rsym.name.empty()){
-					s.append(rsym.name).push_back('(');
+					s.append(rsym.name);
 					
-					for (int i = 0 ; i < ref_corrections.size() ; i++){
-						if (i > 0)
-							s += ',';
-						s += to_string(ref_corrections[i]);
+					if (!settings.noTree){
+						s += '(';
+						
+						for (int i = 0 ; i < ref_corrections.size() ; i++){
+							if (i > 0)
+								s += ',';
+							s += to_string(ref_corrections[i]);
+						}
+						
+						s += ')';
 					}
 					
-					s += ") ";
+					s += ' ';
 				}
 				
 				else {
@@ -299,6 +310,11 @@ void processFile(const string& data){
 int main(int argc, char const* const* argv){
 	string data;
 	string line;
+	
+	for (int i = 1 ; i < argc ; i++){
+		if (string("--no-tree") == argv[i])
+			settings.noTree = true;
+	}
 	
 	while (getline(cin, line)){
 		data.append(line).push_back('\n');

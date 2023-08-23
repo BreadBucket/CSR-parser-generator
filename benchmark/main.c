@@ -142,8 +142,9 @@ CSRToken* _nextToken_lex(DFA*){
 }
 
 
-bool _onTokenCreate(DFA*, CSRToken*){
-	return true;
+CSRToken* _onTokenCreate(DFA*, CSRToken* t){
+	sw.symbolCounter--;
+	return t;
 }
 
 
@@ -198,8 +199,8 @@ void f(){
 	else if (settings.fid == 4){
 		DFA_init(&dfa);
 		dfa.getNextToken = _nextToken_buff;
-		// dfa.getNextToken = _nextToken_lex;
 		dfa.onTokenDelete = _onTokenDestroy;
+		// dfa.onTokenCreate = _onTokenCreate;
 		
 		bufferLexer();
 		sw.tokenCounter = buffer_count;
